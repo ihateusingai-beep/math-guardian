@@ -50,7 +50,7 @@
 -->
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="theme-color" content="#0b0d1a" />
 <title>數學守護者：精準訓練版 v3.4</title>
@@ -187,6 +187,17 @@
     outline-offset: 3px;
     border-radius: var(--radius-sm);
   }
+  /* V3.4-AUDIT4: screen-reader only utility (.sr-only) for context that
+     visible users don't need (eg "(未解鎖)" badge hint, password label) */
+  .sr-only {
+    position: absolute !important;
+    width: 1px !important; height: 1px !important;
+    padding: 0 !important; margin: -1px !important;
+    overflow: hidden !important;
+    clip: rect(0,0,0,0) !important;
+    white-space: nowrap !important;
+    border: 0 !important;
+  }
   /* 統一 selected state 對比 (P0-1) */
   .opt-selected {
     border: 2px solid var(--c-accent-amber) !important;
@@ -212,6 +223,8 @@
   .q-sym-row .q-sym-btn:hover { background: rgba(251,191,36,0.15); border-color: rgba(251,191,36,0.5); }
   .q-sym-row .q-sym-btn:active { transform: scale(0.95); }
   .q-sym-row .q-sym-btn.correct { background: rgba(34,197,94,0.4); border-color: #22c55e; }
+  .q-sym-row .q-sym-btn.correct::before { content: '✓ '; font-weight: 900; margin-right: 2px; }
+  .q-sym-row .q-sym-btn.wrong::before   { content: '✗ '; font-weight: 900; margin-right: 2px; }
 
   /* V3.4-F2: TTS button on question card */
   .tts-btn {
@@ -331,7 +344,20 @@
   }
   .screen-shake-active { animation: screen-shake 0.45s ease-out; }
   @media (prefers-reduced-motion: reduce) {
-    .confetti-particle, .screen-shake-active { animation: none !important; }
+    /* V3.4-AUDIT4: blanket rule — 覆蓋所有 CSS animation + transition,
+       唔需要逐個 class 列出。Snippets override 全部 keyframes (snowfall、
+       boss-intro、tts-pulse、screen-alert、glow、badge-in、flash-correct、
+       flash-wrong、sword-shine、orb-pulse、troll-idle、cloud-drift 等)。 */
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+    /* retention: boss intro + screen-alert 等 keyframes-based 全 disable */
+    .confetti-particle, .screen-shake-active, .screen-alert,
+    .bg-snow circle, .tts-btn.speaking, .boss, .ult, .ultimate,
+    .badge-in, .flash-correct, .flash-wrong { animation: none !important; }
   }
   @keyframes flash-correct {
     0% { box-shadow: 0 0 0 0 rgba(34,197,94,0.7); }
@@ -418,6 +444,9 @@
   }
   .option-btn.correct { animation: flash-correct 0.6s; background: #22c55e !important; color: white; border-color: #16a34a; }
   .option-btn.wrong   { animation: flash-wrong 0.6s;   background: #ef4444 !important; color: white; border-color: #b91c1c; }
+  /* V3.4-AUDIT4: ✓/✗ symbol 用 ::before 注入 — color-blind / 較弱視用戶不靠 color-only signal */
+  .option-btn.correct::before { content: '✓ '; font-weight: 900; margin-right: 4px; }
+  .option-btn.wrong::before   { content: '✗ '; font-weight: 900; margin-right: 4px; }
 
   /* HP / 能量 / 防禦條 */
   .track {
@@ -1579,7 +1608,7 @@
       <!-- 5) Boss 初始 HP -->
       <div>
         <label class="text-sm font-bold text-amber-300 mb-2 block">⑥ Boss 初始 HP <span id="hp-display" class="text-white font-extrabold ml-1">200</span></label>
-        <input id="hp-slider" type="range" min="60" max="500" step="20" value="200" class="w-full" />
+        <input id="hp-slider" type="range" min="60" max="500" step="20" value="200" class="w-full" aria-label="Boss 初始 HP" aria-valuemin="60" aria-valuemax="500" aria-valuenow="200" />
       </div>
 
       <!-- 開始 -->
@@ -1615,8 +1644,8 @@
     <div class="relative bg-black/30 border border-white/10 rounded-3xl p-3 md:p-4 shadow-2xl overflow-hidden">
       <div class="flex items-center gap-3 mb-2">
         <!-- P2-2: AI generated hero portrait (替補小 pixel sprite) -->
-        <img id="boss-hero-portrait" class="hidden" style="width:64px;height:64px;object-fit:contain;image-rendering:pixelated;flex-shrink:0;" alt="boss">
-        <div id="boss-icon" class="boss-svg troll-idle">
+        <img id="boss-hero-portrait" class="hidden" style="width:64px;height:64px;object-fit:contain;image-rendering:pixelated;flex-shrink:0;" alt="">
+        <div id="boss-icon" class="boss-svg troll-idle" role="img" aria-label="森林巨魔">
           <svg class="pixel w-full h-full"><use id="boss-svg-use" href="#px-troll"/></svg>
         </div>
         <div class="flex-1">
@@ -1783,14 +1812,15 @@
 </div>
 
 <!-- ========== 老師密碼 modal ========== -->
-<div id="teacher-modal" class="hidden fixed inset-0 z-50 modal-backdrop items-center justify-center p-4">
+<div id="teacher-modal" class="hidden fixed inset-0 z-50 modal-backdrop items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="teacher-modal-title">
   <div class="bg-slate-900 border border-white/15 rounded-3xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-    <h3 class="text-xl font-bold mb-2 text-amber-300 flex items-center gap-2">
+    <h3 id="teacher-modal-title" class="text-xl font-bold mb-2 text-amber-300 flex items-center gap-2">
       <svg class="pixel icon-md"><use href="#px-castle"/></svg>
       老師控制台
     </h3>
     <p class="text-sm text-white/60 mb-4">輸入老師密碼以暫停 / 控制遊戲</p>
-    <input id="teacher-pwd" type="password" placeholder="密碼" class="w-full px-4 py-3 rounded-xl bg-black/40 border border-white/20 text-white mb-3" />
+    <label for="teacher-pwd" class="sr-only">老師密碼</label>
+    <input id="teacher-pwd" type="password" placeholder="密碼" autocomplete="off" class="w-full px-4 py-3 rounded-xl bg-black/40 border border-white/20 text-white mb-3" />
     <div id="teacher-pwd-error" class="hidden text-red-400 text-sm mb-3">❌ 密碼不對，請再試一次</div>
 
     <!-- Control buttons (gated by password) -->
@@ -1858,12 +1888,12 @@
 </div>
 
 <!-- ========== 暫停遮罩 ========== -->
-<div id="pause-overlay" class="hidden pause-overlay">
+<div id="pause-overlay" class="hidden pause-overlay" role="dialog" aria-modal="true" aria-labelledby="pause-title">
   <div class="text-center">
-    <div class="mb-3 flex justify-center" style="width:96px;height:96px;margin:0 auto;"><svg class="pixel w-full h-full"><use href="#px-castle"/></svg></div>
-    <h2 class="text-3xl font-extrabold mb-2">遊戲暫停中</h2>
+    <div class="mb-3 flex justify-center" style="width:96px;height:96px;margin:0 auto;"><svg class="pixel w-full h-full" aria-hidden="true"><use href="#px-castle"/></svg></div>
+    <h2 id="pause-title" class="text-3xl font-extrabold mb-2">遊戲暫停中</h2>
     <p class="text-white/70 mb-4">老師正在控制中⋯</p>
-    <button id="pause-resume-2" class="btn btn-knight">▶ 恢復遊戲</button>
+    <button id="pause-resume-2" class="btn btn-knight" aria-label="恢復遊戲">▶ 恢復遊戲</button>
   </div>
 </div>
 
@@ -2748,10 +2778,15 @@ const UI = {
       } else {
         const row = document.createElement('div');
         row.className = 'q-sym-row';
+        row.setAttribute('role', 'group');
+        row.setAttribute('aria-label', '大小比較');
+        const symLabelMap = { '<': '細過', '=': '等於', '>': '大過' };
         ['<', '=', '>'].forEach(sym => {
           const b = document.createElement('button');
           b.className = 'q-sym-btn';
           b.textContent = sym === '<' ? '＜ (細)' : sym === '>' ? '＞ (大)' : '＝ (等)';
+          // V3.4-AUDIT4: aria-label 取代 screen-reader 讀 "(小於 細)" 嘅混亂
+          b.setAttribute('aria-label', symLabelMap[sym]);
           b.dataset.sym = sym;
           b.onclick = () => Game.handleAnswer(team, sym, b);
           row.appendChild(b);
@@ -2796,8 +2831,9 @@ const UI = {
       clock.className = 'q-clock';
       const hour = q.extra.hour;
       const deg = hour * 30;
+      // V3.4-AUDIT4: clock SVG 加 role+aria-label,screen-reader 知個鐘顯示幾點
       clock.innerHTML = `
-        <svg viewBox="0 0 16 16" style="width:140px;height:140px;">
+        <svg viewBox="0 0 16 16" role="img" aria-label="時鐘顯示 ${hour} 點" style="width:140px;height:140px;">
           <use href="#px-clock-base"/>
           <line x1="8" y1="8" x2="8" y2="3" stroke="#dc2626" stroke-width="1.2" transform="rotate(${deg} 8 8)"/>
           <line x1="8" y1="8" x2="11" y2="8" stroke="#1e293b" stroke-width="0.6"/>
@@ -2868,10 +2904,15 @@ const UI = {
     if (Game.settings.mode === 'choice') {
       const grid = document.createElement('div');
       grid.className = 'grid grid-cols-2 gap-2';
+      grid.setAttribute('role', 'group');
+      grid.setAttribute('aria-label', '答案選項');
       (q.options || [q.answer]).forEach(opt => {
         const b = document.createElement('button');
         b.className = 'option-btn';
         b.textContent = String(opt);
+        // V3.4-AUDIT4: clock question 用 aria-label 表明 "X 點鐘" 嘅 time 語意
+        if (reg.layout === 'clock') b.setAttribute('aria-label', `${opt} 點鐘`);
+        else b.setAttribute('aria-label', `答案 ${opt}`);
         b.onclick = () => Game.handleAnswer(team, opt, b);
         grid.appendChild(b);
       });
@@ -2883,10 +2924,16 @@ const UI = {
       const display = document.createElement('div');
       display.className = 'bg-black/50 rounded-xl text-center text-3xl font-extrabold py-3 tracking-widest';
       display.textContent = '_ _';
+      // V3.4-AUDIT4: display 加 aria-live 讓 screen-reader 知道用戶輸入咗咩
+      display.setAttribute('aria-live', 'polite');
+      display.setAttribute('aria-atomic', 'true');
+      display.setAttribute('aria-label', '已輸入答案');
       wrap.appendChild(display);
 
       const kb = document.createElement('div');
       kb.className = 'grid grid-cols-3 gap-2';
+      kb.setAttribute('role', 'group');
+      kb.setAttribute('aria-label', '數字鍵盤');
       // v3.2: compare10 keypad 收縮成 6-key (3 sym + clear + 0 + ok)
       const isSymAnswer = reg.layout === 'sym-button';
       const keys = isSymAnswer
@@ -2895,6 +2942,13 @@ const UI = {
       keys.forEach(k => {
         const b = document.createElement('button');
         b.textContent = (k === 'clear' ? '⌫' : k === 'ok' ? '✓' : k);
+        // V3.4-AUDIT4: aria-label 取代 textContent announce (screen-reader 讀"細過"唔係"<")
+        if (k === 'clear') b.setAttribute('aria-label', '清除');
+        else if (k === 'ok') b.setAttribute('aria-label', '確定');
+        else if (isSymAnswer && k === '<') b.setAttribute('aria-label', '細過');
+        else if (isSymAnswer && k === '=') b.setAttribute('aria-label', '等於');
+        else if (isSymAnswer && k === '>') b.setAttribute('aria-label', '大過');
+        else b.setAttribute('aria-label', `數字 ${k}`);
         // v3.1: compare10 keypad mode — < = > 紫粉 highlight
         const isSymKey = isSymAnswer && (k === '<' || k === '=' || k === '>');
         b.className = 'key-btn' + (k === 'clear' ? ' clear' : k === 'ok' ? ' fn' : '') + (isSymKey ? ' sym' : '');
@@ -3077,6 +3131,8 @@ function setupMenu() {
   slider.addEventListener('input', () => {
     Game.settings.initialBossHp = parseInt(slider.value, 10);
     display.textContent = slider.value;
+    // V3.4-AUDIT4: aria-valuenow 同步 — screen-reader 講出當前 HP
+    slider.setAttribute('aria-valuenow', slider.value);
   });
   // 開始
   $('btn-start').onclick = () => {
@@ -3161,7 +3217,15 @@ function renderBossSelect() {
     btn.dataset.boss = boss.id;
     btn.setAttribute('aria-pressed', unlocked && Bosses.current?.id === boss.id ? 'true' : 'false');
     if (unlocked && Bosses.current?.id === boss.id) btn.classList.add('opt-selected');
-    if (!unlocked) btn.classList.add('opacity-50', 'cursor-not-allowed');
+    if (!unlocked) {
+      btn.classList.add('opacity-50', 'cursor-not-allowed');
+      // V3.4-AUDIT4: locked boss 唔可以 keyboard-reach,更明確 aria-disabled
+      btn.setAttribute('aria-disabled', 'true');
+      btn.setAttribute('tabindex', '-1');
+      btn.setAttribute('aria-label', `${boss.name} 未解鎖`);
+    } else {
+      btn.setAttribute('aria-label', `${boss.name} HP ${boss.hpDefault}`);
+    }
     // P2-1: 用 AI generated hero image 取代細像素 sprite（單檔 inline base64）
     const heroSrc = BOSS_HERO[boss.id] || '';
     btn.innerHTML = `
@@ -3270,6 +3334,9 @@ function startGame() {
     // boss name label
     const lbl = document.getElementById('boss-name-label');
     if (lbl) lbl.textContent = Bosses.current.emoji + ' ' + Bosses.current.name;
+    // V3.4-AUDIT4: SVG sprite boss icon 嘅 aria-label 一齊同步 (之前寫死 "森林巨魔")
+    const bossIconWrap = document.getElementById('boss-icon');
+    if (bossIconWrap) bossIconWrap.setAttribute('aria-label', Bosses.current.name);
     // P2-2: AI generated hero portrait 入主 game boss panel
     const heroImg = document.getElementById('boss-hero-portrait');
     if (heroImg && BOSS_HERO[Bosses.current.id]) {
@@ -3283,6 +3350,11 @@ function startGame() {
         if (svg) svg.parentElement?.classList.remove('hidden');
       };
       heroImg.classList.remove('hidden');
+    } else if (heroImg) {
+      // V3.4-AUDIT4-FIX: BOSS_HERO[id] 唔存在時 (locked boss 無 AI portrait),
+      // 隱藏空圖 + 確保 sprite fallback 顯示;alt 同步 boss 名 (不再係 placeholder "boss")
+      heroImg.removeAttribute('src');
+      heroImg.classList.add('hidden');
     }
     // P2-3: cinematic intro — 700ms scale + glow 入場
     showBossIntro(Bosses.current);
@@ -3739,9 +3811,11 @@ function renderEndBadges(victory) {
     const style = unlocked
       ? `opacity:1;filter:drop-shadow(0 0 8px rgba(251,191,36,0.5));animation:badge-in 0.4s ${i*0.08}s cubic-bezier(0.34,1.56,0.64,1) both;`
       : `opacity:0.25;filter:grayscale(0.85);`;
-    return `<div title="${b.label}${unlocked ? '' : ' (未解鎖)'}" style="display:inline-flex;flex-direction:column;align-items:center;gap:2px;${style}">
-      <svg class="pixel" width="40" height="40" aria-label="${b.label}"><use href="#${b.symbol}"/></svg>
-      <span style="font-size:10px;line-height:1;color:${unlocked?'#fbbf24':'#94a3b8'};font-weight:600;">${b.label}</span>
+    // V3.4-AUDIT4: locked badge 加 sr-only text (visible "未解鎖") + aria-disabled,
+    // SVG aria-label 移除 (下方 span 已 carry 文字,避免重複 announce)
+    return `<div title="${b.label}${unlocked ? '' : ' (未解鎖)'}" ${unlocked ? '' : 'aria-disabled="true"'} style="display:inline-flex;flex-direction:column;align-items:center;gap:2px;${style}">
+      <svg class="pixel" width="40" height="40" aria-hidden="true"><use href="#${b.symbol}"/></svg>
+      <span style="font-size:10px;line-height:1;color:${unlocked?'#fbbf24':'#94a3b8'};font-weight:600;">${b.label}${unlocked ? '' : ' <span class="sr-only">(未解鎖)</span>'}</span>
     </div>`;
   }).join('');
   const el = $('end-badges');
@@ -3789,6 +3863,8 @@ function showEndScreen(victory) {
   const defeatedSrc = AI_ASSETS.defeat[Bosses.current?.id];
   if (victory && defeatedSrc && Bosses.current) {
     portrait.src = defeatedSrc;
+    // V3.4-AUDIT4: 戰勝時 portrait 顯示"被擊敗嘅boss",alt text 同步
+    portrait.alt = `${Bosses.current.name} 已被擊敗`;
     // V3.4-AUDIT3-FIX: onerror fallback — AI base64 corrupt 時 fallback 去 SVG trophy
     portrait.onerror = () => {
       portrait.classList.add('hidden');
@@ -3812,6 +3888,28 @@ function showEndScreen(victory) {
   renderEndBadges(victory);
   $('end-title').textContent = title;
   $('end-message').textContent = msg;
+  // V3.4-AUDIT4: 結束畫面 announce 到 aria-live + focus 到 end-title (screen-reader 同 keyboard user 都收到通知)
+  setTimeout(() => {
+    const live = $('aria-live-alerts') || (() => {
+      const a = document.createElement('div');
+      a.id = 'aria-live-alerts';
+      a.setAttribute('aria-live', 'assertive');
+      a.setAttribute('aria-atomic', 'true');
+      a.style.cssText = 'position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden';
+      document.body.appendChild(a);
+      return a;
+    })();
+    live.textContent = '';
+    setTimeout(() => {
+      live.textContent = `${title}。騎士隊答對 ${tk.correct} 題，法師隊答對 ${tm.correct} 題`;
+    }, 80);
+    // focus 移到 end-title (keyboard / screen-reader 用)
+    const et = $('end-title');
+    if (et) {
+      et.setAttribute('tabindex', '-1');
+      et.focus({ preventScroll: false });
+    }
+  }, 600);
   $('end-stats').innerHTML = `
     <div class="grid grid-cols-2 gap-3 text-sm">
       <div class="bg-blue-500/10 border border-blue-300/30 rounded-xl p-3">
@@ -3964,18 +4062,53 @@ reviewList.addEventListener('mouseup', lpEnd);
 reviewList.addEventListener('mouseleave', lpEnd);
 
 // 老師控制台 --------------------------------------------------
+// V3.4-AUDIT4: focus-trap utility — modal 開住時 Tab 唔可以走出去 modal。
+// 用第一/最後 focusable element 嘅 Shift+Tab / Tab 邊界處理。
+function trapFocusInModal(modal) {
+  const sel = 'button,[href],input,select,textarea,[tabindex]:not([tabindex="-1"])';
+  const handler = (e) => {
+    if (e.key !== 'Tab') return;
+    const focusable = [...modal.querySelectorAll(sel)].filter(el => !el.disabled && el.offsetParent !== null);
+    if (!focusable.length) return;
+    const first = focusable[0], last = focusable[focusable.length - 1];
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  };
+  modal.addEventListener('keydown', handler);
+  return () => modal.removeEventListener('keydown', handler);
+}
+
 function setupTeacher() {
+  let removeTrap = null;
+  let escHandler = null;
   $('btn-teacher').onclick = () => {
-    $('teacher-modal').classList.remove('hidden');
-    $('teacher-modal').classList.add('flex');
+    const m = $('teacher-modal');
+    m.classList.remove('hidden');
+    m.classList.add('flex');
     $('teacher-pwd').value = '';
     $('teacher-pwd-error').classList.add('hidden');
     $('teacher-controls').classList.add('hidden');
+    // V3.4-AUDIT4: focus password input (50ms 延遲等同 confirm-modal 一致)
+    setTimeout(() => $('teacher-pwd').focus(), 50);
+    // V3.4-AUDIT4: Esc 關閉 + focus-trap
+    if (escHandler) document.removeEventListener('keydown', escHandler);
+    escHandler = (e) => {
+      if (e.key === 'Escape') { closeTeacher(); }
+    };
+    document.addEventListener('keydown', escHandler);
+    if (removeTrap) removeTrap();
+    removeTrap = trapFocusInModal(m);
   };
-  $('teacher-close').onclick = () => {
+  function closeTeacher() {
     $('teacher-modal').classList.add('hidden');
     $('teacher-modal').classList.remove('flex');
-  };
+    if (escHandler) { document.removeEventListener('keydown', escHandler); escHandler = null; }
+    if (removeTrap) { removeTrap(); removeTrap = null; }
+    // V3.4-AUDIT4: focus restoration — 將焦點還返觸發佢嘅 btn-teacher
+    const trigger = $('btn-teacher');
+    if (trigger) trigger.focus();
+  }
+  $('teacher-close').onclick = closeTeacher;
   $('teacher-pwd').addEventListener('keydown', e => {
     if (e.key === 'Enter') tryTeacherPwd();
   });
@@ -3994,25 +4127,52 @@ function setupTeacher() {
     }
   }
 
+  // V3.4-AUDIT4: pause overlay a11y — 自動 focus resume button + Esc 關閉 + focus-trap
+  let pauseEscHandler = null;
+  function showPauseOverlay() {
+    const overlay = $('pause-overlay');
+    overlay.classList.remove('hidden');
+    setTimeout(() => $('pause-resume-2').focus(), 50);
+    if (!pauseEscHandler) {
+      pauseEscHandler = (e) => {
+        if (e.key === 'Escape' && !$('pause-overlay').classList.contains('hidden')) {
+          // Esc only resumes if teacher paused (teacher-controls 可解鎖)。Keyboard-Space pause
+          // 都可經 Esc resume，但教師強制結束 (teacher-end) 同樣會 hide overlay。
+          e.preventDefault();
+          $('pause-resume-2').click();
+        }
+      };
+      document.addEventListener('keydown', pauseEscHandler);
+    }
+    $('pause-overlay')._trapDispose = trapFocusInModal(overlay);
+  }
+  function hidePauseOverlay() {
+    $('pause-overlay').classList.add('hidden');
+    if ($('pause-overlay')._trapDispose) { $('pause-overlay')._trapDispose(); $('pause-overlay')._trapDispose = null; }
+    // V3.4-AUDIT4: focus restoration — Space-pause return focus to body (冇 trigger btn),
+    // teacher-pause return focus to teacher-pause button
+  }
   $('teacher-pause').onclick = () => {
     if ($('teacher-pwd').dataset.ok !== '1') return;
     Game.state.paused = true;
-    $('pause-overlay').classList.remove('hidden');
+    showPauseOverlay();
   };
   $('teacher-resume').onclick = () => {
     if ($('teacher-pwd').dataset.ok !== '1') return;
     Game.state.paused = false;
-    $('pause-overlay').classList.add('hidden');
+    hidePauseOverlay();
+    // V3.4-AUDIT4: focus restoration
+    $('teacher-pause') && $('teacher-pause').focus();
   };
   $('pause-resume-2').onclick = () => {
     Game.state.paused = false;
-    $('pause-overlay').classList.add('hidden');
+    hidePauseOverlay();
   };
   $('teacher-end').onclick = () => {
     if ($('teacher-pwd').dataset.ok !== '1') return;
     if (confirm('確定要強制結束本局遊戲嗎？')) {
       Game.state.paused = false;
-      $('pause-overlay').classList.add('hidden');
+      hidePauseOverlay();
       $('teacher-modal').classList.add('hidden');
       endGame(false);
     }
@@ -4745,7 +4905,11 @@ document.addEventListener('keydown', (e) => {
   // V3.4-AUDIT-FIX: 移除 lazy pause-overlay 創建 (HTML 已 inline 定義 #pause-overlay,
   // 永遠唔會係 null — lazy branch 係 dead code。改用 HTML overlay 統一處理。
   // 老師控制台開咗嗰陣 keyboard-pause 唔 trigger (避免覆蓋 teacher-pause UX)。
+  // V3.4-AUDIT4-FIX: BUTTON focus 時 Space 唔應該同時 pause — 跳過觸發按鈕 click 嘅 case
   if (e.key === ' ') {
+    // 焦點喺 button / a 等 clickable element 嗰陣,讓瀏覽器原生 Space-activate (唔 preventDefault)
+    const t = e.target;
+    if (t && (t.tagName === 'BUTTON' || t.tagName === 'A')) return;
     e.preventDefault();
     const pauseOverlay = $('pause-overlay');
     if (!pauseOverlay) return;
@@ -4755,10 +4919,16 @@ document.addEventListener('keydown', (e) => {
       pauseOverlay.classList.add('hidden');
       Game.state.paused = false;
       Game.state.running = true;
+      if (pauseOverlay._trapDispose) { pauseOverlay._trapDispose(); pauseOverlay._trapDispose = null; }
     } else if (Game.state && Game.state.running && !teacherOpen) {
       // keyboard-pause: 只喺冇 teacher modal 嗰陣先 trigger
       Game.state.paused = true;
       pauseOverlay.classList.remove('hidden');
+      // V3.4-AUDIT4: focus resume button + focus trap 同 teacher-pause UX 一致
+      setTimeout(() => $('pause-resume-2').focus(), 50);
+      if (!pauseOverlay._trapDispose) {
+        pauseOverlay._trapDispose = trapFocusInModal(pauseOverlay);
+      }
     }
     return;
   }

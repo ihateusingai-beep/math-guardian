@@ -268,8 +268,81 @@ assert('AUDIT3-C1  end-boss-portrait has onerror',
 assert('AUDIT3-C1  dead STORAGE._cap removed',
   !/  _cap\(key, val\)\s*\{/.test(src));
 
-// =========== T12: file size budget ===========
-console.log('\n[T11] file size budget');
+// =========== T15: V3.4-audit-cycle-4 (a11y / keyboard nav / reduced-motion / screen-reader) ===========
+console.log('\n[T15] V3.4 audit cycle-4 patches');
+// C1 viewport: 移除 user-scalable=no / maximum-scale=1.0 (允許低視力 zoom)
+assert('AUDIT4-H  viewport allows user-scaling',
+  !/maximum-scale\s*=\s*1\.0/.test(src) && !/user-scalable\s*=\s*no/.test(src));
+// C2 teacher modal: role=dialog + aria-modal + label bound to title
+assert('AUDIT4-A  teacher modal has role=dialog',
+  /id="teacher-modal"[^>]*role="dialog"/.test(src) || /role="dialog"[^>]*id="teacher-modal"/.test(src));
+assert('AUDIT4-A  teacher modal aria-labelledby=title',
+  src.includes('aria-labelledby="teacher-modal-title"'));
+assert('AUDIT4-A  teacher-pwd has sr-only label',
+  /<label[^>]*for="teacher-pwd"/.test(src));
+assert('AUDIT4-A  trapFocusInModal utility defined',  /function trapFocusInModal\(/.test(src));
+// C3 boss hero portrait: alt synced 與 BOSS_HERO[id] 唔存在時 fallback
+const heroSrcMatch = src.match(/if \(heroImg && BOSS_HERO\[Bosses\.current\.id\]\)\s*\{[\s\S]{0,400}heroImg\.alt = Bosses\.current\.name/);
+assert('AUDIT4-C  boss hero portrait alt synced from Bosses.current.name', !!heroSrcMatch);
+assert('AUDIT4-C  boss icon SVG aria-label synced',
+  /bossIconWrap[\s\S]{0,200}setAttribute\('aria-label'/.test(src));
+// C4 pause overlay: role=dialog + aria-modal + focus resume
+assert('AUDIT4-B  pause overlay has role=dialog',
+  /id="pause-overlay"[^>]*role="dialog"/.test(src));
+assert('AUDIT4-B  pause overlay focuses pause-resume-2',
+  /showPauseOverlay[\s\S]{0,300}pause-resume-2'\)\.focus/.test(src));
+// C5 end screen: announce 到 aria-live-alerts + focus end-title
+const endScreenIdx = src.indexOf('function showEndScreen(victory)');
+const endScreenSlice = src.slice(endScreenIdx, endScreenIdx + 3500);
+assert('AUDIT4-E  end screen pushes to aria-live-alerts',
+  endScreenSlice.includes('aria-live-alerts') && endScreenSlice.includes('騎士隊答對'));
+assert('AUDIT4-E  end screen focus end-title',
+  endScreenSlice.includes('end-title') && /\.focus/.test(endScreenSlice));
+// C6 global Space handler skips BUTTON focus
+assert('AUDIT4-F  Space keydown skips BUTTON focus',
+  /if \(e\.key === ' '\)\s*\{[\s\S]{0,200}t\.tagName === 'BUTTON'[\s\S]{0,200}return;/.test(src));
+// C7 keypad + sym-button + clock option 加 aria-label
+const keypadGenMatch = src.match(/keys\.forEach\(k => \{[\s\S]{0,1500}aria-label/);
+assert('AUDIT4-G  keypad keys have aria-label', !!keypadGenMatch);
+assert('AUDIT4-G  sym-button row has aria-label',
+  /row\.setAttribute\('aria-label',\s*'大小比較'\)/.test(src));
+assert('AUDIT4-G  clock SVG has aria-label',
+  /aria-label="時鐘顯示 \$\{hour\} 點"/.test(src));
+// C8 reduced-motion blanket rule
+assert('AUDIT4-J  reduced-motion uses blanket rule',
+  /@media \(prefers-reduced-motion: reduce\)[\s\S]{0,800}\*,\s*\*::before,\s*\*::after/.test(src));
+// C9 hp-slider aria-label + aria-valuenow 同步
+assert('AUDIT4-K  hp-slider aria-label present',
+  src.includes('id="hp-slider"') && /aria-label="Boss 初始 HP"/.test(src));
+assert('AUDIT4-K  slider input listener updates aria-valuenow',
+  /slider\.setAttribute\('aria-valuenow', slider\.value\)/.test(src));
+// C10 locked badge aria-disabled + sr-only text
+assert('AUDIT4-D  locked badge aria-disabled=true + sr-only text',
+  /aria-disabled="true"[\s\S]{0,400}<span class="sr-only">\(未解鎖\)<\/span>/.test(src));
+// C11 boss select locked aria-disabled + tabindex=-1
+const lockedIdx = src.indexOf('if (!unlocked) {');
+const lockedSlice = src.slice(lockedIdx, lockedIdx + 800);
+assert('AUDIT4-I  locked boss btn has aria-disabled',
+  /setAttribute\('aria-disabled',\s*'true'\)/.test(lockedSlice));
+assert('AUDIT4-I  locked boss btn tabindex=-1',
+  lockedSlice.includes("setAttribute('tabindex', '-1')"));
+// C12 option-btn correct/wrong non-color icon (✓ / ✗)
+assert('AUDIT4-N  option-btn.correct::before contains ✓',
+  /\.option-btn\.correct::before\s*\{[\s\S]{0,100}content:\s*'✓/.test(src));
+assert('AUDIT4-N  option-btn.wrong::before contains ✗',
+  /\.option-btn\.wrong::before\s*\{\s*content:\s*'✗/.test(src));
+// C13 sr-only utility class defined
+assert('AUDIT4    .sr-only utility defined',
+  /\.sr-only\s*\{[\s\S]{0,400}clip:\s*rect\(0,0,0,0\)/.test(src));
+// C14 boss intro 用 alt='' (placeholder 改空) + sprite ARIA label 跟 boss-name-label
+assert('AUDIT4-C  boss-hero-portrait alt empty (default) then synced',
+  /id="boss-hero-portrait"[\s\S]{0,200}alt=""/.test(src));
+// C15 end-screen portrait alt 同步 boss 名 + 已擊敗
+assert('AUDIT4-M  end-boss-portrait alt includes boss name + "已被擊敗"',
+  /portrait\.alt\s*=\s*`\$\{Bosses\.current\.name\} 已被擊敗`/.test(src));
+
+// =========== T16: file size budget ===========
+console.log('\n[T16] file size budget');
 const sizeKB = src.length / 1024;
 console.log(`  current: ${sizeKB.toFixed(1)} KB / budget: 600 KB`);
 assert('size < 600K', sizeKB < 600);
