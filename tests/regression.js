@@ -159,13 +159,13 @@ assert('ordering keypad hint',          src.includes('keypad：按正確順序')
 // =========== T10: v3.2 version consistency ===========
 console.log('\n[T10] version');
 const v32 = (src.match(/v3\.2/g) || []).length;
-assert('v3.3 mentioned ≥ 4 times', (src.match(/v3\.3/g) || []).length >= 4);
-assert('header version v3.3',     /數學守護者：精準訓練版 v3\.3/.test(src));
-assert('title version v3.3',      src.includes('<title>數學守護者：精準訓練版 v3.3'));
-assert('menu subtitle v3.3',      src.includes('精準訓練版 v3.3 · Math Guardian'));
+assert('v3.4 mentioned ≥ 4 times', (src.match(/v3\.4/g) || []).length >= 4);
+assert('header version v3.4',     /數學守護者：精準訓練版 v3\.4/.test(src));
+assert('title version v3.4',      src.includes('<title>數學守護者：精準訓練版 v3.4'));
+assert('menu subtitle v3.4',      src.includes('精準訓練版 v3.4 · Math Guardian'));
 
-// =========== T11: V3.3 feature wirings ===========
-console.log('\n[T11] V3.3 features');
+// =========== T11: V3.3 + V3.4 feature wirings ===========
+console.log('\n[T11] V3.3 + V3.4 features');
 assert('V3.3-U1 onboarding',  src.includes('showOnboarding(') && src.includes('mg2.onboardingDone'));
 assert('V3.3-U5 keyboard',    src.includes("document.addEventListener('keydown'"));
 assert('V3.3-U6 modal',       src.includes('showConfirmModal('));
@@ -173,6 +173,25 @@ assert('V3.3-A5 visibility',  src.includes("addEventListener('visibilitychange'"
 assert('V3.3-UI4 aria-live',  src.includes("aria-live-alerts") && src.includes("setAttribute('aria-live'"));
 assert('V3.3 btn-start aria', src.includes('aria-label="開始守護戰役'));
 assert('V3.3 btn-back aria',  src.includes('aria-label="返回主選單'));
+
+assert('V3.4-F2 TTS module',       src.includes('const TTS = {') && src.includes('normalize('));
+assert('V3.4-F2 tts-btn rendered', src.includes('id="knight-tts-btn"') && src.includes('id="mage-tts-btn"'));
+assert('V3.4-F2 speak on click',   src.includes('TTS.speak(text, ttsBtn)'));
+
+assert('V3.4-F3 Compliment module',   src.includes('const Compliment = {'));
+assert('V3.4-F3 correct pool size',   (src.match(/correct: \[$[\s\S]*?\]/m) || [''])[0].split("',").length >= 50);
+assert('V3.4-F3 wrong pool size',     (src.match(/wrong: \[$[\s\S]*?\]/m) || [''])[0].split("',").length >= 50);
+assert('V3.4-F3 streak trigger',      src.includes('Compliment.pick(\'streak\', s)'));
+assert('V3.4-F3 AI upgrade path',     src.includes('upgrade(') && src.includes('https://api.MiniMax'));
+
+assert('V3.4-U2 instant hint',   src.includes('showInstantHint(') && src.includes('instantHint: true'));
+assert('V3.4-U2 hint on wrong',  src.includes('if (Game.settings.instantHint) showInstantHint'));
+
+assert('V3.4-UI2 confetti module', src.includes('confetti(cx, cy, count'));
+assert('V3.4-UI2 confetti on hit', src.includes('FX.confetti(bRect.left + bRect.width / 2'));
+assert('V3.4-UI2 screen shake',    src.includes('screenShake()') && src.includes('screen-shake-active'));
+assert('V3.4-UI2 reduced-motion',  src.includes('prefers-reduced-motion: reduce'));
+assert('V3.4 settings defaults',   src.includes('instantHint: true') && src.includes('ttsEnabled: true'));
 
 // =========== T12: file size budget ===========
 console.log('\n[T11] file size budget');

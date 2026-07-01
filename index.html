@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <!--
   ============================================================
-   數學守護者：精準訓練版 v3.3 (Math Guardian: Precision Training Edition v3.3)
+   數學守護者：精準訓練版 v3.4 (Math Guardian: Precision Training Edition v3.4)
   ------------------------------------------------------------
    v3.2 重點改進（vs v3.1）:
      1. compare10 支援 keypad 模式（紫粉 < = > 三鍵 + auto-submit）
@@ -53,7 +53,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="theme-color" content="#0b0d1a" />
-<title>數學守護者：精準訓練版 v3.3</title>
+<title>數學守護者：精準訓練版 v3.4</title>
 
 <script src="https://cdn.tailwindcss.com"></script>
 <script>
@@ -212,6 +212,25 @@
   .q-sym-row .q-sym-btn:hover { background: rgba(251,191,36,0.15); border-color: rgba(251,191,36,0.5); }
   .q-sym-row .q-sym-btn:active { transform: scale(0.95); }
   .q-sym-row .q-sym-btn.correct { background: rgba(34,197,94,0.4); border-color: #22c55e; }
+
+  /* V3.4-F2: TTS button on question card */
+  .tts-btn {
+    background: rgba(255,255,255,0.12);
+    border: 1px solid rgba(255,255,255,0.25);
+    color: white;
+    border-radius: 0.5rem;
+    padding: 2px 8px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 200ms ease;
+  }
+  .tts-btn:hover { background: rgba(255,255,255,0.22); transform: scale(1.05); }
+  .tts-btn:active { transform: scale(0.95); }
+  .tts-btn.speaking { background: #22c55e; border-color: #16a34a; animation: tts-pulse 1s infinite; }
+  @keyframes tts-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(34,197,94,0.5); }
+    50%      { box-shadow: 0 0 0 6px rgba(34,197,94,0); }
+  }
   .q-sym-row .q-sym-btn.wrong { background: rgba(239,68,68,0.4); border-color: #ef4444; }
   /* shape SVG big */
   .q-shape { display: flex; align-items: center; justify-content: center; margin: 1rem auto; }
@@ -288,6 +307,31 @@
     40% { transform: translate(6px, -2px); }
     60% { transform: translate(-4px, 4px); }
     80% { transform: translate(4px, -4px); }
+  }
+  /* V3.4-UI2: confetti particle burst (答對) */
+  @keyframes confetti-fall {
+    0%   { transform: translate(0, 0) rotate(0deg);   opacity: 1; }
+    100% { transform: translate(var(--cx), var(--cy)) rotate(var(--cr)); opacity: 0; }
+  }
+  .confetti-particle {
+    position: fixed;
+    width: 8px; height: 8px;
+    border-radius: 2px;
+    pointer-events: none;
+    z-index: 70;
+    animation: confetti-fall 1.2s cubic-bezier(0.2, 0.7, 0.5, 1) forwards;
+  }
+  /* V3.4-UI2: screen shake (答錯) — 整個 body 唔止 boss */
+  @keyframes screen-shake {
+    0%,100% { transform: translate(0,0); }
+    20% { transform: translate(-8px, 3px); }
+    40% { transform: translate(8px, -3px); }
+    60% { transform: translate(-5px, 5px); }
+    80% { transform: translate(5px, -5px); }
+  }
+  .screen-shake-active { animation: screen-shake 0.45s ease-out; }
+  @media (prefers-reduced-motion: reduce) {
+    .confetti-particle, .screen-shake-active { animation: none !important; }
   }
   @keyframes flash-correct {
     0% { box-shadow: 0 0 0 0 rgba(34,197,94,0.7); }
@@ -1469,7 +1513,7 @@
       <h1 class="text-3xl md:text-5xl font-extrabold bg-gradient-to-r from-amber-300 via-pink-400 to-purple-400 bg-clip-text text-transparent">
         數學守護者
       </h1>
-      <p class="text-base md:text-xl text-purple-200 mt-1">精準訓練版 v3.3 · Math Guardian</p>
+      <p class="text-base md:text-xl text-purple-200 mt-1">精準訓練版 v3.4 · Math Guardian</p>
       <p class="text-xs md:text-sm text-white/50 mt-1">兩隊同心，守護城堡，精準答題擊敗森林巨魔</p>
     </div>
 
@@ -1624,6 +1668,7 @@
         <div id="knight-question-box" class="bg-black/40 rounded-2xl p-4 mt-2 min-h-[220px] flex flex-col items-center justify-center border-2 border-blue-400/20 relative">
           <div class="text-xs text-blue-200 mb-2 flex items-center gap-1">
             <svg class="pixel icon-mini"><use href="#px-knight"/></svg>本題題目
+            <button id="knight-tts-btn" class="tts-btn ml-auto" aria-label="朗讀題目">🔊</button>
           </div>
           <div id="knight-question-text" class="text-4xl md:text-5xl font-extrabold tracking-widest mb-4 text-center">按下面按鈕開始答題</div>
           <div id="knight-answer-area" class="w-full"></div>
@@ -1667,6 +1712,7 @@
         <div id="mage-question-box" class="bg-black/40 rounded-2xl p-4 mt-2 min-h-[220px] flex flex-col items-center justify-center border-2 border-purple-400/20 relative">
           <div class="text-xs text-purple-200 mb-2 flex items-center gap-1">
             <svg class="pixel icon-mini"><use href="#px-mage"/></svg>本題題目
+            <button id="mage-tts-btn" class="tts-btn ml-auto" aria-label="朗讀題目">🔊</button>
           </div>
           <div id="mage-question-text" class="text-4xl md:text-5xl font-extrabold tracking-widest mb-4 text-center">按下面按鈕開始答題</div>
           <div id="mage-answer-area" class="w-full"></div>
@@ -2035,6 +2081,139 @@ const Audio = (() => {
 })();
 
 /* ============== [3] 視覺特效 ============== */
+// V3.4-F2: TTS module (Web Speech API)
+const TTS = {
+  // 香港中文 voice detection (zh-HK > zh-TW > zh-CN fallback)
+  voice: null,
+  enabled: true,
+  pickVoice() {
+    if (!('speechSynthesis' in window)) return null;
+    const voices = speechSynthesis.getVoices();
+    if (!voices.length) return null;
+    return voices.find(v => v.lang === 'zh-HK') ||
+           voices.find(v => v.lang.startsWith('zh')) ||
+           voices.find(v => v.default) ||
+           voices[0];
+  },
+  // 把數學式 normalize 變 human-readable 中文
+  normalize(text) {
+    if (!text) return '';
+    return text
+      .replace(/\?/g, '，等於幾多？')
+      .replace(/=/g, '等於')
+      .replace(/\+/g, '加')
+      .replace(/-/g, '減')
+      .replace(/×/g, '乘')
+      .replace(/÷/g, '除以')
+      .replace(/</g, '細過')
+      .replace(/>/g, '大過')
+      .replace(/比/g, '比較')
+      .replace(/排順序：/g, '請排順序：')
+      .replace(/這是什麼形狀？/g, '這是什麼形狀？')
+      .replace(/時鐘顯示/g, '時鐘顯示');
+  },
+  speak(text, btn) {
+    if (!('speechSynthesis' in window)) return;  // graceful fallback
+    if (!TTS.enabled) return;
+    if (!text) return;
+    speechSynthesis.cancel();  // 停上一句
+    const utter = new SpeechSynthesisUtterance(TTS.normalize(text));
+    if (!TTS.voice) TTS.voice = TTS.pickVoice();
+    if (TTS.voice) utter.voice = TTS.voice;
+    utter.lang = (TTS.voice && TTS.voice.lang) || 'zh-HK';
+    utter.rate = 0.9;
+    utter.pitch = 1.0;
+    if (btn) {
+      btn.classList.add('speaking');
+      utter.onend = () => btn.classList.remove('speaking');
+      utter.onerror = () => btn.classList.remove('speaking');
+    }
+    speechSynthesis.speak(utter);
+  }
+};
+// 喺 voices loaded 後再 pick (Chrome quirk)
+if ('speechSynthesis' in window) {
+  speechSynthesis.onvoiceschanged = () => { TTS.voice = TTS.pickVoice(); };
+}
+
+// V3.4-F3: encouragement pool (港式粵語 + SEN 友善) — 60 句 hardcoded fallback
+// V3.4-F3-b: 同時支援 AI-generated pool (user paste API key 後自動 upgrade)
+const Compliment = {
+  pool: {
+    correct: [
+      '掂呀！答啱啦 💪', '犀利！叻叻', '正中紅心！', '你做得好好！', '繼續保持呢個勢',
+      'Boss 都怕你啦', '天資聰敏！', '答得快又準！', '果然係高手', '真係好醒！',
+      '呢條公式用到啱晒', '太叻喇！', '數學小天才！', '叻到爆！', '一擊即中！',
+      '完美演繹！', '氣勢如虹！', '繼續衝呀！', '你係隊伍嘅光榮', 'Boss 都投降啦',
+      '穩穩陣陣！', '快狠準！', '天才！', '呀！答啱晒', '太神啦',
+      'Boss 都要抖下', '繼續劈波斬浪', '好犀利呀！', '反應超快', '隊友都佩服你',
+      '完美配對！', '計到剛剛好', '真係頂呱呱', '過關無難度！', 'Boss 開始心寒',
+      '神級操作！', '一擊必殺！', '輕鬆過關', '繼續收割！', 'Boss 已經殘晒',
+      '呢招用得啱', '思路清晰！', '做得好！', 'Team 嘅驕傲', '答題快手',
+      '快夾準！', 'Boss 已經投降', '完美！', '讚讚讚！', '數學小先鋒！',
+      '答啱啦！', '真係識答', '棒極啦！', '聰明絕頂', '表現出色！',
+      'Boss 已經怕咗你', '👏👏👏 答啱啦', '你係最強嘅', '厲害啦朋友', '準繩度爆燈'
+    ],
+    wrong: [
+      '唔緊要，再嚟過！', '試多次啦！', '差一啲啲 💪', '我哋再挑戰', '失敗乃成功之母',
+      'Boss 笑緊你添 😤', '加油！你得嘅', '唔好放棄！', '再諗多一次', '呢題比較難，正常',
+      '慢慢嚟啦', '一齊加油', '你一定得！', '失敗唔可怕', '再嚟多一次啦',
+      'Boss 等緊你反擊', '我哋一齊', '唔好咁快放棄', '差少少先啫', '再睇多次題目',
+      '你試下用另一個方法', '唔使氣餒！', '小小挫折唔怕', 'Boss 都畀面你', '加油呀朋友',
+      '呢題啱難度㗎', '一齊面對啦', '你做得到！', '堅持就會贏', '差一啲啲咋',
+      '我哋並肩作戰', '再衝一次！', '唔好俾Boss睇小', '失敗係過程', '一齊再嚟',
+      '差少少就啱', '再俾心機', '下一題加油', '我哋一齊努力', '唔好放棄呀',
+      'Boss 都未輸', '你亦都未輸', '再嚟多一次', '一步一步嚟', '你做緊好',
+      '失敗唔代表一切', '深呼吸再嚟', 'Boss 驚你嘅', '我哋唔放棄', '加油添！',
+      '越戰越強！', '差少少咋', 'Boss 怕你反擊', '我信你可以', '再嚟啦朋友',
+      '一齊度過難關', '唔好氣餒！', 'Boss 等緊你', '你一定會答啱', '加油💪'
+    ],
+    streak: [
+      '連擊 %d 題！太犀利啦', '連擊中！🔥', '%d 連勝！你係 boss', '波濤洶湧嘅攻勢！',
+      'Boss 開始冇符', '%d 連勝！Boss 都要跪低', '完美節奏！', '%d 連勝！繼續！',
+      'Boss 投降啦！%d 連勝', '殺氣騰騰！', '%d 連勝！真係型', 'Boss 等緊被擊敗'
+    ]
+  },
+  pick(kind, streak) {
+    const arr = this.pool[kind] || this.pool.correct;
+    let line = arr[Math.floor(Math.random() * arr.length)];
+    if (kind === 'streak' && streak != null) {
+      line = line.replace('%d', streak);
+    }
+    return line;
+  },
+  // 啟動時可選 upgrade 至 AI-generated pool (F3-b)
+  async upgrade(apiKey) {
+    if (!apiKey || apiKey.length < 10) return false;
+    try {
+      const prompt = '你係一個港式粵語 SEN 友善嘅小老師，幫一個 K1-K3 學生打氣。' +
+                     '請生成 60 句鼓勵語（答啱用）、60 句鼓勵再嚟（答錯用）、12 句連擊鼓勵（用 %d 代替數字）。' +
+                     '每句 5-15 字，emoji 可加可不加，輸出 JSON：' +
+                     '{"correct":["..."],"wrong":["..."],"streak":["..."]}';
+      const r = await fetch('https://api.MiniMax.chat/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+        body: JSON.stringify({
+          model: 'MiniMax-Text-01',
+          messages: [{ role: 'user', content: prompt }],
+          temperature: 0.9
+        })
+      });
+      if (!r.ok) return false;
+      const data = await r.json();
+      const content = data.choices?.[0]?.message?.content || '';
+      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) return false;
+      const parsed = JSON.parse(jsonMatch[0]);
+      if (parsed.correct && parsed.wrong) {
+        this.pool = parsed;
+        return true;
+      }
+    } catch (e) { /* silent fallback to hardcoded */ }
+    return false;
+  }
+};
+
 const FX = {
   meteor(targetSelector = '#boss-icon', onDone) {
     const target = document.querySelector(targetSelector);
@@ -2069,6 +2248,33 @@ const FX = {
       document.body.appendChild(p);
       setTimeout(() => p.remove(), 900);
     }
+  },
+  // V3.4-UI2: confetti burst from element (答對效果, screen-wide)
+  confetti(cx, cy, count = 28) {
+    const colors = ['#fbbf24', '#22c55e', '#3b82f6', '#a855f7', '#ec4899', '#fb923c'];
+    for (let i = 0; i < count; i++) {
+      const p = document.createElement('div');
+      p.className = 'confetti-particle';
+      const angle = Math.random() * Math.PI * 2;
+      const dist = 100 + Math.random() * 280;
+      p.style.left = cx + 'px';
+      p.style.top  = cy + 'px';
+      p.style.background = colors[i % colors.length];
+      p.style.setProperty('--cx', Math.cos(angle) * dist + 'px');
+      p.style.setProperty('--cy', Math.sin(angle) * dist + 200 + 'px');  // 加重力下沉
+      p.style.setProperty('--cr', (Math.random() * 720 - 360) + 'deg');
+      document.body.appendChild(p);
+      setTimeout(() => p.remove(), 1300);
+    }
+  },
+  // V3.4-UI2: screen-wide shake (答錯效果, 整個 #app 搖)
+  screenShake() {
+    const app = $('app');
+    if (!app) return;
+    app.classList.remove('screen-shake-active');
+    void app.offsetWidth;  // 重啟 animation
+    app.classList.add('screen-shake-active');
+    setTimeout(() => app.classList.remove('screen-shake-active'), 500);
   },
   screenAlert(text, color = '#22c55e') {
     const a = document.createElement('div');
@@ -2348,6 +2554,8 @@ const Game = {
     types: ['add10'],
     team: 'coop',     // 'coop' | 'versus'
     initialBossHp: 200,
+    instantHint: true,    // V3.4-U2: 答錯即時提示 (SEN-friendly, default ON)
+    ttsEnabled: true,     // V3.4-F2: TTS 開關
   },
 
   state: {
@@ -2512,6 +2720,15 @@ const UI = {
 
     // === 渲染題目文 (parts-based) ===
     UI.renderQuestionTextFor(team, q);
+
+    // V3.4-F2: wire TTS button — 朗讀題目 (對 SEN 識字弱嘅學生特別有用)
+    const ttsBtn = $(`${team}-tts-btn`);
+    if (ttsBtn) {
+      ttsBtn.onclick = () => {
+        const text = (q.parts ? q.parts.join('') : q.text) || '';
+        TTS.speak(text, ttsBtn);
+      };
+    }
 
     // === 渲染答案 area (依 layout dispatch) ===
     const area = $(`${team}-answer-area`);
@@ -3102,6 +3319,38 @@ function nextQuestion(team) {
 }
 
 // 答題處理
+// V3.4-U2: instant hint — 半透明提示 overlay 顯示「提示：正確答案 = X」+ 朗讀
+function showInstantHint(team, q) {
+  const text = q.text || (q.parts ? q.parts.join('') : '');
+  let hint = '';
+  const reg = TYPE_REGISTRY[q.type];
+  if (reg && reg.layout === 'numeric') {
+    hint = `💡 ${text} = ${q.answer}`;
+  } else if (reg && reg.layout === 'parts-emoji') {
+    hint = `💡 答案係 ${q.answer}`;
+  } else if (reg && reg.layout === 'sym-button') {
+    hint = `💡 ${text.replace('?', '')}：${q.answer === '<' ? '前者細過後者' : q.answer === '>' ? '前者大過後者' : '兩個一樣'}`;
+  } else if (reg && reg.layout === 'clock') {
+    hint = `💡 時鐘顯示 ${q.extra.hour} 點`;
+  } else if (reg && reg.layout === 'shape') {
+    const labelMap = { circle:'圓形', square:'方形', triangle:'三角形', star:'星形' };
+    hint = `💡 答案係${labelMap[q.answer] || q.answer}`;
+  } else if (reg && reg.layout === 'order') {
+    hint = `💡 正確順序：${q.answer.join(' < ')}`;
+  } else {
+    hint = `💡 答案係 ${q.answer}`;
+  }
+  const overlay = document.createElement('div');
+  overlay.className = 'instant-hint';
+  overlay.innerHTML = `<div class="bg-amber-500/95 text-slate-900 rounded-2xl px-6 py-3 text-lg font-bold shadow-2xl pointer-events-auto cursor-pointer">${hint}<div class="text-xs mt-1 opacity-70">（點擊關閉）</div></div>`;
+  overlay.style.cssText = 'position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:80;pointer-events:none;';
+  overlay.onclick = () => overlay.remove();
+  document.body.appendChild(overlay);
+  // 順便 TTS 朗讀 hint
+  if (Game.settings.ttsEnabled) TTS.speak(hint.replace('💡 ', '').replace('（點擊關閉）', ''));
+  setTimeout(() => overlay.remove(), 4000);
+}
+
 Game.handleAnswer = function(team, value, btn) {
   if (!Game.state.running || Game.state.paused || Game.state.ended) return;
   const q = Game.state.current[team];
@@ -3160,7 +3409,7 @@ Game.handleAnswer = function(team, value, btn) {
       setTimeout(() => Audio.correct(), 120);
       // 每次答對都小 tick
       setTimeout(() => Audio.energyTick(), 200);
-      FX.screenAlert(`+${team === 'knight' ? '騎士' : '法師'}命中！`, '#22c55e');
+      FX.screenAlert(`+${team === 'knight' ? '騎士' : '法師'}命中！${Compliment.pick('correct')}`, '#22c55e');
       highlightBtn(btn, true);
 
       // 合作模式：所有答對都打 boss。巔峰：兩隊各自攻擊 boss 累積？
@@ -3177,8 +3426,11 @@ Game.handleAnswer = function(team, value, btn) {
       charAnimate(team, 'hurting');
       Audio.wrong();
       setTimeout(() => Audio.reviewAdd(), 200);
-      FX.screenAlert(`再挑戰一下！`, '#f97316');
+      FX.screenAlert(`再挑戰一下！${Compliment.pick('wrong')}`, '#f97316');
+      FX.screenShake();  // V3.4-UI2: 整個畫面搖 (唔只 boss, 更有打擊感)
       highlightBtn(btn, false);
+      // V3.4-U2: instant hint on wrong answer (SEN-friendly)
+      if (Game.settings.instantHint) showInstantHint(team, q);
       // 加進重練區
       Game.state.review.push({ text: q.text, answer: q.answer, type: q.type });
       UI.renderReview();
@@ -3191,6 +3443,13 @@ Game.handleAnswer = function(team, value, btn) {
     const reactionMs = q.pickedAt ? (now() - q.pickedAt) : null;
     Profile.recordAnswer(q.type, correct, reactionMs);
     Snapshot.schedule('answer');
+    // V3.4-F3: streak trigger — 5 連勝彈 streak 鼓勵
+    if (correct) {
+      const s = (Profile.data.streakByType || {})[q.type] || 0;
+      if (s > 0 && s % 5 === 0) {
+        setTimeout(() => FX.screenAlert(Compliment.pick('streak', s), '#a78bfa'), 800);
+      }
+    }
   }
 
   UI.updateTeam(team);
@@ -3249,6 +3508,9 @@ function damageBoss(amount) {
     12,
     ['#fde68a', '#fb923c', '#ef4444']
   );
+  // V3.4-UI2: 大爆發 confetti (28 particles, screen-wide, 加重力)
+  const bRect = $('boss-icon').getBoundingClientRect();
+  FX.confetti(bRect.left + bRect.width / 2, bRect.top + bRect.height / 2, 28);
   UI.updateBoss();
   Snapshot.schedule('boss-hit');     // P1-A
   if (s.bossHp <= 0) endGame(true);
