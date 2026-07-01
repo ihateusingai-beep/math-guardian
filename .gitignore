@@ -1,0 +1,12 @@
+# macOS
+.DS_Store
+._*
+
+# Editor backup
+*~
+*.swp
+*.bak
+
+# Logs / temp
+*.log
+*.tmp
