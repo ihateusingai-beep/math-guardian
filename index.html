@@ -2117,6 +2117,9 @@ const TTS = {
     if (!TTS.enabled) return;
     if (!text) return;
     speechSynthesis.cancel();  // 停上一句
+    // V3.4-AUDIT3-FIX: 清乾淨所有 .speaking class (Safari cancel() 唔 fire onerror,
+    // 舊 btn 嘅 .speaking 殘留造成 stale 綠色 pulse)。 全域清完先 add 新 btn。
+    document.querySelectorAll('.tts-btn.speaking').forEach(b => b.classList.remove('speaking'));
     const utter = new SpeechSynthesisUtterance(TTS.normalize(text));
     if (!TTS.voice) TTS.voice = TTS.pickVoice();
     if (TTS.voice) utter.voice = TTS.voice;
@@ -2277,6 +2280,10 @@ const FX = {
     setTimeout(() => app.classList.remove('screen-shake-active'), 500);
   },
   screenAlert(text, color = '#22c55e') {
+    // V3.4-AUDIT3-FIX: cap concurrent 數量 — 答得快嘅 SEN 學生每秒可能 add 2-3 個 alert,
+    // 1.6s 動畫 lifetime 內 stack 5-8 個 → 視覺混亂 + 定位 queue 蓋住。 Keep only 最後 1 個。
+    const existing = document.querySelectorAll('.screen-alert');
+    if (existing.length >= 1) existing.forEach(e => e.remove());
     const a = document.createElement('div');
     a.className = 'screen-alert';
     a.textContent = text;
@@ -3268,6 +3275,13 @@ function startGame() {
     if (heroImg && BOSS_HERO[Bosses.current.id]) {
       heroImg.src = BOSS_HERO[Bosses.current.id];
       heroImg.alt = Bosses.current.name;
+      // V3.4-AUDIT3-FIX: onerror fallback — base64 decode 唔同 browser 可能壞,
+      // corrupt 後 img 永遠空白。fallback 隱藏佢 + show SVG sprite。
+      heroImg.onerror = () => {
+        heroImg.classList.add('hidden');
+        const svg = document.getElementById('boss-svg-use');
+        if (svg) svg.parentElement?.classList.remove('hidden');
+      };
       heroImg.classList.remove('hidden');
     }
     // P2-3: cinematic intro — 700ms scale + glow 入場
@@ -3361,6 +3375,10 @@ function showInstantHint(team, q) {
   overlay.innerHTML = `<div class="bg-amber-500/95 text-slate-900 rounded-2xl px-6 py-3 text-lg font-bold shadow-2xl pointer-events-auto cursor-pointer">${hint}<div class="text-xs mt-1 opacity-70">（點擊關閉）</div></div>`;
   overlay.style.cssText = 'position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:80;pointer-events:none;';
   overlay.onclick = () => overlay.remove();
+  // V3.4-AUDIT3-FIX: cap 1 — SEN 學生連錯幾題會 overlay 堆疊 4-5 個 hint，每個 4s 才清。
+  // 先清舊嘅再 append 新嘅，避免畫面被覆蓋 + TTS cancel() 唔 fire onerror 都會 queue 撞。
+  const existingHints = document.querySelectorAll('.instant-hint');
+  if (existingHints.length >= 1) existingHints.forEach(e => e.remove());
   document.body.appendChild(overlay);
   // 順便 TTS 朗讀 hint
   if (Game.settings.ttsEnabled) TTS.speak(hint.replace('💡 ', '').replace('（點擊關閉）', ''));
@@ -3771,6 +3789,11 @@ function showEndScreen(victory) {
   const defeatedSrc = AI_ASSETS.defeat[Bosses.current?.id];
   if (victory && defeatedSrc && Bosses.current) {
     portrait.src = defeatedSrc;
+    // V3.4-AUDIT3-FIX: onerror fallback — AI base64 corrupt 時 fallback 去 SVG trophy
+    portrait.onerror = () => {
+      portrait.classList.add('hidden');
+      iconSvg.classList.remove('hidden');
+    };
     portrait.classList.remove('hidden');
     iconSvg.classList.add('hidden');
   } else {
@@ -3781,6 +3804,8 @@ function showEndScreen(victory) {
   const bgKey = Bosses.current?.scene === 'snow' ? 'frost' : 'forest';
   const endBg = $('end-bg');
   if (endBg && AI_ASSETS.endBg[bgKey]) {
+    // V3.4-AUDIT3-FIX: onerror 隱藏 end-bg，純色 fallback (CSS 已經 define 了 bg gradient)
+    // (CSS 內 end-bg div 本身已有 fallback gradient — 但 inline style 會 override)
     endBg.style.backgroundImage = `url(${AI_ASSETS.endBg[bgKey]})`;
   }
   // P2-c: Achievement badges render
@@ -4201,14 +4226,8 @@ const STORAGE = {
   PROFILE_CAP: 64 * 1024,
   SESSION_CAP: 256 * 1024,
   HISTORY_CAP: 512 * 1024,
-  _cap(key, val) {
-    try {
-      localStorage.setItem(key, val);
-      // 如果 setItem 後仍 > cap，主動 prune
-      const bytes = (localStorage.getItem(key) || '').length;
-      return bytes;
-    } catch (e) { return 0; }
-  },
+  // V3.4-AUDIT3-FIX: dead code removed — _cap() was defined but never called
+  // (cap check is inline in save()). Keep one-line stub for legacy callers if any.
   load(key) {
     try { return JSON.parse(localStorage.getItem(key) || 'null'); }
     catch { return null; }

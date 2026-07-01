@@ -247,6 +247,27 @@ assert('AUDIT2-B8-tch touchend on review-list',    src.includes("reviewList.addE
 assert('AUDIT2-B8-tch touchcancel on review-list', src.includes("reviewList.addEventListener('touchcancel'"));
 assert('AUDIT2-B8-tch touchmove cancels (scroll)', src.includes("reviewList.addEventListener('touchmove'"));
 
+// =========== T14: V3.4-audit-cycle-3 (async / TTS / DOM pile / image fallback) ===========
+console.log('\n[T14] V3.4 audit cycle-3 patches');
+// C2-B2: TTS speak clears .speaking class globally before adding new
+assert('AUDIT3-C2  TTS speak removes other .speaking',
+  /speak\(text, btn\)\s*\{[\s\S]{0,500}querySelectorAll\('\.tts-btn\.speaking'\)[\s\S]{0,200}forEach[\s\S]{0,200}classList\.remove/.test(src));
+// C3-B1: screenAlert caps to last 1 element (no stacking)
+assert('AUDIT3-C3  screenAlert caps concurrent',
+  /screenAlert\(text[\s\S]{0,500}querySelectorAll\('\.screen-alert'\)[\s\S]{0,200}remove\(\)/.test(src));
+// C3-B3: instant-hint caps to 1
+assert('AUDIT3-C3  instant-hint caps concurrent',
+  /function showInstantHint\([\s\S]{0,2000}querySelectorAll\('\.instant-hint'\)[\s\S]{0,500}remove\(\)/.test(src));
+// C1-B3: boss-hero-portrait has onerror fallback (not silent broken image)
+assert('AUDIT3-C1  boss hero portrait has onerror',
+  src.includes("getElementById('boss-hero-portrait')") &&
+  /heroImg\.onerror/.test(src));
+assert('AUDIT3-C1  end-boss-portrait has onerror',
+  /end-boss-portrait[\s\S]{0,500}onerror/.test(src));
+// C1-B2: dead STORAGE._cap removed
+assert('AUDIT3-C1  dead STORAGE._cap removed',
+  !/  _cap\(key, val\)\s*\{/.test(src));
+
 // =========== T12: file size budget ===========
 console.log('\n[T11] file size budget');
 const sizeKB = src.length / 1024;
