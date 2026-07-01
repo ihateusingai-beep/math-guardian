@@ -193,6 +193,20 @@ assert('V3.4-UI2 screen shake',    src.includes('screenShake()') && src.includes
 assert('V3.4-UI2 reduced-motion',  src.includes('prefers-reduced-motion: reduce'));
 assert('V3.4 settings defaults',   src.includes('instantHint: true') && src.includes('ttsEnabled: true'));
 
+// =========== T12: V3.4-audit patches (regression) ===========
+console.log('\n[T12] V3.4 audit patches');
+// F1 closure leak: slider/display hoisted to module scope
+assert('AUDIT-1 slider hoisted',      /^const slider = \$/m.test(src));
+assert('AUDIT-1 display hoisted',     /^const display = \$/m.test(src));
+// F5/F6 lazy pause-overlay removed
+assert('AUDIT-F5 no lazy pauseOverlay creation',
+  !src.includes("ov.id = 'pause-overlay'") && !src.includes("ov.id = \"pause-overlay\""));
+// F9 bossHP casing — no capital HP variants in state references
+assert('AUDIT-F9 bossHp consistent',
+  (src.match(/\.bossHP\b/g) || []).length === 0);
+assert('AUDIT-F9 bossHp lowercase used',
+  src.includes('Game.state.bossHp') && src.includes('Game.state.bossMaxHp'));
+
 // =========== T12: file size budget ===========
 console.log('\n[T11] file size budget');
 const sizeKB = src.length / 1024;

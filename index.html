@@ -2995,6 +2995,12 @@ function charAnimate(team, action) {
 }
 
 // 菜單互動 --------------------------------------------------
+// V3.4-AUDIT-FIX: hoisted slider + display to module scope — renderBossSelect()
+// 會被 teacher reset (line 3990) 同 dev probe (line 4532) 喺 setupMenu 外面 call，
+// 入面 btn.onclick 用 slider/display 會 throw ReferenceError。
+const slider = $('hp-slider');
+const display = $('hp-display');
+
 function setupMenu() {
   // P1-C: Boss 選擇列表 — 從 Profile 解鎖狀態渲染
   renderBossSelect();
@@ -3060,9 +3066,7 @@ function setupMenu() {
       Game.settings.team = b.dataset.team;
     };
   });
-  // HP slider
-  const slider = $('hp-slider');
-  const display = $('hp-display');
+  // HP slider (V3.4-AUDIT-FIX: slider/display 已 hoisted 到 module scope)
   slider.addEventListener('input', () => {
     Game.settings.initialBossHp = parseInt(slider.value, 10);
     display.textContent = slider.value;
@@ -3814,7 +3818,10 @@ $('btn-back').onclick = () => {
     onConfirm: () => {
       Game.state.running = false;
       Game.state.ended = true;
+      Game.state.paused = false;       // V3.4-AUDIT-FIX: 清 paused 否則下次 startGame 狀態混亂
       if (window._mgLoop) clearInterval(window._mgLoop);
+      // V3.4-AUDIT-FIX: 確保 pause-overlay 隱藏 (teacher-pause / Space-pause 殘留)
+      const po = $('pause-overlay'); if (po) po.classList.add('hidden');
       $('screen-game').classList.add('hidden');
       $('screen-menu').classList.remove('hidden');
     }
@@ -4047,7 +4054,7 @@ const TeacherDashboard = {
     if (sessInfo) {
       // 只喺 session 真係進行中（bossHP 已 set + teams.total > 0）先 render
       const live = Game.state && Game.state.teams
-                   && typeof Game.state.bossHP === 'number'
+                   && typeof Game.state.bossHp === 'number'
                    && (Game.state.teams.knight.total + Game.state.teams.mage.total) > 0;
       if (live) {
         const k = Game.state.teams.knight;
@@ -4059,7 +4066,7 @@ const TeacherDashboard = {
           <div class="text-xs space-y-0.5">
             <div class="flex justify-between"><span>本 session 答題</span><span class="font-bold text-amber-300">${k.total + m.total}</span></div>
             <div class="flex justify-between"><span>本 session 答對</span><span class="font-bold text-emerald-300">${k.correct + m.correct} (${pctLive}%)</span></div>
-            <div class="flex justify-between"><span>Boss HP</span><span class="font-bold text-rose-300">${Game.state.bossHP} / ${Game.state.bossMaxHP}</span></div>
+            <div class="flex justify-between"><span>Boss HP</span><span class="font-bold text-rose-300">${Game.state.bossHp} / ${Game.state.bossMaxHp}</span></div>
             <div class="flex justify-between"><span>城塔 HP</span><span class="font-bold text-amber-300">${Game.state.castleHP || '?'} / ${Game.state.castle ? Game.state.castle.left : '?'}</span></div>
           </div>
         `;
@@ -4691,24 +4698,23 @@ document.addEventListener('keydown', (e) => {
   // 跳過 input/textarea (future-proof，唔影響 v3.3 單層 UI)
   if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
   // Space → pause / resume
+  // V3.4-AUDIT-FIX: 移除 lazy pause-overlay 創建 (HTML 已 inline 定義 #pause-overlay,
+  // 永遠唔會係 null — lazy branch 係 dead code。改用 HTML overlay 統一處理。
+  // 老師控制台開咗嗰陣 keyboard-pause 唔 trigger (避免覆蓋 teacher-pause UX)。
   if (e.key === ' ') {
     e.preventDefault();
     const pauseOverlay = $('pause-overlay');
-    if (pauseOverlay && !pauseOverlay.classList.contains('hidden')) {
+    if (!pauseOverlay) return;
+    const teacherOpen = $('teacher-modal') && !$('teacher-modal').classList.contains('hidden');
+    if (!pauseOverlay.classList.contains('hidden')) {
+      // resume (無論 teacher-pause 定 keyboard-pause)
       pauseOverlay.classList.add('hidden');
+      Game.state.paused = false;
       Game.state.running = true;
-    } else if (Game.state && Game.state.running) {
-      Game.state.running = false;
-      if (!pauseOverlay) {
-        // 創建 pause overlay (lazy)
-        const ov = document.createElement('div');
-        ov.id = 'pause-overlay';
-        ov.className = 'pause-overlay';
-        ov.innerHTML = '<div class="text-center"><div class="text-6xl mb-4">⏸️</div><p class="text-2xl font-bold text-white">已暫停</p><p class="text-sm text-white/70 mt-2">按 Space 繼續</p></div>';
-        ov.onclick = () => { ov.classList.add('hidden'); Game.state.running = true; };
-        document.body.appendChild(ov);
-      }
-      $('pause-overlay').classList.remove('hidden');
+    } else if (Game.state && Game.state.running && !teacherOpen) {
+      // keyboard-pause: 只喺冇 teacher modal 嗰陣先 trigger
+      Game.state.paused = true;
+      pauseOverlay.classList.remove('hidden');
     }
     return;
   }
