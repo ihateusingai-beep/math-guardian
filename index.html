@@ -3234,6 +3234,10 @@ function showBossIntro(boss) {
   }, 1100);
 }
 
+// V3.4-AUDIT2-FIX: 升到 module-scope 前段，避免 startGame() reset 時撞 TDZ
+// (visibilitychange handler 喺 file 較後處使用 — 必須先 hoist declare)
+let _wasPlayingBGM = false;
+
 function startGame() {
   // 校驗 — v3.1 validate against TYPE_REGISTRY
   Game.settings.types = Game.settings.types.filter(t => TYPE_REGISTRY[t]);
@@ -3244,6 +3248,12 @@ function startGame() {
   // P1-A: 記住開始時間
   Game.state.startedAt = Date.now();
   Game.state.endedAt = 0;
+  // V3.4-AUDIT2-FIX: 重設 timer state flags 避免 stale _startAt (_startAt 由舊 session 殘留
+  // 會令 time-mode 第二場 instant endGame)；_frostTickAt 同理 (會 over-fire 一次冰凍 step)
+  s._startAt = 0;
+  s._frostTickAt = 0;
+  // V3.4-AUDIT2-FIX: 確保 pause-overlay 隱藏 (從 teacher-pause / Space-pause → endGame → 玩多次殘留)
+  const _po = $('pause-overlay'); if (_po) _po.classList.add('hidden');
   // P1-C: 套用 Bosses.current 嘅 sprite + name + scene theme
   if (Bosses.current) {
     const use = document.getElementById('boss-svg-use');
@@ -3300,6 +3310,8 @@ function startGame() {
   // 啟動 boss 自動攻擊（合作模式：每 8s 打一次左/右 castle；巔峰：每 12s 打隨機）
   Audio.prime();
   Audio.startBGM();
+  // V3.4-AUDIT2-FIX: 清 visibilitychange listener 嘅 resume-flag (module-scoped, 唔識 restore)
+  _wasPlayingBGM = false;
   UI.refreshAll();
   nextQuestion('knight');
   nextQuestion('mage');
@@ -3651,6 +3663,9 @@ function endGame(victory) {
   Game.state.endedAt = Date.now();
   if (window._mgLoop) clearInterval(window._mgLoop);
   Audio.stopBGM();
+  // V3.4-AUDIT2-FIX: 確保 pause-overlay + paused flag 清乾淨 (teacher-pause → endGame 殘留)
+  Game.state.paused = false;
+  const _po2 = $('pause-overlay'); if (_po2) _po2.classList.add('hidden');
   // P1-A + P1-E: 結束時 archive report 入 history，清 snapshot 防 resume 舊 session
   archiveReport();
   Snapshot.clear();
@@ -3854,13 +3869,20 @@ function showConfirmModal({title, body, confirmText='確認', cancelText='取消
   modal.classList.remove('hidden');
   const okBtn = $('confirm-modal-ok');
   const cancelBtn = $('confirm-modal-cancel');
-  const close = () => modal.classList.add('hidden');
+  // V3.4-AUDIT2-FIX: 加入 Esc/Enter 鍵 cleanup — 避免 btn-onclick 直接 close (即無 key 觸發)
+  // 時 listener 殘留。每次 open modal 都加新 handler，如果唔 cleanup，N 次 open → N 個 stale
+  // handlers，每次之後嘅 Esc 會 cascade close 多個 modal。
+  let escHandler = null;
+  const close = () => {
+    modal.classList.add('hidden');
+    if (escHandler) { document.removeEventListener('keydown', escHandler); escHandler = null; }
+  };
   okBtn.onclick = () => { close(); onConfirm && onConfirm(); };
   cancelBtn.onclick = () => { close(); onCancel && onCancel(); };
   // Enter / Esc 鍵
-  const escHandler = (e) => {
-    if (e.key === 'Escape') { cancelBtn.click(); document.removeEventListener('keydown', escHandler); }
-    if (e.key === 'Enter')  { okBtn.click();     document.removeEventListener('keydown', escHandler); }
+  escHandler = (e) => {
+    if (e.key === 'Escape') { cancelBtn.click(); }
+    if (e.key === 'Enter')  { okBtn.click(); }
   };
   document.addEventListener('keydown', escHandler);
   setTimeout(() => okBtn.focus(), 50);
@@ -4680,7 +4702,6 @@ window.addEventListener('DOMContentLoaded', () => {
 document.addEventListener('touchstart', () => Audio.prime(), { once: true });
 
 // V3.3-A5: audio auto-mute on tab hidden（學生切 app/暫停時 BGM 自動停）
-let _wasPlayingBGM = false;
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) {
     // 記住當前 BGM 狀態，停 BGM
@@ -4697,6 +4718,10 @@ document.addEventListener('visibilitychange', () => {
 document.addEventListener('keydown', (e) => {
   // 跳過 input/textarea (future-proof，唔影響 v3.3 單層 UI)
   if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+  // V3.4-AUDIT2-FIX: 加入 game-state guard，避免 Backspace/Enter/1-9 喺 menu / end / teacher modal
+  // 嗰陣，雖然 .key-btn / .option-btn 唔再喺 game screen，但若 menu 內另有相同 class (e.g. dev probe / future layout)
+  // 會誤觸。統一用 running + screen-game 雙 gate。
+  const inGameScreen = $('screen-game') && !$('screen-game').classList.contains('hidden');
   // Space → pause / resume
   // V3.4-AUDIT-FIX: 移除 lazy pause-overlay 創建 (HTML 已 inline 定義 #pause-overlay,
   // 永遠唔會係 null — lazy branch 係 dead code。改用 HTML overlay 統一處理。
@@ -4718,6 +4743,9 @@ document.addEventListener('keydown', (e) => {
     }
     return;
   }
+  // V3.4-AUDIT2-FIX: 只喺 running + inGameScreen 先允許 keyboard-input 操作
+  const keyboardActive = Game.state && Game.state.running && !Game.state.paused && !Game.state.ended && inGameScreen;
+  if (!keyboardActive) return;
   // Backspace → keypad clear (only if keypad exists)
   if (e.key === 'Backspace' && document.querySelector('.key-btn.clear')) {
     document.querySelector('.key-btn.clear').click();

@@ -207,6 +207,46 @@ assert('AUDIT-F9 bossHp consistent',
 assert('AUDIT-F9 bossHp lowercase used',
   src.includes('Game.state.bossHp') && src.includes('Game.state.bossMaxHp'));
 
+// =========== T13: V3.4-audit-cycle-2 (state-machine + race + mobile) ===========
+console.log('\n[T13] V3.4 audit cycle-2 patches');
+// B5+B17: endGame resets paused + hides pause-overlay
+// Capture range: from `function endGame` to next `Audio.stopBGM();` plus 10 lines after,
+// because the AUDIT2 fix lines come AFTER the stopBGM call (lazy add-order).
+const endGameMatch = src.match(/function endGame\(victory\)\s*\{[\s\S]*?Audio\.stopBGM\(\);[\s\S]{0,400}/);
+const endGameSrc = endGameMatch ? endGameMatch[0] : '';
+assert('AUDIT2-B5  endGame clears paused state', endGameSrc.includes('Game.state.paused = false'));
+assert('AUDIT2-B5  endGame hides pause-overlay',  endGameSrc.includes('pause-overlay'));
+// B5+B17: startGame resets _startAt + _frostTickAt + hides pause-overlay
+const startGameMatch = src.match(/function startGame\(\)\s*\{[\s\S]*?Audio\.startBGM\(\);[\s\S]{0,800}/);
+const startGameSrc = startGameMatch ? startGameMatch[0] : '';
+assert('AUDIT2-B6  startGame resets _startAt',     startGameSrc.includes('s._startAt = 0'));
+assert('AUDIT2-B17 startGame resets _frostTickAt', startGameSrc.includes('s._frostTickAt = 0'));
+assert('AUDIT2-B5  startGame hides pause-overlay', startGameSrc.includes('pause-overlay'));
+// B1: confirm-modal escHandler cleanup on close (not just on keypress)
+assert('AUDIT2-B1  confirm close() removes escListener',
+  /const close = \(\) =>\s*\{[\s\S]*?removeEventListener\('keydown'/.test(src));
+assert('AUDIT2-B1  no orphan removeEventListener(escHandler)',
+  !src.includes("if (e.key === 'Escape') { cancelBtn.click(); document.removeEventListener('keydown', escHandler); }"));
+// B8: keyboard 1-9 / Backspace / Enter gated on Game.state.running + inGameScreen
+assert('AUDIT2-B8 keyboard-active gate present',
+  src.includes('const keyboardActive =') &&
+  src.includes('keyboardActive') &&
+  src.includes('Game.state && Game.state.running'));
+// B3: _wasPlayingBGM hoisted to top scope (before startGame) to avoid TDZ
+const hoistedOrder = src.indexOf('let _wasPlayingBGM = false');
+const startGameIdx = src.indexOf('function startGame()');
+assert('AUDIT2-B3 _wasPlayingBGM declared before startGame',
+  hoistedOrder > 0 && hoistedOrder < startGameIdx);
+// startGame resets _wasPlayingBGM after startBGM call (not before — that's the natural add-point)
+const startGameBody = src.slice(startGameIdx, src.indexOf('function endGame(', startGameIdx));
+assert('AUDIT2-B3 startGame resets _wasPlayingBGM',
+  startGameBody.includes('_wasPlayingBGM = false'));
+// B-touch: long-press event delegation covers touchstart + touchend + touchcancel + touchmove + mousedown
+assert('AUDIT2-B8-tch touchstart on review-list',  src.includes("reviewList.addEventListener('touchstart'"));
+assert('AUDIT2-B8-tch touchend on review-list',    src.includes("reviewList.addEventListener('touchend'"));
+assert('AUDIT2-B8-tch touchcancel on review-list', src.includes("reviewList.addEventListener('touchcancel'"));
+assert('AUDIT2-B8-tch touchmove cancels (scroll)', src.includes("reviewList.addEventListener('touchmove'"));
+
 // =========== T12: file size budget ===========
 console.log('\n[T11] file size budget');
 const sizeKB = src.length / 1024;
