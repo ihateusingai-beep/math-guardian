@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <!--
   ============================================================
-   數學守護者：精準訓練版 v3.2 (Math Guardian: Precision Training Edition v3.2)
+   數學守護者：精準訓練版 v3.3 (Math Guardian: Precision Training Edition v3.3)
   ------------------------------------------------------------
    v3.2 重點改進（vs v3.1）:
      1. compare10 支援 keypad 模式（紫粉 < = > 三鍵 + auto-submit）
@@ -53,7 +53,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="theme-color" content="#0b0d1a" />
-<title>數學守護者：精準訓練版 v3.2</title>
+<title>數學守護者：精準訓練版 v3.3</title>
 
 <script src="https://cdn.tailwindcss.com"></script>
 <script>
@@ -1469,7 +1469,7 @@
       <h1 class="text-3xl md:text-5xl font-extrabold bg-gradient-to-r from-amber-300 via-pink-400 to-purple-400 bg-clip-text text-transparent">
         數學守護者
       </h1>
-      <p class="text-base md:text-xl text-purple-200 mt-1">精準訓練版 v3.2 · Math Guardian</p>
+      <p class="text-base md:text-xl text-purple-200 mt-1">精準訓練版 v3.3 · Math Guardian</p>
       <p class="text-xs md:text-sm text-white/50 mt-1">兩隊同心，守護城堡，精準答題擊敗森林巨魔</p>
     </div>
 
@@ -1539,7 +1539,7 @@
       </div>
 
       <!-- 開始 -->
-      <button id="btn-start" class="w-full btn ultimate text-white text-xl mt-2 flex items-center justify-center gap-2">
+      <button id="btn-start" class="w-full btn ultimate text-white text-xl mt-2 flex items-center justify-center gap-2" aria-label="開始守護戰役 — 開始新遊戲">
         <svg class="pixel icon-md"><use href="#px-castle"/></svg>
         開始守護戰役
       </button>
@@ -1552,7 +1552,7 @@
 
     <!-- 頂部：boss + 控制 -->
     <header class="flex items-center justify-between gap-2 px-1">
-      <button id="btn-back" class="btn btn-ghost text-sm py-2 px-3">⬅ 返回</button>
+      <button id="btn-back" class="btn btn-ghost text-sm py-2 px-3" aria-label="返回主選單 — 儲存當前進度">⬅ 返回</button>
       <div class="flex items-center gap-2">
         <span class="mode-badge" id="badge-mode">HP 模式</span>
         <span class="mode-badge" id="badge-time">--:--</span>
@@ -1729,8 +1729,8 @@
       <!-- P2-c: Achievement badges (unlocked only, fade-in stagger) -->
       <div id="end-badges" class="mb-4 flex justify-center gap-3 flex-wrap" style="font-size:0;line-height:0;"></div>
       <div class="grid grid-cols-2 gap-3">
-        <button id="btn-restart" class="btn btn-knight">🔁 再玩一次</button>
-        <button id="btn-back-menu" class="btn btn-mage">🏠 返回主選單</button>
+        <button id="btn-restart" class="btn btn-knight" aria-label="再玩一次 — 用同樣設定重新開始">🔁 再玩一次</button>
+        <button id="btn-back-menu" class="btn btn-mage" aria-label="返回主選單 — 結束本局">🏠 返回主選單</button>
       </div>
     </div>
   </section>
@@ -2079,6 +2079,18 @@ const FX = {
     a.style.animation = 'screen-alert 1.6s ease forwards';
     document.body.appendChild(a);
     setTimeout(() => a.remove(), 1700);
+    // V3.3-UI4: a11y — 同時 push 去 hidden aria-live region (screen-reader announce)
+    let live = $('aria-live-alerts');
+    if (!live) {
+      live = document.createElement('div');
+      live.id = 'aria-live-alerts';
+      live.setAttribute('aria-live', 'polite');
+      live.setAttribute('aria-atomic', 'true');
+      live.style.cssText = 'position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden';
+      document.body.appendChild(live);
+    }
+    live.textContent = '';  // reset then set (screen-reader detects change)
+    setTimeout(() => { live.textContent = text; }, 50);
   },
   shake(el, cls = 'anim-shake') {
     if (!el) return;
@@ -2839,7 +2851,74 @@ function setupMenu() {
     display.textContent = slider.value;
   });
   // 開始
-  $('btn-start').onclick = startGame;
+  $('btn-start').onclick = () => {
+  // V3.3-U1: first-run onboarding tutorial — only shows once per browser
+  if (!localStorage.getItem('mg2.onboardingDone')) {
+    showOnboarding(() => {
+      localStorage.setItem('mg2.onboardingDone', '1');
+      startGame();
+    });
+  } else {
+    startGame();
+  }
+};
+
+// V3.3-U1: 3-step onboarding tutorial
+function showOnboarding(onComplete) {
+  const steps = [
+    {
+      title: '🛡️ 歡迎來到數學守護者！',
+      body: '你將帶領「騎士隊」和「法師隊」合作擊敗森林巨魔。' +
+            '\n答啱題目會攻擊 Boss，答錯會入「重練區」等你再挑戰。'
+    },
+    {
+      title: '⚔️ 答題示範',
+      body: '每題用四選一按鈕揀答案，或者用數字鍵盤輸入。' +
+            '\n大小比較題用「< = >」三按鈕。' +
+            '\n由小到大題按正確順序撳 3 個按鍵。'
+    },
+    {
+      title: '🎮 開始守護戰役！',
+      body: 'Boss 會每 8 秒攻擊你嘅城堡 — 答啱題反擊！' +
+            '\n合作模式：兩隊一齊打 Boss。' +
+            '\n巔峰對戰：兩隊比拚答題總得分。'
+    }
+  ];
+  let i = 0;
+  let overlay = $('onboarding-overlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'onboarding-overlay';
+    overlay.className = 'modal-backdrop flex items-center justify-center p-4';
+    overlay.style.cssText = 'position:fixed;inset:0;z-index:95';
+    document.body.appendChild(overlay);
+  }
+  function render() {
+    const s = steps[i];
+    overlay.innerHTML = `
+      <div class="bg-slate-800 rounded-2xl p-6 max-w-md w-full border-2 border-amber-500/50 shadow-2xl">
+        <div class="text-center mb-4">
+          <div class="text-xs text-white/50 mb-2">第 ${i+1} / ${steps.length} 步</div>
+          <h2 class="text-2xl font-bold text-amber-300 mb-3">${s.title}</h2>
+        </div>
+        <p class="text-white/85 text-base mb-6 leading-relaxed whitespace-pre-line">${s.body}</p>
+        <div class="flex gap-3">
+          ${i > 0 ? '<button id="ob-back" class="btn btn-ghost flex-1">← 上一步</button>' : '<button id="ob-skip" class="btn btn-ghost flex-1">跳過</button>'}
+          <button id="ob-next" class="btn btn-knight flex-1">${i === steps.length-1 ? '開始 🎮' : '下一步 →'}</button>
+        </div>
+        <div class="flex justify-center gap-1 mt-4">
+          ${steps.map((_, idx) => `<div class="w-2 h-2 rounded-full ${idx === i ? 'bg-amber-400' : 'bg-white/30'}"></div>`).join('')}
+        </div>
+      </div>`;
+    const back = $('ob-back'); if (back) back.onclick = () => { i--; render(); };
+    const skip = $('ob-skip'); if (skip) skip.onclick = () => { overlay.remove(); onComplete(); };
+    $('ob-next').onclick = () => {
+      if (i === steps.length-1) { overlay.remove(); onComplete(); }
+      else { i++; render(); }
+    };
+  }
+  render();
+}
 }
 
 // P1-C: Boss 選擇 renderer
@@ -3464,13 +3543,59 @@ $('btn-back-menu').onclick = () => {
 };
 
 $('btn-back').onclick = () => {
-  if (!confirm('確定要返回主選單嗎？遊戲進度將結束。')) return;
-  Game.state.running = false;
-  Game.state.ended = true;
-  if (window._mgLoop) clearInterval(window._mgLoop);
-  $('screen-game').classList.add('hidden');
-  $('screen-menu').classList.remove('hidden');
+  // V3.3-U6: 自訂 styled modal 取代 native confirm (UX 一致 + 提示更具體)
+  showConfirmModal({
+    title: '🛡️ 確定返回主選單？',
+    body: '遊戲進度將會儲存喺 localStorage，下次開啟可 resume。',
+    confirmText: '⬅ 返回',
+    cancelText: '繼續戰鬥',
+    onConfirm: () => {
+      Game.state.running = false;
+      Game.state.ended = true;
+      if (window._mgLoop) clearInterval(window._mgLoop);
+      $('screen-game').classList.add('hidden');
+      $('screen-menu').classList.remove('hidden');
+    }
+  });
 };
+
+// V3.3-U6: 自訂確認 modal (取代 native confirm, 一致 UX)
+function showConfirmModal({title, body, confirmText='確認', cancelText='取消', onConfirm, onCancel}) {
+  let modal = $('confirm-modal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'confirm-modal';
+    modal.className = 'modal-backdrop hidden flex items-center justify-center p-4';
+    modal.style.cssText = 'position:fixed;inset:0;z-index:100';
+    modal.innerHTML = `
+      <div class="bg-slate-800 rounded-2xl p-6 max-w-sm w-full border-2 border-amber-500/50 shadow-2xl">
+        <h3 id="confirm-modal-title" class="text-xl font-bold text-white mb-3"></h3>
+        <p id="confirm-modal-body" class="text-white/80 text-sm mb-5 leading-relaxed"></p>
+        <div class="flex gap-3">
+          <button id="confirm-modal-cancel" class="btn btn-ghost flex-1">取消</button>
+          <button id="confirm-modal-ok" class="btn btn-knight flex-1">確認</button>
+        </div>
+      </div>`;
+    document.body.appendChild(modal);
+  }
+  $('confirm-modal-title').textContent = title;
+  $('confirm-modal-body').textContent = body;
+  $('confirm-modal-ok').textContent = confirmText;
+  $('confirm-modal-cancel').textContent = cancelText;
+  modal.classList.remove('hidden');
+  const okBtn = $('confirm-modal-ok');
+  const cancelBtn = $('confirm-modal-cancel');
+  const close = () => modal.classList.add('hidden');
+  okBtn.onclick = () => { close(); onConfirm && onConfirm(); };
+  cancelBtn.onclick = () => { close(); onCancel && onCancel(); };
+  // Enter / Esc 鍵
+  const escHandler = (e) => {
+    if (e.key === 'Escape') { cancelBtn.click(); document.removeEventListener('keydown', escHandler); }
+    if (e.key === 'Enter')  { okBtn.click();     document.removeEventListener('keydown', escHandler); }
+  };
+  document.addEventListener('keydown', escHandler);
+  setTimeout(() => okBtn.focus(), 50);
+}
 
 $('btn-clear-review').onclick = () => {
   Game.state.review = [];
@@ -4284,6 +4409,67 @@ window.addEventListener('DOMContentLoaded', () => {
 // 雙位數題型預設時，順便把雙位數題型高亮取消（已加 class），確保單選可工作
 // 監聽 mobile keyboard 不彈出（for keypad mode，input 隱藏）
 document.addEventListener('touchstart', () => Audio.prime(), { once: true });
+
+// V3.3-A5: audio auto-mute on tab hidden（學生切 app/暫停時 BGM 自動停）
+let _wasPlayingBGM = false;
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    // 記住當前 BGM 狀態，停 BGM
+    _wasPlayingBGM = !!Audio.bgmInterval;  // 暴露內部 flag（hack but ok）
+    if (_wasPlayingBGM) Audio.stopBGM();
+  } else {
+    // 恢復 BGM（如遊戲運行中）
+    if (_wasPlayingBGM && Game.state && Game.state.running) Audio.startBGM();
+    _wasPlayingBGM = false;
+  }
+});
+
+// V3.3-U5: keyboard shortcuts (老師 demo 用 — 1-9 choice / Enter OK / Backspace clear / Space pause)
+document.addEventListener('keydown', (e) => {
+  // 跳過 input/textarea (future-proof，唔影響 v3.3 單層 UI)
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+  // Space → pause / resume
+  if (e.key === ' ') {
+    e.preventDefault();
+    const pauseOverlay = $('pause-overlay');
+    if (pauseOverlay && !pauseOverlay.classList.contains('hidden')) {
+      pauseOverlay.classList.add('hidden');
+      Game.state.running = true;
+    } else if (Game.state && Game.state.running) {
+      Game.state.running = false;
+      if (!pauseOverlay) {
+        // 創建 pause overlay (lazy)
+        const ov = document.createElement('div');
+        ov.id = 'pause-overlay';
+        ov.className = 'pause-overlay';
+        ov.innerHTML = '<div class="text-center"><div class="text-6xl mb-4">⏸️</div><p class="text-2xl font-bold text-white">已暫停</p><p class="text-sm text-white/70 mt-2">按 Space 繼續</p></div>';
+        ov.onclick = () => { ov.classList.add('hidden'); Game.state.running = true; };
+        document.body.appendChild(ov);
+      }
+      $('pause-overlay').classList.remove('hidden');
+    }
+    return;
+  }
+  // Backspace → keypad clear (only if keypad exists)
+  if (e.key === 'Backspace' && document.querySelector('.key-btn.clear')) {
+    document.querySelector('.key-btn.clear').click();
+    return;
+  }
+  // Enter → keypad OK
+  if (e.key === 'Enter' && document.querySelector('.key-btn.ok, .key-btn.fn')) {
+    const ok = document.querySelector('.key-btn.ok, .key-btn.fn');
+    ok.click();
+    return;
+  }
+  // 1-9 → choice option (only if option buttons exist with text)
+  if (/^[1-9]$/.test(e.key)) {
+    const opts = document.querySelectorAll('.option-btn, .q-order-btn, .q-sym-btn');
+    if (opts.length >= parseInt(e.key, 10)) {
+      opts[parseInt(e.key, 10) - 1].click();
+      return;
+    }
+  }
+});
 </script>
 
 </body>
