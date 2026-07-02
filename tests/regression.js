@@ -341,6 +341,96 @@ assert('AUDIT4-C  boss-hero-portrait alt empty (default) then synced',
 assert('AUDIT4-M  end-boss-portrait alt includes boss name + "已被擊敗"',
   /portrait\.alt\s*=\s*`\$\{Bosses\.current\.name\} 已被擊敗`/.test(src));
 
+// =========== T17: V3.4 audit cycle-5 (per-sfx, beforeunload, touch-target, T-key, Esc stack, a11y announce) ===========
+console.log('\n[T17] V3.4 audit cycle-5 patches');
+// AUDIT5-P1-1: per-channel Audio API
+assert('AUDIT5-P1  Audio channels state object present',
+  /let channels = \{ master: true, sfx: true, bgm: true \}/.test(src));
+assert('AUDIT5-P1  Audio canPlaySfx / canPlayBgm helpers',
+  /function canPlaySfx\(\) \{ return channels\.master && channels\.sfx; \}/.test(src) &&
+  /function canPlayBgm\(\) \{ return channels\.master && channels\.bgm; \}/.test(src));
+assert('AUDIT5-P1  Audio.setChannel method exposed',
+  /setChannel\(name, on\) \{[\s\S]{0,200}channels\[name\] = !!on/.test(src));
+assert('AUDIT5-P1  Audio.getChannels method exposed',
+  /getChannels\(\) \{ return \{ \.\.\.channels \}; \}/.test(src));
+assert('AUDIT5-P1  TTS.setEnabled method',
+  /setEnabled\(b\) \{ this\.enabled = !!b; if \(!this\.enabled\) this\.cancel\(\); \}/.test(src));
+assert('AUDIT5-P1  TTS.cancel() method',
+  /cancel\(\) \{[\s\S]{0,200}speechSynthesis\.cancel\(\)/.test(src));
+assert('AUDIT5-P1  wireAudioSettings function',
+  /function wireAudioSettings\(\) \{/.test(src));
+assert('AUDIT5-P1  syncAudioSettingsUI function',
+  /function syncAudioSettingsUI\(\) \{[\s\S]{0,200}td-audio-master/.test(src));
+assert('AUDIT5-P1  sound button aria-pressed',
+  /\$\('btn-sound'\)\.setAttribute\('aria-pressed'/.test(src));
+assert('AUDIT5-P1  per-channel UI inputs in teacher-modal',
+  /id="td-audio-master"/.test(src) && /id="td-audio-sfx"/.test(src) &&
+  /id="td-audio-bgm"/.test(src) && /id="td-audio-tts"/.test(src));
+// AUDIT5-P1-2: beforeunload guard
+assert('AUDIT5-P1  beforeunload handler calls Snapshot.flush',
+  /addEventListener\('beforeunload'[\s\S]{0,200}Snapshot\.flush\('beforeunload'\)/.test(src));
+assert('AUDIT5-P1  pagehide handler for mobile Safari',
+  /addEventListener\('pagehide'[\s\S]{0,200}Snapshot\.flush\('pagehide'\)/.test(src));
+// AUDIT5-P1-3: touch-target 44px
+assert('AUDIT5-P1  .btn-sm min-height 44px',
+  /\.btn-sm\s*\{[\s\S]{0,200}min-height: 44px; min-width: 44px;/.test(src));
+assert('AUDIT5-P1  btn-type-all uses btn-sm',
+  /id="btn-type-all"[^>]*class="btn-sm/.test(src));
+assert('AUDIT5-P1  btn-clear-review uses btn-sm',
+  /id="btn-clear-review"[^>]*class="btn-sm/.test(src));
+// AUDIT5-P1-4: T-key retry
+assert('AUDIT5-P1  revealLatestReviewAnswer function',
+  /function revealLatestReviewAnswer\(\) \{[\s\S]{0,300}show-answer/.test(src));
+assert('AUDIT5-P1  T-key handler in keydown',
+  /e\.key === 't' \|\| e\.key === 'T'[\s\S]{0,200}revealLatestReviewAnswer/.test(src));
+// AUDIT5-P1-5: Esc stack — pause-overlay skip if teacher-modal open
+assert('AUDIT5-P1  pause Esc skips when teacher-modal open',
+  /pauseEscHandler[\s\S]{0,400}const teacherOpen[\s\S]{0,200}if \(teacherOpen\) return;/.test(src));
+// AUDIT5-P1-6: HP slider aria-valuetext
+assert('AUDIT5-P1  HP slider aria-valuetext initial',
+  /id="hp-slider"[^>]*aria-valuetext="Boss 初始生命值 200/.test(src));
+assert('AUDIT5-P1  HP slider input listener updates aria-valuetext',
+  /slider\.setAttribute\('aria-valuetext'/.test(src));
+// AUDIT5-P1-7: TTS cancel-on-question-change
+assert('AUDIT5-P1  showQuestion calls TTS.cancel',
+  /showQuestion\(team\) \{[\s\S]{0,300}TTS\.cancel\(\)/.test(src));
+assert('AUDIT5-P1  startGame calls TTS.cancel',
+  /function startGame\(\) \{[\s\S]{0,500}TTS\.cancel\(\)/.test(src));
+// AUDIT5-P1-8: announceToA11y helper + correct/wrong call sites
+assert('AUDIT5-P1  announceToA11y function defined',
+  /function announceToA11y\(msg\) \{[\s\S]{0,300}aria-live-alerts/.test(src));
+assert('AUDIT5-P1  handleAnswer announces 答啱喇',
+  /答啱喇/.test(src) && /announceToA11y\(.*答啱喇/.test(src));
+assert('AUDIT5-P1  handleAnswer announces 答錯',
+  /announceToA11y\(.*答錯/.test(src));
+// AUDIT5-P2: polish
+assert('AUDIT5-P2  boss-hp-track has role=progressbar + aria-valuenow',
+  /id="boss-hp-track"/.test(src) && /role="progressbar"/.test(src) && /aria-valuenow="200"/.test(src));
+assert('AUDIT5-P2  updateBoss syncs boss-hp-track aria-valuenow',
+  /track\.setAttribute\('aria-valuenow'/.test(src));
+assert('AUDIT5-P2  opt-type toggle syncs aria-pressed',
+  /b\.setAttribute\('aria-pressed', 'false'\)[\s\S]{0,500}b\.setAttribute\('aria-pressed', 'true'\)/.test(src));
+assert('AUDIT5-P2  opt-win/mode/team initial aria-pressed',
+  /opt-win btn btn-ghost opt-selected[^>]*aria-pressed="true"/.test(src) &&
+  /opt-mode btn btn-ghost opt-selected[^>]*aria-pressed="true"/.test(src) &&
+  /opt-team btn btn-ghost opt-selected[^>]*aria-pressed="true"/.test(src));
+assert('AUDIT5-P2  opt-win/mode/team radiogroup role',
+  /role="radiogroup" aria-label="勝利條件"/.test(src) &&
+  /role="radiogroup" aria-label="答題模式"/.test(src) &&
+  /role="radiogroup" aria-label="隊伍模式"/.test(src));
+assert('AUDIT5-P2  opt-type aria-label includes 難度 + 選/未選',
+  /aria-label="\$\{reg\.label\}，難度/.test(src));
+assert('AUDIT5-P2  resume button has aria-label',
+  /btn\.setAttribute\('aria-label', '繼續上次遊戲/.test(src));
+assert('AUDIT5-P2  btn-ghost hover bg-white/25 (upgraded contrast)',
+  /\.btn-ghost\s*\{[\s\S]{0,100}hover:bg-white\/25/.test(src));
+// AUDIT5-P2: timer resume
+assert('AUDIT5-P2  Snapshot.resume reduces timeLeftSec by elapsed',
+  /if \(s\.settings && s\.settings\.win === 'time' && s\.state\.timeLeftSec > 0 && s\.savedAt\)[\s\S]{0,300}elapsed/.test(src));
+// AUDIT5-P2: opt-win/mode/team click handlers reset aria-pressed to false
+assert('AUDIT5-P2  opt-win click resets siblings aria-pressed',
+  /opt-win[\s\S]{0,800}setAttribute\('aria-pressed', 'false'\)[\s\S]{0,200}setAttribute\('aria-pressed', 'true'\)[\s\S]{0,200}\.win = b\.dataset\.win/.test(src));
+
 // =========== T16: file size budget ===========
 console.log('\n[T16] file size budget');
 const sizeKB = src.length / 1024;
