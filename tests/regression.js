@@ -431,6 +431,76 @@ assert('AUDIT5-P2  Snapshot.resume reduces timeLeftSec by elapsed',
 assert('AUDIT5-P2  opt-win click resets siblings aria-pressed',
   /opt-win[\s\S]{0,800}setAttribute\('aria-pressed', 'false'\)[\s\S]{0,200}setAttribute\('aria-pressed', 'true'\)[\s\S]{0,200}\.win = b\.dataset\.win/.test(src));
 
+// =========== T18: V3.5 P0 TTS Karaoke ===========
+console.log('\n[T18] V3.5 P0 TTS Karaoke');
+// KAR-1: TTS.speak accepts opts arg + wires onBoundary
+assert('KAR-1  TTS.speak accepts opts 3rd arg',
+  /speak\(text, btn, opts = \{\}\) \{/.test(src) ||
+  /speak\(text, btn, opts\) \{/.test(src));
+assert('KAR-1  TTS.speak wires utter.onboundary from opts.onBoundary',
+  /opts\.onBoundary[\s\S]{0,200}utter\.onboundary/.test(src));
+// KAR-2: TTS.cancel clears .tts-active
+assert('KAR-2  TTS.cancel clears .tts-tok.tts-active',
+  /cancel\(\)[\s\S]{0,400}\.tts-tok\.tts-active/.test(src) &&
+  /\.tts-tok\.tts-active[\s\S]{0,200}classList\.remove\('tts-active'\)/.test(src));
+// KAR-3: renderer emits .tts-tok when ttsKaraoke enabled
+assert('KAR-3  renderQuestionTextFor emits tts-tok spans',
+  /renderQuestionTextFor\(team, q\)[\s\S]{0,800}\.tts-tok/.test(src) ||
+  /renderQuestionTextFor[\s\S]{0,800}class="tts-tok"/.test(src));
+assert('KAR-3  renderQuestionTextFor reads Game.settings.ttsKaraoke',
+  /renderQuestionTextFor[\s\S]{0,1000}Game\.settings\.ttsKaraoke/.test(src));
+// KAR-4: showQuestion TTS button passes onBoundary via opts
+assert('KAR-4  showQuestion wires onBoundary through TTS.speak opts',
+  /showQuestion\(team\) \{[\s\S]{0,1500}TTS\.speak\([^)]*onBoundary/.test(src) ||
+  /onBoundary[\s\S]{0,300}\.tts-tok/.test(src));
+// KAR-5: teacher modal toggle id present
+assert('KAR-5  teacher modal has td-audio-tts-karaoke checkbox',
+  /id="td-audio-tts-karaoke"/.test(src));
+assert('KAR-5  td-audio-tts-karaoke wired to Game.settings.ttsKaraoke',
+  /td-audio-tts-karaoke[\s\S]{0,500}Game\.settings\.ttsKaraoke[\s\S]{0,200}\.checked/.test(src) ||
+  /Game\.settings\.ttsKaraoke[\s\S]{0,500}td-audio-tts-karaoke[\s\S]{0,200}\.checked/.test(src));
+// KAR-6: settings persist in Snapshot (rides along existing settings spread)
+assert('KAR-6  Snapshot.flush spreads ttsKaraoke via settings',
+  /Snapshot\.flush[\s\S]{0,400}settings: \{ \.\.\.Game\.settings \}/.test(src) &&
+  /Snapshot\.resume[\s\S]{0,400}\.\.\.s\.settings/.test(src));
+// KAR-7: reduced-motion compliance for .tts-tok
+assert('KAR-7  reduced-motion disables .tts-tok transition',
+  /@media \(prefers-reduced-motion: reduce\)[\s\S]{0,800}\.tts-tok[\s\S]{0,200}transition: none/.test(src) ||
+  /\.tts-tok[\s\S]{0,400}transition: none[\s\S]{0,400}@media \(prefers-reduced-motion: reduce\)/.test(src));
+// KAR-8: teacher modal toggle aria-describedby binding (sen-a11y-reviewer scope)
+assert('KAR-8  td-audio-tts-karaoke has aria-describedby on its input',
+  /id="td-audio-tts-karaoke"[^>]*aria-describedby="td-audio-tts-karaoke-desc"/.test(src) ||
+  /aria-describedby="td-audio-tts-karaoke-desc"[\s\S]{0,200}id="td-audio-tts-karaoke"/.test(src));
+assert('KAR-8  td-audio-tts-karaoke-desc sr-only label present',
+  /id="td-audio-tts-karaoke-desc"[\s\S]{0,200}class="sr-only"/.test(src));
+
+// =========== T19: V3.5 audit cycle-6 (re-entrancy, pendingUlt guard, timer resume, gameLoop order) ===========
+console.log('\n[T19] V3.5 audit cycle-6 patches');
+// AUDIT6-F01: handleAnswer re-entrancy null-out — SEN 學生 double-click / 觸控 bounce
+// 喺 setTimeout(...0) fire 之前撞入嚟 re-fire damageBoss + Adaptive.onCorrect。
+// 即時 null 咗 current[team]，第二次 tap 喺 line 3742 `if (!q) return` 即 early exit。
+assert('AUDIT6-F01 handleAnswer nulls current[team] before setTimeout',
+  /function\(team, value, btn\) \{[\s\S]{0,2500}Game\.state\.current\[team\] = null;[\s\S]{0,400}setTimeout\(\(\) => \{/.test(src) ||
+  /AUDIT6-F01: re-entrancy[\s\S]{0,400}current\[team\][\s\S]{0,400}= null[\s\S]{0,200}setTimeout/.test(src));
+assert('AUDIT6-F01 comment documents the null-out rationale',
+  /AUDIT6-F01: re-entrancy null-out[\s\S]{0,500}if \(\!q\) return[\s\S]{0,300}early exit/.test(src));
+// AUDIT6-F02: askReReview guards pendingUlt — 大絕答題進行中唔可以開新重練題
+assert('AUDIT6-F02 askReReview early-returns when pendingUlt is set',
+  /Game\.askReReview = function\(idx\) \{[\s\S]{0,500}if \(Game\.state\.pendingUlt\) return;/.test(src));
+assert('AUDIT6-F02 comment documents the pendingUlt rationale',
+  /AUDIT6-F02: pendingUlt guard[\s\S]{0,400}releaseUlt 錯 team/.test(src));
+// AUDIT6-F04: Snapshot.resume resets _startAt + _frostTickAt — time-mode resume 之前會
+// instant endGame (first gameLoop tick 用 stale _startAt=0 → 巨大負數 → cap 0 → end)
+assert('AUDIT6-F04 Snapshot.resume resets _startAt',
+  /resume\(\) \{[\s\S]{0,3000}Game\.state\._startAt = 0;/.test(src));
+assert('AUDIT6-F04 Snapshot.resume resets _frostTickAt',
+  /resume\(\) \{[\s\S]{0,3000}Game\.state\._frostTickAt = 0;/.test(src));
+// AUDIT6-F05: gameLoop order — lazy-init _startAt 先於 compute，原本浪費一次 Math.floor + Math.max
+assert('AUDIT6-F05 gameLoop lazy-init _startAt before elapsed compute',
+  /gameLoop\(\) \{[\s\S]{0,500}if \(Game\.settings\.win === 'time'[\s\S]{0,400}if \(!s\._startAt\) s\._startAt = tNow;[\s\S]{0,300}const elapsed = Math\.floor\(\(tNow - s\._startAt\) \/ 1000\);/.test(src));
+assert('AUDIT6-F05 gameLoop removed duplicate compute (only one elapsed line)',
+  !(/timeLeftSec = Math\.max\(0, s\.timeLimitSec - Math\.floor\(\(tNow - s\._startAt\) \/ 1000\)\);[\s\S]{0,200}timeLeftSec = Math\.max\(0, s\.timeLimitSec - elapsed\);/.test(src)));
+
 // =========== T16: file size budget ===========
 console.log('\n[T16] file size budget');
 const sizeKB = src.length / 1024;

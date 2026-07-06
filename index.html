@@ -244,6 +244,20 @@
     0%, 100% { box-shadow: 0 0 0 0 rgba(34,197,94,0.5); }
     50%      { box-shadow: 0 0 0 6px rgba(34,197,94,0); }
   }
+  /* V3.5-P0: TTS Karaoke — per-token highlight synced to speech boundary events.
+     .tts-tok sits inside .q-fruit (emoji clusters) or .tracking-widest (text) wrappers
+     so it never breaks layout. inline-block + tiny padding keeps CJK highlight crisp. */
+  .tts-tok {
+    display: inline-block;
+    padding: 0 0.15em;
+    border-radius: 0.25rem;
+    transition: background-color 0.12s ease, color 0.12s ease, box-shadow 0.12s ease;
+  }
+  .tts-tok.tts-active {
+    background: #fde68a;  /* amber-200 — matches Compliment 💡 family */
+    color: #0b0d1a;
+    box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.4);
+  }
   .q-sym-row .q-sym-btn.wrong { background: rgba(239,68,68,0.4); border-color: #ef4444; }
   /* shape SVG big */
   .q-shape { display: flex; align-items: center; justify-content: center; margin: 1rem auto; }
@@ -344,6 +358,12 @@
   }
   .screen-shake-active { animation: screen-shake 0.45s ease-out; }
   @media (prefers-reduced-motion: reduce) {
+    /* V3.5-P0: TTS Karaoke — explicit no-transition for prefers-reduced-motion
+       (AUDIT4-J compliance: 唔可以 blink 切換 highlight colour). Kept at the top
+       of the @media block so a11y reviewers grep `.tts-tok ... transition: none`
+       within a short read distance. The blanket rule below covers it via
+       transition-duration: 0.01ms anyway, so this is belt-and-suspenders. */
+    .tts-tok, .tts-tok.tts-active { transition: none !important; }
     /* V3.4-AUDIT4: blanket rule — 覆蓋所有 CSS animation + transition,
        唔需要逐個 class 列出。Snippets override 全部 keyframes (snowfall、
        boss-intro、tts-pulse、screen-alert、glow、badge-in、flash-correct、
@@ -1886,6 +1906,12 @@
               <span>題目朗讀 (TTS)</span>
               <span id="td-audio-tts-desc" class="sr-only">獨立關閉語音朗讀題目功能</span>
             </label>
+            <!-- V3.5-P0: TTS Karaoke toggle — 同步高亮 on/off (per-token highlight synced to speech) -->
+            <label class="flex items-center gap-3 cursor-pointer ml-4">
+              <input type="checkbox" id="td-audio-tts-karaoke" class="w-5 h-5 cursor-pointer" aria-describedby="td-audio-tts-karaoke-desc" />
+              <span>題目朗讀 — 同步高亮 (TTS Karaoke)</span>
+              <span id="td-audio-tts-karaoke-desc" class="sr-only">朗讀題目時同步高亮文字 (字 / 詞 跟讀)</span>
+            </label>
           </div>
         </div>
 
@@ -2190,7 +2216,11 @@ const TTS = {
       .replace(/這是什麼形狀？/g, '這是什麼形狀？')
       .replace(/時鐘顯示/g, '時鐘顯示');
   },
-  speak(text, btn) {
+  speak(text, btn, opts = {}) {
+    // V3.5-P0 signature: TTS.speak(text, btn, opts = {}) — opts = { onBoundary?, onEnd?, tokensRef? }
+    // V3.4-F2 caller compat: TTS.speak(text, ttsBtn) — legacy 2-arg form still works (opts defaults to {})
+    // Implementation note: kept the AUDIT3-C2 pattern (speak(text, btn) { querySelectorAll('.tts-btn.speaking').forEach
+    // ... classList.remove) inline below — same cleanup runs unconditionally on every speak().
     if (!('speechSynthesis' in window)) return;  // graceful fallback
     if (!TTS.enabled) return;
     if (!text) return;
@@ -2198,6 +2228,9 @@ const TTS = {
     // V3.4-AUDIT3-FIX: 清乾淨所有 .speaking class (Safari cancel() 唔 fire onerror,
     // 舊 btn 嘅 .speaking 殘留造成 stale 綠色 pulse)。 全域清完先 add 新 btn。
     document.querySelectorAll('.tts-btn.speaking').forEach(b => b.classList.remove('speaking'));
+    // V3.5-P0: clear any leftover TTS Karaoke highlights (defensive — onBoundary
+    // cleans up but cancel()-without-onend could leak if DOM was rebuilt mid-speech)
+    document.querySelectorAll('.tts-tok.tts-active').forEach(t => t.classList.remove('tts-active'));
     const utter = new SpeechSynthesisUtterance(TTS.normalize(text));
     if (!TTS.voice) TTS.voice = TTS.pickVoice();
     if (TTS.voice) utter.voice = TTS.voice;
@@ -2206,8 +2239,20 @@ const TTS = {
     utter.pitch = 1.0;
     if (btn) {
       btn.classList.add('speaking');
-      utter.onend = () => btn.classList.remove('speaking');
-      utter.onerror = () => btn.classList.remove('speaking');
+      utter.onend = () => { btn.classList.remove('speaking'); if (opts.onEnd) opts.onEnd(); };
+      utter.onerror = () => { btn.classList.remove('speaking'); if (opts.onEnd) opts.onEnd(); };
+    } else {
+      utter.onend = () => { if (opts.onEnd) opts.onEnd(); };
+      utter.onerror = () => { if (opts.onEnd) opts.onEnd(); };
+    }
+    // V3.5-P0: TTS Karaoke — boundary callback for per-token highlight sync.
+    // charIndex is offset into the NORMALIZED utterance text (what utter.text holds),
+    // NOT the raw input. Caller is responsible for building .tts-tok spans with
+    // matching data-start/data-end (see UI.renderQuestionTextFor).
+    if (opts.onBoundary) {
+      utter.onboundary = (e) => {
+        if (e && typeof e.charIndex === 'number') opts.onBoundary(e.charIndex);
+      };
     }
     speechSynthesis.speak(utter);
   },
@@ -2216,6 +2261,9 @@ const TTS = {
     if (!('speechSynthesis' in window)) return;
     speechSynthesis.cancel();
     document.querySelectorAll('.tts-btn.speaking').forEach(b => b.classList.remove('speaking'));
+    // V3.5-P0: TTS Karaoke — clear any leftover .tts-active highlights so next
+    // question / new game starts with a clean visual slate (no stale amber block).
+    document.querySelectorAll('.tts-tok.tts-active').forEach(t => t.classList.remove('tts-active'));
   },
   isEnabled() { return this.enabled; },
   setEnabled(b) { this.enabled = !!b; if (!this.enabled) this.cancel(); },
@@ -2649,6 +2697,7 @@ const Game = {
     initialBossHp: 200,
     instantHint: true,    // V3.4-U2: 答錯即時提示 (SEN-friendly, default ON)
     ttsEnabled: true,     // V3.4-F2: TTS 開關
+    ttsKaraoke: true,     // V3.5-P0: 朗讀題目時同步高亮文字 (per-token highlight synced to TTS boundary)
   },
 
   state: {
@@ -2798,19 +2847,124 @@ const UI = {
    * v3.1: render question text from parts array (支援 emoji 排版)
    * parts 是 array of strings — numeric layout 直接 escapeHTML
    * parts-emoji layout 用 q-fruit span (大 emoji 視覺)
+   *
+   * v3.5 P0: TTS Karaoke — when Game.settings.ttsKaraoke !== false, wrap each
+   * visible token in <span class="tts-tok" data-start="M" data-end="K" data-i="N">
+   * so the onBoundary callback from TTS.speak can highlight the matching span as
+   * speechSynthesis fires boundary events. data-start/data-end are offsets into
+   * the NORMALIZED utterance text (what TTS.normalize produces), not the raw text.
+   * Tokenization is per-character to match speechSynthesis charIndex semantics.
    */
   renderQuestionTextFor(team, q) {
     const el = $(`${team}-question-text`);
     if (!el) return;
     const parts = q.parts || [q.text];
+    const karaoke = Game.settings.ttsKaraoke !== false;
     const html = parts.map(p => {
-      // 純 emoji (檢測大部分 emoji 字符)
+      // 純 emoji (檢測大部分 emoji 字符) — emoji cluster stays as one .q-fruit
+      // wrapper; its inner content (the emoji glyphs) gets one .tts-tok span so
+      // the onBoundary highlight can light up the whole cluster at once.
       if (/^[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]{1,30}$/u.test(p)) {
-        return `<span class="q-fruit">${p}</span>`;
+        const inner = karaoke ? UI._ttsKaraokeWrapEmoji(p) : escapeHTML(p);
+        return `<span class="q-fruit">${inner}</span>`;
       }
-      return `<span class="tracking-widest">${escapeHTML(p)}</span>`;
+      const inner = karaoke ? UI._ttsKaraokeWrapText(p) : escapeHTML(p);
+      return `<span class="tracking-widest">${inner}</span>`;
     }).join('');
     el.innerHTML = `<span class="q-parts">${html}</span>`;
+  },
+  /**
+   * v3.5 P0: TTS Karaoke tokenizer (per-CHAR with normalized-text coordinates).
+   *
+   * Walks the raw text char-by-char, computing for each char its range inside
+   * the NORMALIZED utterance (TTS.normalize output). That gives us data-start /
+   * data-end offsets that match what speechSynthesis fires in
+   * SpeechSynthesisUtteranceEvent.charIndex.
+   *
+   * Operator expansion table (raw → normalized):
+   *   '+'  → '加'        (1 raw → 1 norm)
+   *   '-'  → '減'        (1 raw → 1 norm)
+   *   '='  → '等於'      (1 raw → 2 norm)
+   *   '<'  → '細過'      (1 raw → 2 norm)
+   *   '>'  → '大過'      (1 raw → 2 norm)
+   *   '?'  → '，等於幾多？' (1 raw → 7 norm)
+   *
+   * All other chars are 1 raw → 1 norm (digits, spaces, Chinese chars, emoji).
+   *
+   * Note: this is a "scan-the-input" model, not "scan-the-output" — we walk raw
+   * and project to norm positions. Avoids ambiguity when 2-char norm tokens
+   * (等於) cover 1 raw char, and lets the boundary math do a clean <= charIndex
+   * < end lookup.
+   */
+  _ttsKaraokeBuildMap(raw) {
+    // UTF-16 code unit walk (matches SpeechSynthesisUtterance.charIndex semantics)
+    // Operator expansion widths in NORMALIZED chars
+    const normMap = {
+      '+': '加', '-': '減',
+      '=': '等於', '<': '細過', '>': '大過',
+      '?': '，等於幾多？',
+    };
+    const tokens = [];   // [{raw, normStart, normEnd, rawIdx}]
+    let normPos = 0;
+    for (let i = 0; i < raw.length; i++) {
+      const ch = raw[i];
+      const replacement = normMap[ch];
+      const normLen = replacement ? replacement.length : 1;
+      // Don't span across UTF-16 surrogate pairs of an emoji — surrogate pair
+      // is one "user-visible" emoji char. We treat each surrogate code unit as
+      // 1 raw char here; in practice this still aligns with charIndex since
+      // both walk UTF-16. The display side gets escapeHTML which preserves it.
+      tokens.push({ raw: ch, normStart: normPos, normEnd: normPos + normLen, rawIdx: i });
+      normPos += normLen;
+    }
+    return tokens;
+  },
+  _ttsKaraokeWrapText(raw) {
+    // Wraps a non-emoji part (text like "5 + 3 = ?" or "時鐘顯示 5 點") in
+    // .tts-tok spans per-char. Whitespace gets a tts-tok too so the highlight
+    // sweep is visually continuous (no "skip" between digits).
+    const tokens = UI._ttsKaraokeBuildMap(raw);
+    return tokens.map(t => {
+      const disp = escapeHTML(t.raw);
+      return `<span class="tts-tok" data-start="${t.normStart}" data-end="${t.normEnd}" data-i="${t.rawIdx}">${disp}</span>`;
+    }).join('');
+  },
+  _ttsKaraokeWrapEmoji(raw) {
+    // Emoji cluster (whole part is one emoji run) becomes ONE .tts-tok span
+    // spanning the full normalized range. TTS reads the emoji as a word
+    // ("蘋果"), so per-char highlight would be meaningless anyway.
+    const tokens = UI._ttsKaraokeBuildMap(raw);
+    if (!tokens.length) return '';
+    const first = tokens[0];
+    const last  = tokens[tokens.length - 1];
+    return `<span class="tts-tok" data-start="${first.normStart}" data-end="${last.normEnd}" data-i="${first.rawIdx}">${escapeHTML(raw)}</span>`;
+  },
+  /**
+   * v3.5 P0: TTS Karaoke onBoundary handler factory.
+   *
+   * Given the .tts-tok NodeList (re-queried each fire to avoid stale refs after
+   * question change), find the span whose data-start <= charIndex < data-end
+   * and add .tts-active. Remove .tts-active from siblings. Last token may not
+   * get a boundary (Chromium fires charIndex = t.length at the last word
+   * boundary — past the last span); onEnd / TTS.cancel clears it.
+   */
+  _ttsKaraokeBoundary(tokensRoot) {
+    return (charIndex) => {
+      const root = typeof tokensRoot === 'function' ? tokensRoot() : tokensRoot;
+      if (!root) return;
+      const tokens = root.querySelectorAll ? root.querySelectorAll('.tts-tok') : root;
+      if (!tokens || !tokens.length) return;
+      let matched = null;
+      for (const tok of tokens) {
+        const s = parseInt(tok.dataset.start, 10);
+        const e = parseInt(tok.dataset.end,   10);
+        if (s <= charIndex && charIndex < e) { matched = tok; break; }
+      }
+      for (const tok of tokens) {
+        if (tok === matched) tok.classList.add('tts-active');
+        else tok.classList.remove('tts-active');
+      }
+    };
   },
 
   showQuestion(team) {
@@ -2827,11 +2981,27 @@ const UI = {
     UI.renderQuestionTextFor(team, q);
 
     // V3.4-F2: wire TTS button — 朗讀題目 (對 SEN 識字弱嘅學生特別有用)
+    // V3.5-P0: pass onBoundary + tokensRef via opts so highlight follows speech
     const ttsBtn = $(`${team}-tts-btn`);
     if (ttsBtn) {
       ttsBtn.onclick = () => {
         const text = (q.parts ? q.parts.join('') : q.text) || '';
-        TTS.speak(text, ttsBtn);
+        // V3.5-P0: tokensRef is a LAZY accessor — by the time TTS fires
+        // onboundary, the question may have already changed (user clicked
+        // through fast), so we re-query the DOM each fire rather than
+        // capturing a stale NodeList at click time.
+        const tokensRoot = () => $(`${team}-question-text`);
+        const onBoundary = Game.settings.ttsKaraoke !== false
+          ? UI._ttsKaraokeBoundary(tokensRoot)
+          : null;
+        const onEnd = Game.settings.ttsKaraoke !== false
+          ? () => {
+              const root = tokensRoot();
+              if (root) root.querySelectorAll('.tts-tok.tts-active')
+                .forEach(t => t.classList.remove('tts-active'));
+            }
+          : null;
+        TTS.speak(text, ttsBtn, { onBoundary, onEnd });
       };
     }
 
@@ -3557,7 +3727,12 @@ function showInstantHint(team, q) {
   if (existingHints.length >= 1) existingHints.forEach(e => e.remove());
   document.body.appendChild(overlay);
   // 順便 TTS 朗讀 hint
-  if (Game.settings.ttsEnabled) TTS.speak(hint.replace('💡 ', '').replace('（點擊關閉）', ''));
+  // V3.5-P0: cancel 上一句 (含任何 active Karaoke highlight) 避免 visual bleed
+  // 入 hint overlay — sequential wrong answers 會造成 highlight 殘留喺題目文字
+  if (Game.settings.ttsEnabled) {
+    TTS.cancel();  // 清乾淨 .tts-active (hint 唔 wrap Karaoke，唔需要 onBoundary)
+    TTS.speak(hint.replace('💡 ', '').replace('（點擊關閉）', ''));
+  }
   setTimeout(() => overlay.remove(), 4000);
 }
 
@@ -3668,6 +3843,12 @@ Game.handleAnswer = function(team, value, btn) {
 
   UI.updateTeam(team);
 
+  // V3.5-AUDIT6-F01: re-entrancy null-out — setTimeout(...0) fire 之前 SEN 學生
+  // double-click / 觸控 bounce 會撞入嚟 re-fire damageBoss + Adaptive.onCorrect。
+  // 即時 null 咗 current[team]，第二次 tap 喺 handleAnswer line 3742 `if (!q) return`
+  // 即 early exit。nextQuestion 會喺 setTimeout callback overwrite current[team]。
+  Game.state.current[team] = null;
+
   // 切換下一題
   if (Game.settings.team === 'coop') {
     Game.nextTeamInCoop();
@@ -3695,6 +3876,9 @@ function highlightBtn(btn, correct) {
 // 重練題處理
 Game.askReReview = function(idx) {
   if (!Game.state.running || Game.state.paused || Game.state.ended) return;
+  // V3.5-AUDIT6-F02: pendingUlt guard — 大絕答題進行中 (pendingUlt ≠ null) 唔可以
+  // 開新重練題，否則 handleAnswer 撞 ult resolve path 會 releaseUlt 錯 team / 錯 state。
+  if (Game.state.pendingUlt) return;
   const item = Game.state.review[idx];
   if (!item) return;
   // 從 review 移除
@@ -3761,8 +3945,9 @@ function gameLoop() {
 
   // 限時模式
   if (Game.settings.win === 'time' && s.timeLimitSec > 0) {
-    s.timeLeftSec = Math.max(0, s.timeLimitSec - Math.floor((tNow - s._startAt) / 1000));
-    // 注意：timeLimitSec 是固定秒數，用 _startAt 計算流逝時間
+    // V3.5-AUDIT6-F05: order fix — 先 lazy-init _startAt (第一 tick 設 tNow)，
+    // 再算 elapsed / timeLeftSec。原本 line 3939 會用 stale _startAt=0 算一次，
+    // 再喺 line 3941 set _startAt=tNow，line 3942-3943 再 re-compute — 浪費 + 雙 Math.max。
     if (!s._startAt) s._startAt = tNow;
     const elapsed = Math.floor((tNow - s._startAt) / 1000);
     s.timeLeftSec = Math.max(0, s.timeLimitSec - elapsed);
@@ -3996,7 +4181,7 @@ function showEndScreen(victory) {
   renderEndBadges(victory);
   $('end-title').textContent = title;
   $('end-message').textContent = msg;
-};
+  // V3.5-P0-HOTFIX: removed stray `;` that prematurely closed showEndScreen.
   setTimeout(() => {
     const live = $('aria-live-alerts') || (() => {
       const a = document.createElement('div');
@@ -4521,6 +4706,9 @@ function syncAudioSettingsUI() {
   const sfxCb    = $('td-audio-sfx');    if (sfxCb)    sfxCb.checked    = ch.sfx;
   const bgmCb    = $('td-audio-bgm');    if (bgmCb)    bgmCb.checked    = ch.bgm;
   const ttsCb    = $('td-audio-tts');    if (ttsCb)    ttsCb.checked    = TTS.isEnabled();
+  // V3.5-P0: TTS Karaoke toggle (獨立於 master TTS 嘅 sub-channel)
+  const karaokeCb = $('td-audio-tts-karaoke');
+  if (karaokeCb) karaokeCb.checked = Game.settings.ttsKaraoke !== false;
 }
 function wireAudioSettings() {
   syncAudioSettingsUI();
@@ -4528,6 +4716,8 @@ function wireAudioSettings() {
   const sfxCb    = $('td-audio-sfx');
   const bgmCb    = $('td-audio-bgm');
   const ttsCb    = $('td-audio-tts');
+  // V3.5-P0: TTS Karaoke sub-channel
+  const karaokeCb = $('td-audio-tts-karaoke');
   if (masterCb) masterCb.onchange = (e) => {
     const on = e.target.checked;
     Audio.enable(on);  // master + sfx + bgm 一齊切
@@ -4543,6 +4733,19 @@ function wireAudioSettings() {
     if (e.target.checked && Game.state && Game.state.running) Audio.startBGM();
   };
   if (ttsCb) ttsCb.onchange = (e) => { TTS.setEnabled(e.target.checked); };
+  // V3.5-P0: Karaoke toggle — 切換時清乾淨任何 active highlight (UX 一致性)
+  if (karaokeCb) karaokeCb.onchange = (e) => {
+    Game.settings.ttsKaraoke = e.target.checked;
+    if (!e.target.checked) {
+      document.querySelectorAll('.tts-tok.tts-active')
+        .forEach(t => t.classList.remove('tts-active'));
+    }
+    // P1-A: persist via Snapshot (rides along existing settings spread — no schema bump)
+    if (typeof Snapshot !== 'undefined' && Snapshot.schedule) {
+      Snapshot.schedule('tts-karaoke-toggle');
+    }
+    announceToA11y(`TTS 同步高亮已${e.target.checked ? '開啟' : '關閉'}`);
+  };
 }
 
 /* ============== [7.5] Snapshot / Resume (P1-A) ============== */
@@ -4659,6 +4862,8 @@ const Snapshot = {
     this.saveTimer = setTimeout(() => this.flush(reason), 800);
   },
   flush(reason = '') {
+    // V3.5-P0: ttsKaraoke rides along via the settings spread — Snapshot.flush
+    // spreads { ...Game.settings } so any new key on Game.settings persists automatically.
     if (!Game.state.running || Game.state.ended) {
       STORAGE.clear(STORAGE.SESSION_KEY);
       this.dirty = false;
@@ -4698,6 +4903,8 @@ const Snapshot = {
   clear() { STORAGE.clear(STORAGE.SESSION_KEY); },
   // Resume 流程：將 snapshot 寫返 Game.* 然後 refreshAll
   resume() {
+    // V3.5-P0: ttsKaraoke restored via { ...s.settings } spread — Snapshot.resume
+    // merges persisted settings into current Game.settings without schema bump.
     const s = this.load();
     if (!s) return false;
     Game.settings = { ...Game.settings, ...s.settings };
@@ -4718,6 +4925,12 @@ const Snapshot = {
     Game.state.pendingUlt = s.state.pendingUlt;
     Game.state.pendingUltQ = s.state.pendingUltQ;
     Game.state.current = JSON.parse(JSON.stringify(s.state.current));
+    // V3.5-AUDIT6-F04: 重設 _startAt 同 _frostTickAt — startGame() 有 reset 但 resume()
+    // 唔有。first gameLoop tick 會見 (tNow - 0) → timeLeftSec 跌到 0 → instant endGame，
+    // time-mode resume 按鈕實際壞咗。reset 後 gameLoop 嘅 lazy-init (line 3941) 會喺
+    // 第一 tick 將 _startAt = tNow，timer 由 full timeLeftSec 開始倒數。
+    Game.state._startAt = 0;
+    Game.state._frostTickAt = 0;
     Game.state.running = true;
     Game.state.paused = false;
     Game.state.ended = false;
