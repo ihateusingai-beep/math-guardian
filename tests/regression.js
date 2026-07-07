@@ -628,6 +628,36 @@ assert('F-16 bankUsable guard for numeric layout',
 assert('F-17 teacher modal reset button',
   /\$\('td-reset-bank'\)\.onclick[\s\S]{0,250}QuestionBank\.reset\(\)/.test(src));
 
+// =========== T23: V3.5 audit cycle-10 Adaptive.nextType ===========
+console.log('\n[T23] V3.5 audit cycle-10 Adaptive.nextType');
+
+// F-18 — Adaptive.suggestNextType API
+assert('F-18 Game.settings.adaptiveEnabled flag',
+  /adaptiveEnabled:\s*true/.test(src));
+assert('F-18 Adaptive.suggestNextType method declared',
+  /suggestNextType\(team\)\s*\{[\s\S]{0,2500}return candidates\.slice\(0, 5\)/.test(src));
+assert('F-18 Adaptive ranking priority — all 4 priority values present',
+  /priority = 1/.test(src) && /priority = 2/.test(src) &&
+  /priority = 3/.test(src) && /priority = 4/.test(src));
+assert('F-18 Adaptive heuristic — weak < 0.7 threshold',
+  /acc < 0\.7[\s\S]{0,200}priority = 1/.test(src));
+assert('F-18 Adaptive heuristic — medium < 0.9 threshold',
+  /acc < 0\.9[\s\S]{0,200}priority = 2/.test(src));
+
+// F-19 — renderTypePicker surfaces ✨ chips
+assert('F-19 renderTypePicker consults Adaptive.topRecommendations',
+  /Adaptive\.topRecommendations\('knight',\s*3\)[\s\S]{0,200}recSet/.test(src));
+assert('F-19 opt-recommended class applied in renderTypePicker',
+  /aria-label="自動推薦"[\s\S]{0,300}opt-recommended'/.test(src));
+assert('F-19 CSS rule for opt-recommended highlight',
+  /#type-picker \.opt-recommended\s*\{[\s\S]{0,200}border-color:\s*rgba\(251, 191, 36/.test(src));
+
+// F-20 — teacher modal adaptive toggle
+assert('F-20 teacher modal adaptive checkbox exists',
+  /id="td-adaptive-enabled"/.test(src));
+assert('F-20 adaptive toggle re-renders type picker',
+  /adaptiveCb\.onchange[\s\S]{0,300}renderTypePicker\(\)/.test(src));
+
 // =========== summary ===========
 console.log(`\n========== ${pass} pass / ${fail} fail ==========`);
 if (fail > 0) {

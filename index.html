@@ -213,6 +213,18 @@
   /* v3.1: type-picker difficulty icon subtle */
   #type-picker .opt-type span:last-child { letter-spacing: 1px; }
   #type-picker { max-height: 320px; overflow-y: auto; }
+  /* V3.5-AUDIT11: 自動推薦 — recommended type 嘅 subtle highlight (唔搶 selected focus) */
+  #type-picker .opt-recommended {
+    border-color: rgba(251, 191, 36, 0.4);
+    background: rgba(251, 191, 36, 0.05);
+  }
+  #type-picker .opt-recommended:hover {
+    background: rgba(251, 191, 36, 0.12);
+  }
+  /* reduced-motion: 自動推薦冇 transition，保持 a11y 一致 */
+  @media (prefers-reduced-motion: reduce) {
+    #type-picker .opt-recommended { transition: none; }
+  }
   /* v3.1: parts-based question renderers */
   .q-parts { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 0.4rem; font-size: 1.8rem; }
   .q-parts .q-fruit { font-size: 2rem; line-height: 1; }
@@ -1912,6 +1924,12 @@
               <span>題目朗讀 — 同步高亮 (TTS Karaoke)</span>
               <span id="td-audio-tts-karaoke-desc" class="sr-only">朗讀題目時同步高亮文字 (字 / 詞 跟讀)</span>
             </label>
+            <!-- V3.5-AUDIT11: 自動推薦 next type chips 開關 (老師可關掉，唔影響學生既選 type) -->
+            <label class="flex items-center gap-3 cursor-pointer">
+              <input type="checkbox" id="td-adaptive-enabled" class="w-5 h-5 cursor-pointer" aria-describedby="td-adaptive-enabled-desc" />
+              <span>✨ 自動推薦題型 (Adaptive.nextType)</span>
+              <span id="td-adaptive-enabled-desc" class="sr-only">根據學生嘅 per-type 命中率自動標記最值得練習嘅 3 個題型</span>
+            </label>
           </div>
         </div>
 
@@ -2909,14 +2927,22 @@ const QuestionBank = (() => {
 function renderTypePicker() {
   const picker = $('type-picker');
   if (!picker) return;
+  // V3.5-AUDIT11: 自動推薦 — 為推薦嘅 type 加 ✨ chip（唔取代選擇）
+  const recommended = (Game.settings.adaptiveEnabled && typeof Adaptive !== 'undefined')
+    ? Adaptive.topRecommendations('knight', 3)   // 預設用 knight 嘅 stats 推薦；可擴充 per-team
+    : [];
+  const recSet = new Set(recommended);
   picker.innerHTML = Object.values(TYPE_REGISTRY).map(reg => {
     const selected = Game.settings.types.includes(reg.id);
+    const isRecommended = recSet.has(reg.id);
     const icon = reg.icon ? `<svg class="pixel icon-md mr-1"><use href="#${reg.icon}"/></svg>` : `<span class="text-xl mr-1">${reg.emoji}</span>`;
     const diffIcon = reg.difficulty === 1 ? '🌱' : reg.difficulty === 2 ? '🌿' : '🌳';
-    return `<button class="opt-type btn btn-ghost text-left flex items-center ${selected ? 'opt-selected' : ''}" data-type="${reg.id}" title="${reg.desc}" aria-pressed="${selected}" aria-label="${reg.label}，難度 ${reg.difficulty === 1 ? '一' : reg.difficulty === 2 ? '二' : '三'}，${selected ? '已選' : '未選'}">
+    const recBadge = isRecommended ? '<span class="ml-1 text-xs text-amber-300" aria-label="自動推薦" title="自動推薦">✨</span>' : '';
+    return `<button class="opt-type btn btn-ghost text-left flex items-center ${selected ? 'opt-selected' : ''} ${isRecommended ? 'opt-recommended' : ''}" data-type="${reg.id}" title="${reg.desc}${isRecommended ? '（自動推薦）' : ''}" aria-pressed="${selected}" aria-label="${reg.label}，難度 ${reg.difficulty === 1 ? '一' : reg.difficulty === 2 ? '二' : '三'}，${selected ? '已選' : '未選'}${isRecommended ? '，自動推薦' : ''}">
       ${icon}
       <span class="flex-1 text-sm">${reg.label}</span>
       <span class="text-xs opacity-70">${diffIcon}</span>
+      ${recBadge}
     </button>`;
   }).join('');
 }
@@ -2998,6 +3024,7 @@ const Game = {
     instantHint: true,    // V3.4-U2: 答錯即時提示 (SEN-friendly, default ON)
     ttsEnabled: true,     // V3.4-F2: TTS 開關
     ttsKaraoke: true,     // V3.5-P0: 朗讀題目時同步高亮文字 (per-token highlight synced to TTS boundary)
+    adaptiveEnabled: true,// V3.5-AUDIT11: 自動推薦 next type chips (default ON; 學生睇到「✨ 建議」標記)
   },
 
   state: {
@@ -5101,6 +5128,9 @@ function syncAudioSettingsUI() {
   // V3.5-P0: TTS Karaoke toggle (獨立於 master TTS 嘅 sub-channel)
   const karaokeCb = $('td-audio-tts-karaoke');
   if (karaokeCb) karaokeCb.checked = Game.settings.ttsKaraoke !== false;
+  // V3.5-AUDIT11: 自動推薦 toggle sync
+  const adaptiveCb = $('td-adaptive-enabled');
+  if (adaptiveCb) adaptiveCb.checked = Game.settings.adaptiveEnabled !== false;
 }
 function wireAudioSettings() {
   syncAudioSettingsUI();
@@ -5137,6 +5167,13 @@ function wireAudioSettings() {
       Snapshot.schedule('tts-karaoke-toggle');
     }
     announceToA11y(`TTS 同步高亮已${e.target.checked ? '開啟' : '關閉'}`);
+  };
+  // V3.5-AUDIT11: 自動推薦 toggle — 切換後 re-render type-picker (refresh chips)
+  const adaptiveCb = $('td-adaptive-enabled');
+  if (adaptiveCb) adaptiveCb.onchange = (e) => {
+    Game.settings.adaptiveEnabled = e.target.checked;
+    renderTypePicker();   // 重新 render chips (顯示/隱藏 ✨)
+    announceToA11y(`自動推薦已${e.target.checked ? '開啟' : '關閉'}`);
   };
 }
 
@@ -5476,6 +5513,64 @@ const Adaptive = {
     }
   },
   reset() { this.counters = {}; },
+  // V3.5-AUDIT11: 自動推薦 next type chips。返回 top 3-5 type IDs，按 score 降冪排。
+  // 輸入：team (knight/mage) — per-team stats + counters
+  // 輸出：[{ typeId, score, reason }] array，length 1-5 (取決於有幾多 type 有足夠數據)
+  // 排序邏輯（按 priority）：
+  //   1. weak types (accuracy < 70%) 排先 — 學生需要更多練習
+  //   2. 然後 medium (70-90%) — 學生有進步空間
+  //   3. 最後 untested (samples < 5) — 學生未試過
+  // 同 priority 內再按 accuracy 升冪（越低越 prior），tiebreaker 用 streak 反向。
+  suggestNextType(team) {
+    const stats = (Profile.data.statsByType) || {};
+    const counters = this.counters[team] || {};
+    const candidates = [];
+    for (const typeId of Object.keys(TYPE_REGISTRY)) {
+      const s = stats[typeId] || { c: 0, w: 0 };
+      const total = (s.c || 0) + (s.w || 0);
+      const acc = total === 0 ? null : s.c / total;
+      const counter = counters[typeId] || { streak: 0, dir: 0 };
+      let score = 0;
+      let reason = '';
+      let priority = 99;
+      if (total === 0) {
+        // 未測試過 — 中等 priority (學生未試過)
+        score = 50;
+        reason = '未試過';
+        priority = 3;
+      } else if (acc < 0.7) {
+        // weak — 最優先（學生需要 scaffolding）
+        score = 100 - Math.round(acc * 100);  // 30% acc → score 70
+        reason = `弱 (${Math.round(acc * 100)}%)`;
+        priority = 1;
+      } else if (acc < 0.9) {
+        // medium — 次優先
+        score = 50 - Math.round(acc * 100);  // 80% acc → score 30
+        reason = `可進步 (${Math.round(acc * 100)}%)`;
+        priority = 2;
+      } else {
+        // strong — 最低 priority（學生已經識）
+        score = 10;
+        reason = `已精通 (${Math.round(acc * 100)}%)`;
+        priority = 4;
+      }
+      // Streak tiebreaker: 高 streak 加分（學生喺度 build momentum）
+      if (counter.streak >= 3) score += counter.streak;
+      candidates.push({ typeId, score, reason, priority, acc, total });
+    }
+    // 排序：priority 升冪，score 降冪，typeId 字典序做 stable tiebreaker
+    candidates.sort((a, b) => {
+      if (a.priority !== b.priority) return a.priority - b.priority;
+      if (a.score !== b.score) return b.score - a.score;
+      return a.typeId.localeCompare(b.typeId);
+    });
+    // 只 return top 5 (UI 唔需要太長)
+    return candidates.slice(0, 5);
+  },
+  // Helper: 攞 top N recommended types (just IDs)
+  topRecommendations(team, n = 3) {
+    return this.suggestNextType(team).slice(0, n).map(c => c.typeId);
+  },
 };
 
 /* ============== P1-C: Boss registry + 解鎖流程 ============== */
