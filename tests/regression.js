@@ -294,10 +294,14 @@ assert('AUDIT4-B  pause overlay focuses pause-resume-2',
 // C5 end screen: announce 到 aria-live-alerts + focus end-title
 const endScreenIdx = src.indexOf('function showEndScreen(victory)');
 const endScreenSlice = src.slice(endScreenIdx, endScreenIdx + 3500);
+// V3.5-AUDIT12 (cycle 12 R3 refactor): aria-live + focus restoration 移到
+// `_announceEndVictory` helper 內。從 helper 開始 slice 而非從 showEndScreen 開始。
+const announceHelperIdx = src.indexOf('function _announceEndVictory(');
+const announceSlice = src.slice(announceHelperIdx, announceHelperIdx + 1200);
 assert('AUDIT4-E  end screen pushes to aria-live-alerts',
-  endScreenSlice.includes('aria-live-alerts') && endScreenSlice.includes('騎士隊答對'));
+  announceSlice.includes('aria-live-alerts') && announceSlice.includes('騎士隊答對'));
 assert('AUDIT4-E  end screen focus end-title',
-  endScreenSlice.includes('end-title') && /\.focus/.test(endScreenSlice));
+  announceSlice.includes('end-title') && /\.focus/.test(announceSlice));
 // C6 global Space handler skips BUTTON focus
 assert('AUDIT4-F  Space keydown skips BUTTON focus',
   /if \(e\.key === ' '\)\s*\{[\s\S]{0,200}t\.tagName === 'BUTTON'[\s\S]{0,200}return;/.test(src));
@@ -384,8 +388,9 @@ assert('AUDIT5-P1  revealLatestReviewAnswer function',
 assert('AUDIT5-P1  T-key handler in keydown',
   /e\.key === 't' \|\| e\.key === 'T'[\s\S]{0,200}revealLatestReviewAnswer/.test(src));
 // AUDIT5-P1-5: Esc stack — pause-overlay skip if teacher-modal open
+// V3.5-AUDIT12 (cycle 12 R2 refactor): pauseEscHandler → _pauseOverlayState.escHandler
 assert('AUDIT5-P1  pause Esc skips when teacher-modal open',
-  /pauseEscHandler[\s\S]{0,400}const teacherOpen[\s\S]{0,200}if \(teacherOpen\) return;/.test(src));
+  /(?:pauseEscHandler|_pauseOverlayState\.escHandler)[\s\S]{0,500}const teacherOpen[\s\S]{0,200}if \(teacherOpen\) return;/.test(src));
 // AUDIT5-P1-6: HP slider aria-valuetext
 assert('AUDIT5-P1  HP slider aria-valuetext initial',
   /id="hp-slider"[^>]*aria-valuetext="Boss 初始生命值 200/.test(src));
@@ -657,6 +662,37 @@ assert('F-20 teacher modal adaptive checkbox exists',
   /id="td-adaptive-enabled"/.test(src));
 assert('F-20 adaptive toggle re-renders type picker',
   /adaptiveCb\.onchange[\s\S]{0,300}renderTypePicker\(\)/.test(src));
+
+// =========== T24: V3.5 audit cycle-11 R2 + R3 refactor ===========
+console.log('\n[T24] V3.5 audit cycle-11 R2 + R3 refactor');
+
+// R3 — showEndScreen refactored to orchestrator + 5 module-level helpers
+assert('R3 _endTitleFor pure helper exists',
+  /^function _endTitleFor\(victory\) \{[\s\S]{0,1500}return \{ title:/m.test(src));
+assert('R3 _renderEndIcon helper exists',
+  /^function _renderEndIcon\(victory\) \{[\s\S]{0,800}iconSvg\.classList\.remove\('hidden'\)/m.test(src));
+assert('R3 _renderEndBackground + _renderEndStats helpers exist',
+  /^function _renderEndBackground\(\) \{[\s\S]{0,400}function _renderEndStats/m.test(src) ||
+  /function _renderEndBackground[\s\S]{0,500}function _renderEndStats/.test(src));
+assert('R3 _announceEndVictory helper exists',
+  /^function _announceEndVictory\(title\) \{[\s\S]{0,800}aria-live-alerts/m.test(src));
+assert('R3 showEndScreen orchestrator (≤30 lines + calls 5 helpers)',
+  /^function showEndScreen\(victory\) \{[\s\S]{0,2500}_announceEndVictory\(title\);\s*\}\s*$/m.test(src));
+
+// R2 — setupTeacher refactored to orchestrator + 5 module-level helpers + 2 state containers
+assert('R2 _teacherModalState + _openTeacherModal helpers exist',
+  /^const _teacherModalState = \{[\s\S]{0,1200}trapFocusInModal\(m\);?\s*\}\s*$/m.test(src));
+assert('R2 _closeTeacherModal restores focus to btn-teacher',
+  /^function _closeTeacherModal\(\) \{[\s\S]{0,600}trigger\.focus\(\)/m.test(src));
+assert('R2 _wireTeacherPassword + _tryTeacherPwd helpers exist',
+  /^function _wireTeacherPassword\(\) \{[\s\S]{0,300}_tryTeacherPwd\(\)/m.test(src) &&
+  /^function _tryTeacherPwd\(\) \{[\s\S]{0,400}TEACHER_PWD/m.test(src));
+assert('R2 _pauseOverlayState + _showPauseOverlay Esc stack',
+  /^const _pauseOverlayState = \{[\s\S]{0,1000}if \(teacherOpen\) return/m.test(src));
+assert('R2 _wireTeacherActions wires pause/resume/end + dashboard resets',
+  /^function _wireTeacherActions\(\) \{[\s\S]{0,2000}td-reset-bank/m.test(src));
+assert('R2 setupTeacher orchestrator (≤10 lines, calls 5 helpers)',
+  /^function setupTeacher\(\) \{[\s\S]{0,400}_wireTeacherActions\(\);\s*\}\s*$/m.test(src));
 
 // =========== summary ===========
 console.log(`\n========== ${pass} pass / ${fail} fail ==========`);

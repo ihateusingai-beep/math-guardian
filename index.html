@@ -4526,42 +4526,40 @@ function renderEndBadges(victory) {
   if (el) el.innerHTML = slots;
 }
 
-function showEndScreen(victory) {
-  $('screen-game').classList.add('hidden');
-  $('screen-end').classList.remove('hidden');
+/* ============== R3 (cycle 12) — showEndScreen sub-helpers ==============
+ * 從 showEndScreen 抽 5 個 helper 出嚟 (pure + DOM)：
+ *  - _endTitleFor(victory)         → { title, msg, icon }   純計算 (no DOM)
+ *  - _renderEndIcon(victory)        → 設 portrait / iconSvg / onerror fallback
+ *  - _renderEndBackground()         → 根據 boss scene 設 endBg URL
+ *  - _renderEndStats()              → 設 $('end-stats').innerHTML (knight + mage)
+ *  - _announceEndVictory(title)     → aria-live + focus restoration 600ms 後
+ * showEndScreen 自己只係 orchestrator — sequential 6 step，~20 行。
+ */
+
+// Pure: 根據 victory / Game.settings 計出 title / msg / icon
+function _endTitleFor(victory) {
   const tk = Game.state.teams.knight, tm = Game.state.teams.mage;
-  // 統計
-  const correctRate = (t) => t.total === 0 ? 0 : Math.round(t.correct / t.total * 100);
   const star = (v) => v ? '⭐⭐⭐' : '⭐';
-  let title, icon, msg;
   if (Game.settings.win === 'time') {
-    icon = '⏰';
     const castleAlive = Game.state.castle.left > 0 && Game.state.castle.right > 0;
     if (castleAlive) {
-      title = `時間到！守護成功 ${star(true)}`; icon = '🏆';
-      msg = `在 ${Game.settings.minutes} 分鐘內成功守護城堡！`;
-    } else {
-      title = `時間到！城塔失守 ${star(false)}`;
-      msg = `城堡倒塌了，下次再接再厲！`;
+      return { title: `時間到！守護成功 ${star(true)}`, msg: `在 ${Game.settings.minutes} 分鐘內成功守護城堡！`, icon: '🏆' };
     }
-  } else if (victory) {
-    icon = '🏆';
-    title = `守護成功！${star(true)}`;
-    msg = Game.settings.team === 'coop'
+    return { title: `時間到！城塔失守 ${star(false)}`, msg: '城堡倒塌了，下次再接再厲！', icon: '💔' };
+  }
+  if (victory) {
+    const msg = Game.settings.team === 'coop'
       ? '兩隊同心協力，森林巨魔已被擊退！'
       : tm.correct > tk.correct ? '法師隊答對最多 🎉'
       : tk.correct > tm.correct ? '騎士隊答對最多 🎉'
       : '兩隊平分秋色，平手！';
-  } else {
-    icon = '💔';
-    title = `城塔失守 ${star(false)}`;
-    msg = '下次一起更精準作答吧！';
+    return { title: `守護成功！${star(true)}`, msg, icon: '🏆' };
   }
-  // end-icon set via SVG; map icon key to symbol id
-  const iconMap = { '🏆': 'px-trophy', '💔': 'px-broken', '🎉': 'px-spark', '⏰': 'px-target' };
-  const symId = iconMap[icon] || 'px-trophy';
-  const ei = $('end-icon');
-  // P2-d: 戰勝時顯示 AI generated defeated boss portrait + 同時保留 SVG trophy fallback
+  return { title: `城塔失守 ${star(false)}`, msg: '下次一起更精準作答吧！', icon: '💔' };
+}
+
+// DOM: 設 end-icon — 戰勝時顯示 AI portrait + onerror fallback 去 SVG
+function _renderEndIcon(victory) {
   const portrait = $('end-boss-portrait');
   const iconSvg = $('end-icon-svg');
   const defeatedSrc = AI_ASSETS.defeat[Bosses.current?.id];
@@ -4580,40 +4578,22 @@ function showEndScreen(victory) {
     portrait.classList.add('hidden');
     iconSvg.classList.remove('hidden');
   }
-  // P2-a: end-screen bg 跟當前 boss scene
+}
+
+// DOM: end-bg URL 跟當前 boss scene (snow → frost, 其他 → forest)
+function _renderEndBackground() {
   const bgKey = Bosses.current?.scene === 'snow' ? 'frost' : 'forest';
   const endBg = $('end-bg');
   if (endBg && AI_ASSETS.endBg[bgKey]) {
-    // V3.4-AUDIT3-FIX: onerror 隱藏 end-bg，純色 fallback (CSS 已經 define 了 bg gradient)
-    // (CSS 內 end-bg div 本身已有 fallback gradient — 但 inline style 會 override)
+    // V3.4-AUDIT3-FIX: inline style 會 override CSS gradient fallback
     endBg.style.backgroundImage = `url(${AI_ASSETS.endBg[bgKey]})`;
   }
-  // P2-c: Achievement badges render
-  renderEndBadges(victory);
-  $('end-title').textContent = title;
-  $('end-message').textContent = msg;
-  // V3.5-P0-HOTFIX: removed stray `;` that prematurely closed showEndScreen.
-  setTimeout(() => {
-    const live = $('aria-live-alerts') || (() => {
-      const a = document.createElement('div');
-      a.id = 'aria-live-alerts';
-      a.setAttribute('aria-live', 'assertive');
-      a.setAttribute('aria-atomic', 'true');
-      a.style.cssText = 'position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden';
-      document.body.appendChild(a);
-      return a;
-    })();
-    live.textContent = '';
-    setTimeout(() => {
-      live.textContent = `${title}。騎士隊答對 ${tk.correct} 題，法師隊答對 ${tm.correct} 題`;
-    }, 80);
-    // focus 移到 end-title (keyboard / screen-reader 用)
-    const et = $('end-title');
-    if (et) {
-      et.setAttribute('tabindex', '-1');
-      et.focus({ preventScroll: false });
-    }
-  }, 600);
+}
+
+// DOM: 兩個 stat 卡片 (knight + mage)，命中率百分比
+function _renderEndStats() {
+  const tk = Game.state.teams.knight, tm = Game.state.teams.mage;
+  const correctRate = (t) => t.total === 0 ? 0 : Math.round(t.correct / t.total * 100);
   $('end-stats').innerHTML = `
     <div class="grid grid-cols-2 gap-3 text-sm">
       <div class="bg-blue-500/10 border border-blue-300/30 rounded-xl p-3">
@@ -4638,6 +4618,52 @@ function showEndScreen(victory) {
       </div>
     </div>
   `;
+}
+
+// A11y: 600ms 後 push aria-live announce + focus 移到 end-title (keyboard / screen-reader)
+function _announceEndVictory(title) {
+  const tk = Game.state.teams.knight, tm = Game.state.teams.mage;
+  setTimeout(() => {
+    const live = $('aria-live-alerts') || (() => {
+      const a = document.createElement('div');
+      a.id = 'aria-live-alerts';
+      a.setAttribute('aria-live', 'assertive');
+      a.setAttribute('aria-atomic', 'true');
+      a.style.cssText = 'position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden';
+      document.body.appendChild(a);
+      return a;
+    })();
+    live.textContent = '';
+    setTimeout(() => {
+      live.textContent = `${title}。騎士隊答對 ${tk.correct} 題，法師隊答對 ${tm.correct} 題`;
+    }, 80);
+    const et = $('end-title');
+    if (et) {
+      et.setAttribute('tabindex', '-1');
+      et.focus({ preventScroll: false });
+    }
+  }, 600);
+}
+
+function showEndScreen(victory) {
+  // 1. Switch screens
+  $('screen-game').classList.add('hidden');
+  $('screen-end').classList.remove('hidden');
+
+  // 2. Compute title/msg/icon (pure, no DOM)
+  const { title, msg, icon } = _endTitleFor(victory);
+  void icon;  // icon reserved for future use; end-icon is set via _renderEndIcon below
+
+  // 3. Render DOM (icon / background / badges / title / message / stats)
+  _renderEndIcon(victory);
+  _renderEndBackground();
+  renderEndBadges(victory);   // existing helper (P2-c, kept unchanged)
+  $('end-title').textContent = title;
+  $('end-message').textContent = msg;
+  _renderEndStats();
+
+  // 4. A11y: aria-live announce + focus restore (600ms delayed)
+  _announceEndVictory(title);
 }
 
 $('btn-restart').onclick = () => {
@@ -4799,107 +4825,140 @@ function trapFocusInModal(modal) {
   return () => modal.removeEventListener('keydown', handler);
 }
 
-function setupTeacher() {
-  let removeTrap = null;
-  let escHandler = null;
-  $('btn-teacher').onclick = () => {
-    const m = $('teacher-modal');
-    m.classList.remove('hidden');
-    m.classList.add('flex');
-    $('teacher-pwd').value = '';
-    $('teacher-pwd-error').classList.add('hidden');
-    $('teacher-controls').classList.add('hidden');
-    // V3.4-AUDIT4: focus password input (50ms 延遲等同 confirm-modal 一致)
-    setTimeout(() => $('teacher-pwd').focus(), 50);
-    // V3.4-AUDIT4: Esc 關閉 + focus-trap
-    if (escHandler) document.removeEventListener('keydown', escHandler);
-    escHandler = (e) => {
-      // V3.4-AUDIT5: Esc stack — teacher-modal 係最 top，但若其他 modal-on-modal
-      // (e.g. browser confirm dialog) 喺度，唔搶 Esc
-      if (e.key === 'Escape') { closeTeacher(); }
-    };
-    document.addEventListener('keydown', escHandler);
-    if (removeTrap) removeTrap();
-    removeTrap = trapFocusInModal(m);
+/* ============== R2 (cycle 12) — setupTeacher sub-helpers ==============
+ * 從 setupTeacher (142 lines) 抽出 5 個 module-level helpers，每個 handle 一個 concern：
+ *  - _openTeacherModal(state)        → btn-teacher onclick：顯示 modal + focus + Esc + focus-trap
+ *  - _closeTeacherModal(state)       → 關閉 modal + 還 focus 返 btn-teacher
+ *  - _wireTeacherPassword()          → tryTeacherPwd + Enter/blur 觸發
+ *  - _wirePauseOverlay()             → show/hidePauseOverlay + Esc stack (skip if teacher modal open)
+ *  - _wireTeacherActions()           → pause/resume/end + dashboard 4 個 reset button
+ * setupTeacher() 自己只係 6-line orchestrator，call 上面 5 helpers。
+ * State 用 IIFE-like _teacherModalState / _pauseOverlayState 兩個 object 包住 closure variables，
+ * 避免 hoist 到 global scope 又 retain lifecycle 完整性。
+ */
+
+// State container for teacher modal lifecycle
+const _teacherModalState = { removeTrap: null, escHandler: null };
+
+// Open teacher modal: show + reset + focus password + Esc + focus-trap
+function _openTeacherModal() {
+  const m = $('teacher-modal');
+  m.classList.remove('hidden');
+  m.classList.add('flex');
+  $('teacher-pwd').value = '';
+  $('teacher-pwd-error').classList.add('hidden');
+  $('teacher-controls').classList.add('hidden');
+  // V3.4-AUDIT4: focus password input (50ms 延遲等同 confirm-modal 一致)
+  setTimeout(() => $('teacher-pwd').focus(), 50);
+  // V3.4-AUDIT4: Esc 關閉 + focus-trap
+  if (_teacherModalState.escHandler) document.removeEventListener('keydown', _teacherModalState.escHandler);
+  _teacherModalState.escHandler = (e) => {
+    // V3.4-AUDIT5: Esc stack — teacher-modal 係最 top，但若其他 modal-on-modal
+    // (e.g. browser confirm dialog) 喺度，唔搶 Esc
+    if (e.key === 'Escape') { _closeTeacherModal(); }
   };
-  function closeTeacher() {
-    $('teacher-modal').classList.add('hidden');
-    $('teacher-modal').classList.remove('flex');
-    if (escHandler) { document.removeEventListener('keydown', escHandler); escHandler = null; }
-    if (removeTrap) { removeTrap(); removeTrap = null; }
-    // V3.4-AUDIT4: focus restoration — 將焦點還返觸發佢嘅 btn-teacher
-    const trigger = $('btn-teacher');
-    if (trigger) trigger.focus();
+  document.addEventListener('keydown', _teacherModalState.escHandler);
+  if (_teacherModalState.removeTrap) _teacherModalState.removeTrap();
+  _teacherModalState.removeTrap = trapFocusInModal(m);
+}
+
+// Close teacher modal: hide + cleanup Esc/focus-trap + restore focus 返 btn-teacher
+function _closeTeacherModal() {
+  $('teacher-modal').classList.add('hidden');
+  $('teacher-modal').classList.remove('flex');
+  if (_teacherModalState.escHandler) {
+    document.removeEventListener('keydown', _teacherModalState.escHandler);
+    _teacherModalState.escHandler = null;
   }
-  $('teacher-close').onclick = closeTeacher;
+  if (_teacherModalState.removeTrap) {
+    _teacherModalState.removeTrap();
+    _teacherModalState.removeTrap = null;
+  }
+  // V3.4-AUDIT4: focus restoration — 將焦點還返觸發佢嘅 btn-teacher
+  const trigger = $('btn-teacher');
+  if (trigger) trigger.focus();
+}
+
+// Wire password input: Enter / blur 觸發 tryTeacherPwd；密碼對就顯示 controls
+function _wireTeacherPassword() {
   $('teacher-pwd').addEventListener('keydown', e => {
-    if (e.key === 'Enter') tryTeacherPwd();
+    if (e.key === 'Enter') _tryTeacherPwd();
   });
-  $('teacher-pwd').onblur = tryTeacherPwd;
+  $('teacher-pwd').onblur = _tryTeacherPwd;
+}
 
-  function tryTeacherPwd() {
-    const v = $('teacher-pwd').value;
-    if (v === TEACHER_PWD) {
-      $('teacher-pwd-error').classList.add('hidden');
-      $('teacher-pwd').dataset.ok = '1';
-      $('teacher-controls').classList.remove('hidden');
-      TeacherDashboard.render();
-      wireAudioSettings();  // V3.4-AUDIT5: per-channel toggle (P1)
-    } else if (v.length >= 4) {
-      $('teacher-pwd-error').classList.remove('hidden');
-      $('teacher-pwd').dataset.ok = '';
-    }
+// Pure: 驗 password + 顯示 controls / 顯示 error
+function _tryTeacherPwd() {
+  const v = $('teacher-pwd').value;
+  if (v === TEACHER_PWD) {
+    $('teacher-pwd-error').classList.add('hidden');
+    $('teacher-pwd').dataset.ok = '1';
+    $('teacher-controls').classList.remove('hidden');
+    TeacherDashboard.render();
+    wireAudioSettings();  // V3.4-AUDIT5: per-channel toggle (P1)
+  } else if (v.length >= 4) {
+    $('teacher-pwd-error').classList.remove('hidden');
+    $('teacher-pwd').dataset.ok = '';
   }
+}
 
-  // V3.4-AUDIT4: pause overlay a11y — 自動 focus resume button + Esc 關閉 + focus-trap
-  let pauseEscHandler = null;
-  function showPauseOverlay() {
-    const overlay = $('pause-overlay');
-    overlay.classList.remove('hidden');
-    setTimeout(() => $('pause-resume-2').focus(), 50);
-    if (!pauseEscHandler) {
-      pauseEscHandler = (e) => {
-        if (e.key === 'Escape' && !$('pause-overlay').classList.contains('hidden')) {
-          // V3.4-AUDIT5: Esc stack — teacher-modal 開住嘅時候 skip (let teacher-modal 嘅 Esc 先處理)
-          const teacherOpen = $('teacher-modal') && !$('teacher-modal').classList.contains('hidden');
-          if (teacherOpen) return;
-          // Esc only resumes if teacher paused (teacher-controls 可解鎖)。Keyboard-Space pause
-          // 都可經 Esc resume，但教師強制結束 (teacher-end) 同樣會 hide overlay。
-          e.preventDefault();
-          $('pause-resume-2').click();
-        }
-      };
-      document.addEventListener('keydown', pauseEscHandler);
-    }
-    $('pause-overlay')._trapDispose = trapFocusInModal(overlay);
+// State container for pause overlay lifecycle
+const _pauseOverlayState = { escHandler: null };
+
+// V3.4-AUDIT4: pause overlay a11y — 自動 focus resume button + Esc 關閉 + focus-trap
+// Esc stack: 若 teacher-modal 開住，skip (let teacher-modal 嘅 Esc 先處理)
+function _showPauseOverlay() {
+  const overlay = $('pause-overlay');
+  overlay.classList.remove('hidden');
+  setTimeout(() => $('pause-resume-2').focus(), 50);
+  if (!_pauseOverlayState.escHandler) {
+    _pauseOverlayState.escHandler = (e) => {
+      if (e.key === 'Escape' && !$('pause-overlay').classList.contains('hidden')) {
+        const teacherOpen = $('teacher-modal') && !$('teacher-modal').classList.contains('hidden');
+        if (teacherOpen) return;
+        // Esc only resumes if teacher paused；教師強制結束 (teacher-end) 同樣會 hide overlay。
+        e.preventDefault();
+        $('pause-resume-2').click();
+      }
+    };
+    document.addEventListener('keydown', _pauseOverlayState.escHandler);
   }
-  function hidePauseOverlay() {
-    $('pause-overlay').classList.add('hidden');
-    if ($('pause-overlay')._trapDispose) { $('pause-overlay')._trapDispose(); $('pause-overlay')._trapDispose = null; }
-    // V3.4-AUDIT4: focus restoration — Space-pause return focus to body (冇 trigger btn),
-    // teacher-pause return focus to teacher-pause button
+  overlay._trapDispose = trapFocusInModal(overlay);
+}
+
+function _hidePauseOverlay() {
+  $('pause-overlay').classList.add('hidden');
+  if ($('pause-overlay')._trapDispose) {
+    $('pause-overlay')._trapDispose();
+    $('pause-overlay')._trapDispose = null;
   }
+  // V3.4-AUDIT4: focus restoration — Space-pause return focus to body (冇 trigger btn),
+  // teacher-pause return focus to teacher-pause button
+}
+
+// Wire 3 個 teacher action button + pause-resume button + 4 個 teacher dashboard reset
+function _wireTeacherActions() {
   $('teacher-pause').onclick = () => {
     if ($('teacher-pwd').dataset.ok !== '1') return;
     Game.state.paused = true;
-    showPauseOverlay();
+    _showPauseOverlay();
   };
   $('teacher-resume').onclick = () => {
     if ($('teacher-pwd').dataset.ok !== '1') return;
     Game.state.paused = false;
-    hidePauseOverlay();
+    _hidePauseOverlay();
     // V3.4-AUDIT4: focus restoration
     $('teacher-pause') && $('teacher-pause').focus();
   };
   $('pause-resume-2').onclick = () => {
     Game.state.paused = false;
-    hidePauseOverlay();
+    _hidePauseOverlay();
   };
   $('teacher-end').onclick = () => {
     if ($('teacher-pwd').dataset.ok !== '1') return;
     if (confirm('確定要強制結束本局遊戲嗎？')) {
       Game.state.paused = false;
-      hidePauseOverlay();
+      _hidePauseOverlay();
       $('teacher-modal').classList.add('hidden');
       endGame(false);
     }
@@ -4941,6 +5000,16 @@ function setupTeacher() {
     announceToA11y('精選題庫已重設');
   };
 }
+
+// setupTeacher orchestrator — 6 lines，唔再用 nested function closure pattern
+function setupTeacher() {
+  $('btn-teacher').onclick = _openTeacherModal;
+  $('teacher-close').onclick = _closeTeacherModal;
+  _wireTeacherPassword();
+  _wirePauseOverlay();
+  _wireTeacherActions();
+}
+
 
 /* ============== P1-E: Teacher Dashboard ============== */
 const TeacherDashboard = {
