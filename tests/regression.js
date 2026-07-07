@@ -460,9 +460,11 @@ assert('KAR-5  td-audio-tts-karaoke wired to Game.settings.ttsKaraoke',
   /td-audio-tts-karaoke[\s\S]{0,500}Game\.settings\.ttsKaraoke[\s\S]{0,200}\.checked/.test(src) ||
   /Game\.settings\.ttsKaraoke[\s\S]{0,500}td-audio-tts-karaoke[\s\S]{0,200}\.checked/.test(src));
 // KAR-6: settings persist in Snapshot (rides along existing settings spread)
+// V3.5-AUDIT8: window widened from 400 → 800 chars to accommodate the
+// F-10 quota-exceeded branch added between flush() and settings spread.
 assert('KAR-6  Snapshot.flush spreads ttsKaraoke via settings',
-  /Snapshot\.flush[\s\S]{0,400}settings: \{ \.\.\.Game\.settings \}/.test(src) &&
-  /Snapshot\.resume[\s\S]{0,400}\.\.\.s\.settings/.test(src));
+  /Snapshot\.flush[\s\S]{0,800}settings: \{ \.\.\.Game\.settings \}/.test(src) &&
+  /Snapshot\.resume[\s\S]{0,800}\.\.\.s\.settings/.test(src));
 // KAR-7: reduced-motion compliance for .tts-tok
 assert('KAR-7  reduced-motion disables .tts-tok transition',
   /@media \(prefers-reduced-motion: reduce\)[\s\S]{0,800}\.tts-tok[\s\S]{0,200}transition: none/.test(src) ||
@@ -549,6 +551,47 @@ assert('F-03 ordering branch length+JSON check',
   /q\.type\s*===\s*'ordering'[\s\S]{0,300}value\.length\s*===\s*q\.answer\.length/.test(src));
 assert('F-03 ordering console.warn on wrong',
   /expected \$\{JSON\.stringify\(q\.answer\)\} got/.test(src));
+
+// V3.5-AUDIT8: cycle-8 (audit cycle 8) — 4 fixes locked-in
+console.log('\n[T21] V3.5 audit cycle-8 patches (F-09/F-10/F-11/F-12)');
+
+// F-09 — Snapshot.resume corrupt-state guard
+// Note: Snapshot.load is a shorthand method `load() { ... }`, not `function load()`
+// (avoids colliding with STORAGE.load which IS `function load(key)`)
+assert('F-09 load() validates required keys',
+  /load\(\)\s*\{[\s\S]{0,1500}typeof s\.state\.bossHp !== 'number' \|\| typeof s\.state\.bossMaxHp !== 'number'/.test(src));
+assert('F-09 load() validates savedAt + settings',
+  /typeof s\.savedAt !== 'number'[\s\S]{0,40}return null;[\s\S]{0,40}return s;/.test(src));
+assert('F-09 resume() soft-resume age hint',
+  /ageHours > 6[\s\S]{0,200}FX\.screenAlert/.test(src));
+
+// F-10 — Snapshot quota handling
+assert('F-10 _quotaExceeded flag declared',
+  /_quotaExceeded:\s*false/.test(src));
+assert('F-10 flush early-return on quota',
+  /if \(this\._quotaExceeded\)[\s\S]{0,200}return;[\s\S]{0,800}settings: \{ \.\.\.Game\.settings \}/.test(src));
+assert('F-10 set quota flag on save fail',
+  /STORAGE\.save\(STORAGE\.SESSION_KEY,\s*snap\)[\s\S]{0,200}_quotaExceeded\s*=\s*true/.test(src));
+assert('F-10 _resetQuotaFlag helper',
+  /_resetQuotaFlag\(\)\s*\{[\s\S]{0,80}_quotaExceeded\s*=\s*false/.test(src));
+assert('F-10 reset quota flag on startGame',
+  /Snapshot\._resetQuotaFlag\(\);/.test(src));
+
+// F-11 — Profile lazy-migration
+assert('F-11 statsByType migration',
+  /!this\.data\.statsByType \|\| typeof this\.data\.statsByType !== 'object'[\s\S]{0,400}add2d:\{c:0,w:0\}, sub2d:\{c:0,w:0\}/.test(src));
+assert('F-11 unlockedBosses array migration',
+  /!Array\.isArray\(this\.data\.unlockedBosses\)[\s\S]{0,80}this\.data\.unlockedBosses\s*=\s*\['forest-troll'\]/.test(src));
+assert('F-11 reactionByType/streakByType init',
+  /!this\.data\.reactionByType[\s\S]{0,80}this\.data\.reactionByType\s*=\s*\{\}[\s\S]{0,200}this\.data\.streakByType\s*=\s*\{\}/.test(src));
+assert('F-11 errorPattern array init',
+  /!Array\.isArray\(this\.data\.errorPattern\)[\s\S]{0,80}this\.data\.errorPattern\s*=\s*\[\]/.test(src));
+
+// F-12 — Snapshot review + current sanitization
+assert('F-12 review array filter (drop malformed items)',
+  /rawReview\s*=\s*Array\.isArray\(s\.state\.review\)\s*\?\s*s\.state\.review\s*:\s*\[\][\s\S]{0,300}\.filter\(q\s*=>\s*q\s*&&\s*typeof q === 'object'\s*&&\s*q\.type/.test(src));
+assert('F-12 current per-team sanitization',
+  /rawCurrent\s*=\s*s\.state\.current\s*&&\s*typeof s\.state\.current === 'object'[\s\S]{0,400}\(q\s*&&\s*typeof q === 'object'\s*&&\s*q\.type\)/.test(src));
 
 // =========== summary ===========
 console.log(`\n========== ${pass} pass / ${fail} fail ==========`);

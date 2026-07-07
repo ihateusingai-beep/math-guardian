@@ -3624,6 +3624,8 @@ function startGame() {
     Game.settings.types = ['add10'];
     renderTypePicker();
   }
+  // V3.5-AUDIT8-F10: 新局 reset quota flag — 上局若 quota-failed，新局可重新嘗試 save
+  Snapshot._resetQuotaFlag();
   // V3.4-AUDIT5: TTS cancel on startGame (P1) — 確保新局無殘留 TTS
   TTS.cancel();
   // P1-A: 記住開始時間
@@ -4907,6 +4909,24 @@ const Profile = {
       // 合併：保留新增 fields
       this.data = { ...this.data, ...p };
     }
+    // V3.5-AUDIT8-F11: lazy-migration — 老 user 嘅 localStorage 冇
+    // `history / reactionByType / streakByType / errorPattern / statsByType`
+    // 等 array/object field。{ ...spread } 只 overwrite 已有 keys,
+    // 缺嘅 keys 仍然係 undefined — 之後 .push() 會 crash。
+    // 逐個可能缺嘅 field lazy-init default 確保 save() 唔會 crash。
+    if (!this.data.statsByType || typeof this.data.statsByType !== 'object') {
+      this.data.statsByType = { add10:{c:0,w:0}, sub10:{c:0,w:0}, add20:{c:0,w:0}, sub20:{c:0,w:0}, add2d:{c:0,w:0}, sub2d:{c:0,w:0} };
+    }
+    if (!Array.isArray(this.data.unlockedBosses)) this.data.unlockedBosses = ['forest-troll'];
+    if (!Array.isArray(this.data.unlockedScenes)) this.data.unlockedScenes = ['forest'];
+    if (!Array.isArray(this.data.unlockedChars)) this.data.unlockedChars = ['knight', 'mage'];
+    if (!Array.isArray(this.data.badges)) this.data.badges = [];
+    if (!this.data.reactionByType || typeof this.data.reactionByType !== 'object') this.data.reactionByType = {};
+    if (!this.data.streakByType || typeof this.data.streakByType !== 'object') this.data.streakByType = {};
+    if (!Array.isArray(this.data.errorPattern)) this.data.errorPattern = [];
+    if (typeof this.data.sessionsPlayed !== 'number') this.data.sessionsPlayed = 0;
+    if (typeof this.data.adaptiveDowngrades !== 'number') this.data.adaptiveDowngrades = 0;
+    if (typeof this.data.studentName !== 'string') this.data.studentName = '';
   },
   save() { STORAGE.save(STORAGE.PROFILE_KEY, this.data); },
   isUnlocked(kind, id) {
@@ -4957,7 +4977,9 @@ const Profile = {
 const Snapshot = {
   dirty: false,
   saveTimer: null,
-  // Throttled autosave: 答完一題 / ult 釋放 / boss 受擊 → 排程 800ms 後 save
+  // V3.5-AUDIT8-F10: quota-exceeded flag — 一旦 STORAGE.save return false (quota 超或 browser
+  // 拒絕寫)，就停 autosave 等 user 唔會每 800ms 打 console。學生/家長唔需要見到呢啲 noise。
+  _quotaExceeded: false,
   schedule(reason = '') {
     this.dirty = true;
     if (this.saveTimer) clearTimeout(this.saveTimer);
@@ -4969,6 +4991,11 @@ const Snapshot = {
     if (!Game.state.running || Game.state.ended) {
       STORAGE.clear(STORAGE.SESSION_KEY);
       this.dirty = false;
+      return;
+    }
+    if (this._quotaExceeded) {
+      // V3.5-AUDIT8-F10: 已經 silently 停 autosave,只保留 in-memory state。
+      // 唔重複 spam logging,但 keep dirty flag 等 UI 知道有 unsaved change。
       return;
     }
     const snap = {
@@ -4992,13 +5019,31 @@ const Snapshot = {
     };
     if (STORAGE.save(STORAGE.SESSION_KEY, snap)) {
       this.dirty = false;
+    } else {
+      // V3.5-AUDIT8-F10: quota 或其他 write 失敗 — 設 flag 避免下次再嘗試,
+      // 但保留 in-memory state 玩到完場。reload 唔可以 resume 但新局照玩得。
+      this._quotaExceeded = true;
+      console.warn('[Snapshot] autosave disabled — storage quota / write failure. Game continues in-memory only.');
     }
+  },
+  // V3.5-AUDIT8-F10: clear quota flag — endGame / 新局時 reset 狀態,下次 save 再試。
+  _resetQuotaFlag() {
+    this._quotaExceeded = false;
   },
   load() {
     const s = STORAGE.load(STORAGE.SESSION_KEY);
     if (!s || s.v !== 1) return null;
     // 過期 (24h) 就當無效，避免 stale resume
     if (Date.now() - s.savedAt > 24 * 3600 * 1000) return null;
+    // V3.5-AUDIT8-F09: corrupt-state guard — localStorage 可能因為 quota crash、
+    // 第三方 extension 寫花、不完全 JSON 等等。逐個 required key 驗證，
+    // missing 即視為 corrupt, return null 觸發新局（避免 reload 一 reload就 instant endGame）。
+    if (!s.state || typeof s.state !== 'object') return null;
+    if (typeof s.state.bossHp !== 'number' || typeof s.state.bossMaxHp !== 'number') return null;
+    if (!s.state.teams || typeof s.state.teams !== 'object') return null;
+    if (!s.state.castle || typeof s.state.castle !== 'object') return null;
+    if (!s.settings || typeof s.settings !== 'object') return null;
+    if (typeof s.savedAt !== 'number') return null;
     return s;
   },
   hasResumable() { return !!this.load(); },
@@ -5010,11 +5055,23 @@ const Snapshot = {
     const s = this.load();
     if (!s) return false;
     Game.settings = { ...Game.settings, ...s.settings };
+    // V3.5-AUDIT8-F12: review array corrupt-check — 個別 item 缺 type/answer/text
+    // 會喺 UI.renderReview() crash。filter 出 sanitized entries。
+    const rawReview = Array.isArray(s.state.review) ? s.state.review : [];
+    Game.state.review = rawReview
+      .filter(q => q && typeof q === 'object' && q.type && q.answer !== undefined)
+      .map(q => ({ text: q.text || '', answer: q.answer, type: q.type }));
+    // V3.5-AUDIT8-F12: current question per-team sanitization — null 都 OK（game 開新題時會 fill）
+    const rawCurrent = s.state.current && typeof s.state.current === 'object' ? s.state.current : {};
+    Game.state.current = {};
+    for (const tm of ['knight', 'mage']) {
+      const q = rawCurrent[tm];
+      Game.state.current[tm] = (q && typeof q === 'object' && q.type) ? JSON.parse(JSON.stringify(q)) : null;
+    }
     Game.state.bossHp = s.state.bossHp;
     Game.state.bossMaxHp = s.state.bossMaxHp;
     Game.state.castle = { ...s.state.castle };
     Game.state.teams = JSON.parse(JSON.stringify(s.state.teams));
-    Game.state.review = s.state.review.map(q => ({ text: q.text, answer: q.answer, type: q.type }));
     Game.state.currentTeam = s.state.currentTeam || 'knight';
     // V3.4-AUDIT5: timer resume — 計算由 savedAt 到 now 嘅 elapsed 秒數，reduce timeLeftSec
     // 防 stale timer (e.g. reload 過夜之後 timer 仲以為有 5:00)
@@ -5026,7 +5083,6 @@ const Snapshot = {
     }
     Game.state.pendingUlt = s.state.pendingUlt;
     Game.state.pendingUltQ = s.state.pendingUltQ;
-    Game.state.current = JSON.parse(JSON.stringify(s.state.current));
     // V3.5-AUDIT6-F04: 重設 _startAt 同 _frostTickAt — startGame() 有 reset 但 resume()
     // 唔有。first gameLoop tick 會見 (tNow - 0) → timeLeftSec 跌到 0 → instant endGame，
     // time-mode resume 按鈕實際壞咗。reset 後 gameLoop 嘅 lazy-init (line 3941) 會喺
@@ -5036,6 +5092,12 @@ const Snapshot = {
     Game.state.running = true;
     Game.state.paused = false;
     Game.state.ended = false;
+    // V3.5-AUDIT8-F09: soft-resume hint — corrupt-resistance OK 但若 savedAt 過 6 小時,
+    // 顯示輕量提示等老師/家長知道呢個係 resume 嘅舊 session。
+    const ageHours = (Date.now() - s.savedAt) / 3600000;
+    if (ageHours > 6 && typeof FX !== 'undefined' && FX.screenAlert) {
+      FX.screenAlert(`恢復咗一個 ${ageHours.toFixed(1)} 小時前嘅進度`, '#fbbf24');
+    }
     return true;
   },
 };
