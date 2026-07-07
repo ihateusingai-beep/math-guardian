@@ -507,6 +507,49 @@ const sizeKB = src.length / 1024;
 console.log(`  current: ${sizeKB.toFixed(1)} KB / budget: 600 KB`);
 assert('size < 600K', sizeKB < 600);
 
+// V3.5-AUDIT7: cycle-7 (audit cycle 7) — 4 fixes locked-in
+console.log('\n[T20] V3.5 audit cycle-7 patches (F-03/F-06/F-07/F-08)');
+
+// F-06 — TTS onBoundary race guard (epoch counter)
+assert('F-06 _boundaryEpoch field declared',
+  /const TTS = \{[\s\S]{0,800}_boundaryEpoch:\s*0/.test(src));
+assert('F-06 epoch bumped on speak()',
+  /TTS\._boundaryEpoch\+\+;[\s\S]{0,200}const myEpoch/.test(src));
+assert('F-06 onBoundary checks epoch mismatch',
+  /myEpoch\s*!==\s*TTS\._boundaryEpoch[\s\S]{0,80}return/.test(src));
+assert('F-06 cancel() also bumps epoch',
+  /cancel\(\)\s*\{[\s\S]{0,1200}TTS\._boundaryEpoch\+\+;/.test(src));
+
+// F-07 — visual-type ladder fallback Option C (cache last resumable type)
+assert('F-07 lastResumableType state field',
+  /lastResumableType:\s*\{\s*knight:\s*null,\s*mage:\s*null\s*\}/.test(src));
+assert('F-07 _typeSupportsMode helper',
+  /function _typeSupportsMode\(typeId,\s*mode\)/.test(src));
+assert('F-07 _pickFallbackType with 3-hop chain',
+  /function _pickFallbackType[\s\S]{0,1500}return 'add10';/.test(src));
+assert('F-07 nextQuestion calls _typeSupportsMode guard',
+  /function nextQuestion[\s\S]{0,800}if \(!_typeSupportsMode\(type,\s*mode\)\)/.test(src));
+assert('F-07 cache update on correct answer',
+  /q\.type\)\s*Game\.state\.lastResumableType\[team\]\s*=\s*q\.type/.test(src));
+assert('F-07 cache cleared on startGame',
+  /Game\.state\.lastResumableType\[tm\]\s*=\s*null/.test(src));
+assert('F-07 a11y announce on fallback',
+  /announceToA11y\(`題型已切換：原本嘅 \$\{type\} 唔適合目前操作模式，已自動調整。`\)/.test(src));
+
+// F-08 — a11y announcer debounce 300ms
+assert('F-08 debounce constant declared',
+  /A11Y_ANNOUNCE_DEBOUNCE_MS\s*=\s*300/.test(src));
+assert('F-08 _a11yAnnounceTimer + _a11yAnnouncePending module vars',
+  /let _a11yAnnounceTimer\s*=\s*null;[\s\S]{0,40}let _a11yAnnouncePending\s*=\s*null;/.test(src));
+assert('F-08 announceToA11y uses setTimeout debounce',
+  /function announceToA11y\(msg\)[\s\S]{0,400}setTimeout\(\(\)\s*=>\s*\{/.test(src));
+
+// F-03 — handleAnswer ordering strict check + console.warn debug aid
+assert('F-03 ordering branch length+JSON check',
+  /q\.type\s*===\s*'ordering'[\s\S]{0,300}value\.length\s*===\s*q\.answer\.length/.test(src));
+assert('F-03 ordering console.warn on wrong',
+  /expected \$\{JSON\.stringify\(q\.answer\)\} got/.test(src));
+
 // =========== summary ===========
 console.log(`\n========== ${pass} pass / ${fail} fail ==========`);
 if (fail > 0) {

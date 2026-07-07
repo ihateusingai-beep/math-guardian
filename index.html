@@ -2190,6 +2190,11 @@ const TTS = {
   // 香港中文 voice detection (zh-HK > zh-TW > zh-CN fallback)
   voice: null,
   enabled: true,
+  // V3.5-AUDIT7-F06: monotonic counter incremented on every speak()/cancel().
+  // onBoundary handlers compare captured epoch vs current — if mismatched,
+  // the callback fired after a question-change and we early-return to avoid
+  // highlighting tokens that belong to the previous (already-removed) question.
+  _boundaryEpoch: 0,
   pickVoice() {
     if (!('speechSynthesis' in window)) return null;
     const voices = speechSynthesis.getVoices();
@@ -2231,6 +2236,11 @@ const TTS = {
     // V3.5-P0: clear any leftover TTS Karaoke highlights (defensive — onBoundary
     // cleans up but cancel()-without-onend could leak if DOM was rebuilt mid-speech)
     document.querySelectorAll('.tts-tok.tts-active').forEach(t => t.classList.remove('tts-active'));
+    // V3.5-AUDIT7-F06: bump epoch BEFORE wiring onboundary — any stale boundary
+    // firing from a previous utterance (Chrome fires one final boundary after
+    // cancel() in some cases) compares against new epoch and early-returns.
+    TTS._boundaryEpoch++;
+    const myEpoch = TTS._boundaryEpoch;
     const utter = new SpeechSynthesisUtterance(TTS.normalize(text));
     if (!TTS.voice) TTS.voice = TTS.pickVoice();
     if (TTS.voice) utter.voice = TTS.voice;
@@ -2251,6 +2261,11 @@ const TTS = {
     // matching data-start/data-end (see UI.renderQuestionTextFor).
     if (opts.onBoundary) {
       utter.onboundary = (e) => {
+        // V3.5-AUDIT7-F06: race guard — if user clicked through to next question
+        // mid-speech, _boundaryEpoch got bumped on next speak(). This callback's
+        // captured myEpoch no longer matches → drop the boundary event so we
+        // don't highlight a token that belongs to a now-removed question.
+        if (myEpoch !== TTS._boundaryEpoch) return;
         if (e && typeof e.charIndex === 'number') opts.onBoundary(e.charIndex);
       };
     }
@@ -2264,6 +2279,11 @@ const TTS = {
     // V3.5-P0: TTS Karaoke — clear any leftover .tts-active highlights so next
     // question / new game starts with a clean visual slate (no stale amber block).
     document.querySelectorAll('.tts-tok.tts-active').forEach(t => t.classList.remove('tts-active'));
+    // V3.5-AUDIT7-F06: bump epoch on cancel too — any in-flight onBoundary from
+    // a recently-cancelled utterance that fires one final time will see the
+    // epoch mismatch and early-return. Defense-in-depth alongside the cancel()
+    // call inside speak().
+    TTS._boundaryEpoch++;
   },
   isEnabled() { return this.enabled; },
   setEnabled(b) { this.enabled = !!b; if (!this.enabled) this.cancel(); },
@@ -2738,6 +2758,9 @@ const Game = {
     // 大絕 pending 答題
     pendingUlt: null, // { team } — 需要再答一題才放
     pendingUltQ: null,
+    // V3.5-AUDIT7-F07: per-team cache of last successfully-shown type
+    // (visual-type ladder fallback Option C — chain 2: cached last-good)
+    lastResumableType: { knight: null, mage: null },
   },
 
   /* ---- internal helpers ---- */
@@ -3273,20 +3296,33 @@ function decodeAnswer(hex) {
 
 // V3.4-AUDIT5: aria-live announce helper (P1) — screen-reader 立即讀 message
 // 跟 cycle 4 嘅 aria-live-alerts 元素復用，避免多個 live region 衝突
+// V3.5-AUDIT7-F08: debounce 300ms — 避免連續 calls (correct 100ms 後 wrong)
+// 喺 screen-reader 堆積兩個 message，trailing-edge 合併成一個。對中度學生
+// 特別重要：佢哋需要時間消化上一句 feedback，唔可以兩個 message 同時 fire。
+const A11Y_ANNOUNCE_DEBOUNCE_MS = 300;
+let _a11yAnnounceTimer = null;
+let _a11yAnnouncePending = null;
 function announceToA11y(msg) {
   if (!msg) return;
-  let live = $('aria-live-alerts');
-  if (!live) {
-    live = document.createElement('div');
-    live.id = 'aria-live-alerts';
-    live.setAttribute('aria-live', 'polite');  // polite 適合答題 feedback (唔打斷 user)
-    live.setAttribute('aria-atomic', 'true');
-    live.style.cssText = 'position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden';
-    document.body.appendChild(live);
-  }
-  // 清空再寫先 — 確保 screen-reader 視為新 message (相同 text 唔 fire)
-  live.textContent = '';
-  setTimeout(() => { live.textContent = msg; }, 50);
+  _a11yAnnouncePending = msg;
+  if (_a11yAnnounceTimer) return;  // 已經有 pending — 等 timer fire
+  _a11yAnnounceTimer = setTimeout(() => {
+    const text = _a11yAnnouncePending;
+    _a11yAnnouncePending = null;
+    _a11yAnnounceTimer = null;
+    let live = $('aria-live-alerts');
+    if (!live) {
+      live = document.createElement('div');
+      live.id = 'aria-live-alerts';
+      live.setAttribute('aria-live', 'polite');  // polite 適合答題 feedback (唔打斷 user)
+      live.setAttribute('aria-atomic', 'true');
+      live.style.cssText = 'position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden';
+      document.body.appendChild(live);
+    }
+    // 清空再寫先 — 確保 screen-reader 視為新 message (相同 text 唔 fire)
+    live.textContent = '';
+    setTimeout(() => { live.textContent = text; }, 50);
+  }, A11Y_ANNOUNCE_DEBOUNCE_MS);
 }
 
 /* ============== [7] Event handlers / 主流程 ============== */
@@ -3654,6 +3690,8 @@ function startGame() {
   for (const tm of TEAMS) {
     Game.state.teams[tm] = { correct: 0, wrong: 0, total: 0, energy: 0, ultCharge: 0 };
     Game.state.current[tm] = null;
+    // V3.5-AUDIT7-F07: 清 lastResumableType — 新局唔繼承上一局嘅 cached type
+    Game.state.lastResumableType[tm] = null;
   }
   Game.state.currentTeam = 'knight';
   Game.state.running = true;
@@ -3685,11 +3723,57 @@ function startGame() {
 function now() { return Date.now(); }
 
 // 下一題 --------------------------------------------------
+// V3.5-AUDIT7-F07: visual-type ladder fallback (Option C — cache last resumable type)
+// 對中度 SEN 學生：當 Game.settings.mode 同 type 唔相容 (e.g. keypad + ordering，
+// 原本會 silent swap 去 add10 numeric — 抽走 visual scaffold 對佢哋係學習殺手)，
+// 唔可以 silently 換 type。要按以下順序試 fallback，最多 3 hops 防無限 loop：
+//   1. 同一個 Game.settings.types 入面、mode-compatible 嘅另一個 type
+//   2. 上一題成功嘅 resumable type (per-team cache)
+//   3. 最終 fallback：add10 numeric (numeric 任何 mode 都 work)
+// 全程 console.warn + a11y announce 通知老師/screen-reader，「visual 改咗」嘅事實。
+const VISUAL_FALLBACK_MAX_HOPS = 3;
+function _typeSupportsMode(typeId, mode) {
+  const reg = TYPE_REGISTRY[typeId];
+  if (!reg) return false;
+  if (!reg.mode) return true;  // legacy: 冇 mode 定義 = 全 mode 都支援
+  return reg.mode.includes(mode);
+}
+function _pickFallbackType(originalType, mode, team, hops) {
+  // 1. 同一個 settings.types 入面搵 mode-compatible 嘅 type (排除 original)
+  const candidates = Game.settings.types.filter(t => t !== originalType && _typeSupportsMode(t, mode));
+  if (candidates.length > 0) {
+    const pick = candidates[randInt(0, candidates.length - 1)];
+    console.warn(`[F07 visual-ladder] type=${originalType} 不支援 mode=${mode}, fallback 落同 list 嘅 ${pick} (hop ${hops})`);
+    return pick;
+  }
+  // 2. per-team last resumable cache
+  const lastGood = Game.state.lastResumableType && Game.state.lastResumableType[team];
+  if (lastGood && lastGood !== originalType && _typeSupportsMode(lastGood, mode)) {
+    console.warn(`[F07 visual-ladder] type=${originalType} 不支援 mode=${mode}, fallback 落 cached last-good ${lastGood} (hop ${hops})`);
+    return lastGood;
+  }
+  // 3. 最終 fallback：add10 numeric (any mode compatible)
+  console.warn(`[F07 visual-ladder] type=${originalType} 不支援 mode=${mode}, fallback 落 add10 numeric (hop ${hops}, final)`);
+  return 'add10';
+}
 function nextQuestion(team) {
   // 選擇題型
   const types = Game.settings.types;
-  const type = types[randInt(0, types.length - 1)];
-  const q = QuestionGen.make(type, Game.settings.mode);
+  let type = types[randInt(0, types.length - 1)];
+  const mode = Game.settings.mode;
+  // V3.5-AUDIT7-F07: mode compatibility check + bounded fallback chain
+  if (!_typeSupportsMode(type, mode)) {
+    for (let hop = 1; hop <= VISUAL_FALLBACK_MAX_HOPS; hop++) {
+      type = _pickFallbackType(type, mode, team, hop);
+      if (_typeSupportsMode(type, mode)) break;
+      // 如果 fallback 結果都唔支援 (理論唔可能因為 add10 一定 support)，
+      // 下一輪 hop 會再 attempt；hops counter 防止死 loop
+    }
+    announceToA11y(`題型已切換：原本嘅 ${type} 唔適合目前操作模式，已自動調整。`);
+  }
+  const q = QuestionGen.make(type, mode);
+  // V3.5-AUDIT7-F07: 答啱嘅題 cache 入 lastResumableType — 下次 fallback chain 優先用
+  // (只 cache type，唔 cache 答案，因為同 type 嘅 question 內容每次 random)
   Game.state.current[team] = { ...q, type, pickedAt: now() };
   UI.showQuestion(team);
 }
@@ -3744,7 +3828,22 @@ Game.handleAnswer = function(team, value, btn) {
   // v3.2: triple path — 數字 (number) / 字符 (string) / 陣列 (ordering 嘅 [n1,n2,n3])
   let correct;
   if (Array.isArray(q.answer)) {
-    correct = Array.isArray(value) && JSON.stringify(value) === JSON.stringify(q.answer);
+    // V3.5-AUDIT7-F03: ordering 模式嘅 array compare — JSON.stringify 已經夠 strict
+    // (順序敏感、長度敏感)，但加埋 mode guard 防止日後有人 refactor 撞爛 path。
+    // 若 q.type === 'ordering' 但 value 唔係 array (e.g. UI bug pass 咗 number)，fallback 算錯。
+    if (q.type === 'ordering') {
+      correct = Array.isArray(value)
+        && value.length === q.answer.length
+        && JSON.stringify(value) === JSON.stringify(q.answer);
+    } else {
+      correct = Array.isArray(value) && JSON.stringify(value) === JSON.stringify(q.answer);
+    }
+    // V3.5-AUDIT7-F03: 答錯 ordering 嗰陣 console.warn 顯示期望 vs 實際,
+    // 老師可以喺 DevTools 即時睇到學生按錯邊個位置。呢個係 debug aid,
+    // production 唔會 spam 因為只係 wrong path 先 fire。
+    if (!correct && typeof console !== 'undefined' && console.warn) {
+      console.warn(`[handleAnswer/ordering] expected ${JSON.stringify(q.answer)} got ${JSON.stringify(value)}`);
+    }
   } else if (typeof q.answer === 'number') {
     correct = Number(value) === q.answer;
   } else {
@@ -3784,6 +3883,9 @@ Game.handleAnswer = function(team, value, btn) {
     t.total++;
     if (correct) {
       t.correct++;
+      // V3.5-AUDIT7-F07: 答啱就 cache 個 type 入 lastResumableType[team],
+      // 之後 visual-type ladder fallback chain hop 2 會優先用呢個 type
+      if (q.type) Game.state.lastResumableType[team] = q.type;
       t.energy = Math.min(100, t.energy + randInt(8, 14));
       // 偶爾給一次充能點
       if (Math.random() < 0.3) t.ultCharge = Math.min(2, t.ultCharge + 1);
