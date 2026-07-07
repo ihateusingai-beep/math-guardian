@@ -593,6 +593,41 @@ assert('F-12 review array filter (drop malformed items)',
 assert('F-12 current per-team sanitization',
   /rawCurrent\s*=\s*s\.state\.current\s*&&\s*typeof s\.state\.current === 'object'[\s\S]{0,400}\(q\s*&&\s*typeof q === 'object'\s*&&\s*q\.type\)/.test(src));
 
+// =========== T22: V3.5 audit cycle-9 Question Bank lite ===========
+console.log('\n[T22] V3.5 audit cycle-9 Question Bank lite');
+
+// F-13 — STORAGE.BANK_KEY + BANK_CAP
+assert('F-13 STORAGE.BANK_KEY constant',
+  /BANK_KEY:\s*'mg2\.bank\.v1'/.test(src));
+assert('F-13 STORAGE.BANK_CAP constant',
+  /BANK_CAP:\s*64\s*\*\s*1024/.test(src));
+assert('F-13 STORAGE.save cap switch includes BANK_KEY',
+  /key === STORAGE\.BANK_KEY\s*\?\s*STORAGE\.BANK_CAP/.test(src));
+
+// F-14 — QuestionBank IIFE module
+assert('F-14 QuestionBank module declared',
+  /const QuestionBank = \(\(\) => \{[\s\S]{0,15000}return \{ load, save, reset, pickFromBank, isWeakType, shouldUseBank, stats, seed \};[\s\S]{0,50}\}\)\(\);/.test(src));
+assert('F-14 seed fixtures 12 types × 10 questions',
+  /add10:\s*\[[\s\S]{0,200}\],?\s*sub10:\s*\[[\s\S]{0,200}\],?\s*add20:\s*\[[\s\S]{0,200}\],?\s*sub20:\s*\[[\s\S]{0,200}\],?\s*add2d:\s*\[[\s\S]{0,200}\],?\s*sub2d:\s*\[[\s\S]{0,200}\]/.test(src) &&
+  /count10:\s*\[/.test(src) && /compare10:\s*\[/.test(src) && /double:\s*\[/.test(src) &&
+  /whatTime:\s*\[/.test(src) && /shapeMatch:\s*\[/.test(src) && /ordering:\s*\[/.test(src));
+
+// F-15 — weak detection + rotation
+assert('F-15 isWeakType uses Profile.statsByType threshold',
+  /function isWeakType\(typeId\)[\s\S]{0,400}total < 5[\s\S]{0,100}acc < 0\.7/.test(src));
+assert('F-15 shouldUseBank 70/30 split (weak vs non-weak)',
+  /function shouldUseBank\(typeId\)[\s\S]{0,300}prob = weak \? 0\.7 : 0\.3/.test(src));
+
+// F-16 — QuestionGen.make bank rotation hook
+assert('F-16 QuestionGen.make consults QuestionBank.shouldUseBank',
+  /QuestionBank\.shouldUseBank\(type\)[\s\S]{0,400}QuestionBank\.pickFromBank\(type\)/.test(src));
+assert('F-16 bankUsable guard for numeric layout',
+  /bankUsable = bankQ && \([\s\S]{0,400}reg\.layout === 'numeric'\)/.test(src));
+
+// F-17 — teacher modal reset button
+assert('F-17 teacher modal reset button',
+  /\$\('td-reset-bank'\)\.onclick[\s\S]{0,250}QuestionBank\.reset\(\)/.test(src));
+
 // =========== summary ===========
 console.log(`\n========== ${pass} pass / ${fail} fail ==========`);
 if (fail > 0) {
