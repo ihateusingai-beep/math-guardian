@@ -10,3 +10,7 @@
 # Logs / temp
 *.log
 *.tmp
+
+# Mavis runtime artifacts (scope-locked per cycle 9-11)
+.mavis/
+.harness/plans/
