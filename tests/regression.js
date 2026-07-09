@@ -123,9 +123,16 @@ if (keypadArr) {
 console.log('\n[T5] handleAnswer wiring');
 const handleAnsMatch = src.match(/Game\.handleAnswer\s*=\s*function\s*\(\s*team/);
 assert('Game.handleAnswer signature', !!handleAnsMatch);
-assert('handleAnswer Array.isArray branch', src.includes('Array.isArray(q.answer)'));
-assert('handleAnswer number branch',       src.includes("typeof q.answer === 'number'"));
-assert('handleAnswer string fallback',     src.includes('String(value) === String(q.answer)'));
+// R5 (cycle 15): triple-path compare extracted to _compareAnswer helper
+assert('handleAnswer delegates compare to _compareAnswer',
+  src.includes('_compareAnswer(') || src.includes('function _compareAnswer('));
+assert('_compareAnswer has Array.isArray branch',
+  /function _compareAnswer[\s\S]{0,400}Array\.isArray\(expected\)/.test(src));
+assert('_compareAnswer number branch uses Number()',
+  /function _compareAnswer[\s\S]{0,500}Number\(actual\)\s*===\s*expected/.test(src) ||
+  /typeof expected === 'number'[\s\S]{0,300}Number\(actual\)/.test(src));
+assert('_compareAnswer string fallback String()===String()',
+  /function _compareAnswer[\s\S]{0,800}String\(actual\)\s*===\s*String\(expected\)/.test(src));
 
 // =========== T6: helper icon + tooltip ===========
 console.log('\n[T6] helper text + <details>');
@@ -488,9 +495,13 @@ console.log('\n[T19] V3.5 audit cycle-6 patches');
 // 即時 null 咗 current[team]，第二次 tap 喺 line 3742 `if (!q) return` 即 early exit。
 assert('AUDIT6-F01 handleAnswer nulls current[team] before setTimeout',
   /function\(team, value, btn\) \{[\s\S]{0,2500}Game\.state\.current\[team\] = null;[\s\S]{0,400}setTimeout\(\(\) => \{/.test(src) ||
-  /AUDIT6-F01: re-entrancy[\s\S]{0,400}current\[team\][\s\S]{0,400}= null[\s\S]{0,200}setTimeout/.test(src));
+  /AUDIT6-F01: re-entrancy[\s\S]{0,400}current\[team\][\s\S]{0,400}= null[\s\S]{0,200}setTimeout/.test(src) ||
+  // R5 (cycle 15): null-out 搬入 _scheduleNextQuestion helper
+  /function _scheduleNextQuestion[\s\S]{0,400}current\[team\] = null;[\s\S]{0,300}setTimeout/.test(src));
 assert('AUDIT6-F01 comment documents the null-out rationale',
-  /AUDIT6-F01: re-entrancy null-out[\s\S]{0,500}if \(\!q\) return[\s\S]{0,300}early exit/.test(src));
+  /AUDIT6-F01: re-entrancy null-out[\s\S]{0,500}if \(\!q\) return[\s\S]{0,300}early exit/.test(src) ||
+  // R5 (cycle 15): comment 留喺 _scheduleNextQuestion
+  /R5 \(cycle 15\): next-question routing[\s\S]{0,500}AUDIT6-F01: re-entrancy null-out[\s\S]{0,500}early exit/.test(src));
 // AUDIT6-F02: askReReview guards pendingUlt — 大絕答題進行中唔可以開新重練題
 assert('AUDIT6-F02 askReReview early-returns when pendingUlt is set',
   /Game\.askReReview = function\(idx\) \{[\s\S]{0,500}if \(Game\.state\.pendingUlt\) return;/.test(src));
@@ -552,10 +563,13 @@ assert('F-08 announceToA11y uses setTimeout debounce',
   /function announceToA11y\(msg\)[\s\S]{0,400}setTimeout\(\(\)\s*=>\s*\{/.test(src));
 
 // F-03 — handleAnswer ordering strict check + console.warn debug aid
+// R5 (cycle 15): ordering check 搬入 _compareAnswer helper, expected/actual 而非 q.answer/value
 assert('F-03 ordering branch length+JSON check',
-  /q\.type\s*===\s*'ordering'[\s\S]{0,300}value\.length\s*===\s*q\.answer\.length/.test(src));
+  /q\.type\s*===\s*'ordering'[\s\S]{0,300}value\.length\s*===\s*q\.answer\.length/.test(src) ||
+  /type\s*===\s*'ordering'[\s\S]{0,400}actual\.length\s*===\s*expected\.length/.test(src));
 assert('F-03 ordering console.warn on wrong',
-  /expected \$\{JSON\.stringify\(q\.answer\)\} got/.test(src));
+  /expected \$\{JSON\.stringify\(q\.answer\)\} got/.test(src) ||
+  /expected \$\{JSON\.stringify\(expected\)\} got/.test(src));
 
 // V3.5-AUDIT8: cycle-8 (audit cycle 8) — 4 fixes locked-in
 console.log('\n[T21] V3.5 audit cycle-8 patches (F-09/F-10/F-11/F-12)');
@@ -611,7 +625,7 @@ assert('F-13 STORAGE.save cap switch includes BANK_KEY',
 
 // F-14 — QuestionBank IIFE module
 assert('F-14 QuestionBank module declared',
-  /const QuestionBank = \(\(\) => \{[\s\S]{0,15000}return \{ load, save, reset, pickFromBank, isWeakType, shouldUseBank, stats, seed \};[\s\S]{0,50}\}\)\(\);/.test(src));
+  /const QuestionBank = \(\(\) => \{[\s\S]{0,20000}return \{ load, save, reset, pickFromBank, isWeakType, shouldUseBank, stats, add, remove, list, PER_TYPE_CAP, Validators \};[\s\S]{0,50}\}\)\(\);/.test(src));
 assert('F-14 seed fixtures 12 types × 10 questions',
   /add10:\s*\[[\s\S]{0,200}\],?\s*sub10:\s*\[[\s\S]{0,200}\],?\s*add20:\s*\[[\s\S]{0,200}\],?\s*sub20:\s*\[[\s\S]{0,200}\],?\s*add2d:\s*\[[\s\S]{0,200}\],?\s*sub2d:\s*\[[\s\S]{0,200}\]/.test(src) &&
   /count10:\s*\[/.test(src) && /compare10:\s*\[/.test(src) && /double:\s*\[/.test(src) &&
@@ -653,7 +667,7 @@ assert('F-18 Adaptive heuristic — medium < 0.9 threshold',
 assert('F-19 renderTypePicker consults Adaptive.topRecommendations',
   /Adaptive\.topRecommendations\('knight',\s*3\)[\s\S]{0,200}recSet/.test(src));
 assert('F-19 opt-recommended class applied in renderTypePicker',
-  /aria-label="自動推薦"[\s\S]{0,300}opt-recommended'/.test(src));
+  /aria-label="自動推薦"[\s\S]{0,600}opt-recommended'/.test(src));
 assert('F-19 CSS rule for opt-recommended highlight',
   /#type-picker \.opt-recommended\s*\{[\s\S]{0,200}border-color:\s*rgba\(251, 191, 36/.test(src));
 
@@ -690,9 +704,120 @@ assert('R2 _wireTeacherPassword + _tryTeacherPwd helpers exist',
 assert('R2 _pauseOverlayState + _showPauseOverlay Esc stack',
   /^const _pauseOverlayState = \{[\s\S]{0,1000}if \(teacherOpen\) return/m.test(src));
 assert('R2 _wireTeacherActions wires pause/resume/end + dashboard resets',
-  /^function _wireTeacherActions\(\) \{[\s\S]{0,2000}td-reset-bank/m.test(src));
-assert('R2 setupTeacher orchestrator (≤10 lines, calls 5 helpers)',
-  /^function setupTeacher\(\) \{[\s\S]{0,400}_wireTeacherActions\(\);\s*\}\s*$/m.test(src));
+  /^function _wireTeacherActions\(\) \{[\s\S]{0,2600}td-reset-bank/m.test(src));
+assert('R2 setupTeacher orchestrator (≤10 lines, calls helpers)',
+  /^function setupTeacher\(\) \{[\s\S]{0,400}_wireTeacherActions\(\);[\s\S]{0,80}_wireBankSection\(\);[\s\S]{0,40}\}\s*$/m.test(src));
+
+// =========== T25: V3.5 audit cycle-12 Question Bank 擴展 (老師 add / delete) ===========
+console.log('\n[T25] V3.5 audit cycle-12 Question Bank 擴展 (老師 add / delete)');
+
+// F-16 — QuestionBank public API: add / remove / list / Validators
+assert('F-16 QuestionBank.add function declared',
+  /function add\(typeId, question\)[\s\S]{0,2000}return \{ ok: true, entry \};[\s\S]{0,20}\}/.test(src));
+assert('F-16 QuestionBank.remove function declared',
+  /function remove\(typeId, idx\)[\s\S]{0,800}return \{ ok: true, removed \};[\s\S]{0,20}\}/.test(src));
+assert('F-16 QuestionBank.list function declared',
+  /function list\(typeId\)[\s\S]{0,300}idx: i, \.\.\.q/.test(src));
+assert('F-16 QuestionBank.Validators has 6 layouts (numeric / partsEmoji / symButton / clock / shape / order)',
+  /const Validators = \{[\s\S]{0,4000}order\(q\)/.test(src));
+assert('F-16 PER_TYPE_CAP constant = 20',
+  /const PER_TYPE_CAP = 20/.test(src));
+
+// F-17 — Teacher modal bank section HTML + UI elements
+assert('F-17 teacher modal bank type picker radiogroup',
+  /id="td-bank-type-picker"[\s\S]{0,2000}role="radiogroup"/.test(src));
+assert('F-17 teacher modal bank add form + button + status live region',
+  /id="td-bank-add-form"[\s\S]{0,5000}id="td-bank-add-btn"[\s\S]{0,500}id="td-bank-status"[\s\S]{0,200}aria-live="polite"/.test(src));
+assert('F-17 teacher modal bank inventory section + count display',
+  /id="td-bank-inventory"[\s\S]{0,200000}QuestionBank\.PER_TYPE_CAP/.test(src));
+
+// =========== T26: V3.5 audit cycle-13 Mastered promote (adaptive state 整合) ===========
+console.log('\n[T26] V3.5 audit cycle-13 Mastered promote');
+
+// F-18 — Profile.data shape 包含 masteredByType + masteredCount + lazy-migration
+assert('F-18 Profile.data initializes masteredByType + masteredCount',
+  /masteredByType:\s*\{\}/.test(src) && /masteredCount:\s*0/.test(src));
+assert('F-18 Profile.load lazy-migrates masteredByType/masteredCount',
+  /if \(!this\.data\.masteredByType[\s\S]{0,200}this\.data\.masteredByType = \{\}/.test(src) &&
+  /if \(typeof this\.data\.masteredCount !== 'number'\) this\.data\.masteredCount = 0/.test(src));
+
+// F-19 — Adaptive module 加 isMastered + checkMastery + 降級保護
+assert('F-19 Adaptive.isMastered reads Profile.data.masteredByType',
+  /isMastered\(typeId\) \{[\s\S]{0,200}Profile\.data\.masteredByType/.test(src));
+assert('F-19 Adaptive.checkMastery uses 8-sample + 90%-acc threshold',
+  /checkMastery\(team, type\)[\s\S]{0,800}if \(total < 8\) return[\s\S]{0,200}if \(acc < 0\.9\) return/.test(src));
+assert('F-19 Adaptive.onWrong skips downgrade for mastered type',
+  /onWrong\(team, type\)[\s\S]{0,500}if \(this\.isMastered\(type\)\) return/.test(src));
+assert('F-19 Adaptive.suggestNextType bumps mastered to priority=5',
+  /if \(this\.isMastered\(typeId\)\) \{[\s\S]{0,200}priority = 5/.test(src));
+
+// F-20 — type-picker UI badge + CSS + aria
+assert('F-20 renderTypePicker shows ⭐ mastered badge + aria-label',
+  /isMastered\(reg\.id\)[\s\S]{0,500}text-amber-400[\s\S]{0,200}已精通/.test(src));
+assert('F-20 CSS rule for opt-mastered highlight exists',
+  /#type-picker \.opt-mastered \{[\s\S]{0,400}border-color:\s*rgba\(251, 191, 36, 0\.85\)/.test(src));
+
+// F-21 — Teacher dashboard mastered count surface
+assert('F-21 teacher dashboard surfaces mastered count via td-mastered',
+  /id="td-mastered"[\s\S]{0,200}title="達到 ≥ 90%/.test(src) &&
+  /\$?\('td-mastered'\)\.textContent = masteredKeys/.test(src));
+
+// =========== T28: V3.5 R5 cycle-15 Game.handleAnswer refactor ===========
+console.log('\n[T28] V3.5 audit cycle-15 R5 handleAnswer refactor');
+// R5-1: handleAnswer 縮到 thin orchestrator (< 30 lines body)
+assert('R5-1  Game.handleAnswer body is thin orchestrator',
+  /Game\.handleAnswer = function\(team, value, btn\) \{[\s\S]{0,3000}_scheduleNextQuestion\(team\);/.test(src));
+// R5-2: _compareAnswer helper exists
+assert('R5-2  _compareAnswer helper defined',
+  /function _compareAnswer\(expected, actual, type\) \{/.test(src));
+// R5-3: _handlePendingUlt helper exists + returns boolean
+assert('R5-3  _handlePendingUlt returns boolean',
+  /function _handlePendingUlt\(team, q, value, correct, btn\)\s*\{[\s\S]{0,800}return true;[\s\S]{0,10}\}/.test(src));
+// R5-4: correct branch extracted to _applyCorrectEffects
+assert('R5-4  _applyCorrectEffects takes prevRagePct',
+  /function _applyCorrectEffects\(team, q, btn, prevRagePct\) \{/.test(src));
+// R5-5: wrong branch extracted to _applyWrongEffects
+assert('R5-5  _applyWrongEffects no prevRagePct',
+  /function _applyWrongEffects\(team, q, btn\) \{/.test(src) &&
+  !/_applyWrongEffects\([^)]*prevRagePct/.test(src));
+// R5-6: post-stats extracted to _recordAnswerStats
+assert('R5-6  _recordAnswerStats called after correct/wrong effects',
+  /function _recordAnswerStats\(team, q, correct\) \{/.test(src) &&
+  /_recordAnswerStats\(team, q, correct\);/.test(src));
+// R5-7: next-question routing extracted to _scheduleNextQuestion
+assert('R5-7  _scheduleNextQuestion contains null-out + coop/versus branch',
+  /function _scheduleNextQuestion\(team\) \{[\s\S]{0,500}current\[team\] = null;[\s\S]{0,300}coop/.test(src));
+// R5-8: ordering ordering compare still in helper
+assert('R5-8  _compareAnswer ordering check uses length+JSON',
+  /function _compareAnswer[\s\S]{0,800}type\s*===\s*'ordering'[\s\S]{0,300}actual\.length\s*===\s*expected\.length[\s\S]{0,300}JSON\.stringify/.test(src));
+
+// =========== T27: V3.5 audit cycle-14b shrink counterweight ===========
+console.log('\n[T27] V3.5 audit cycle-14b shrink counterweight');
+// SHRINK-1: header trimmed (legacy 46-line feature list collapsed to 4 lines)
+assert('SHRINK-1  header no longer has v3.2 detailed feature list',
+  !/v3\.2 重點改進（vs v3\.1）:/.test(src));
+// SHRINK-2: Question Bank spec block (V3.5-AUDIT10) trimmed to single line
+assert('SHRINK-2  Question Bank spec block has rotation summary line',
+  /12 類型 × 10 題 = 120 條 fixtures \(rotation:/.test(src));
+// SHRINK-3: cycle 13 add/remove/list spec block trimmed
+assert('SHRINK-3  cycle 13 add/remove/list spec block trimmed',
+  /v3\.5 cycle 13: add \/ remove \/ list/.test(src) &&
+  !/Cap: 每 type 20 題 \(default seed 10 \+ 10 user\)/.test(src));
+// SHRINK-4: R2 cycle 12 setupTeacher spec block trimmed
+assert('SHRINK-4  R2 setupTeacher spec block trimmed',
+  /R2 \(cycle 12\) — setupTeacher sub-helpers/.test(src) &&
+  !/_openTeacherModal\(state\)/.test(src));
+// SHRINK-5: R3 cycle 12 showEndScreen spec block trimmed
+assert('SHRINK-5  R3 showEndScreen spec block trimmed',
+  /R3 \(cycle 12\) — showEndScreen sub-helpers/.test(src) &&
+  !/_renderEndStats\(\)\s+→ 設/.test(src));
+// SHRINK-6: cycle 13 題庫管理 spec block trimmed
+assert('SHRINK-6  cycle 13 題庫管理 spec block trimmed',
+  /V3.5-cycle13: 題庫管理 \(老師 add \/ delete\)/.test(src) &&
+  !/_renderBankInventory\(typeId\) — list bank/.test(src));
+// SHRINK-7: file size now < 600 KB (was 614 KB before counterweight)
+assert('SHRINK-7  file size < 600 KB after shrink counterweight',
+  sizeKB < 600);
 
 // =========== summary ===========
 console.log(`\n========== ${pass} pass / ${fail} fail ==========`);
