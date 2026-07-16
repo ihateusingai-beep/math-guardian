@@ -194,6 +194,23 @@
     #type-picker .opt-recommended,
     #type-picker .opt-mastered { transition: none; }
   }
+  /* V3.5-cycle16: 自動推薦 chips row (tap-to-toggle, sync settings.types) */
+  #recommend-chips { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; }
+  #recommend-chips .rec-chip {
+    font-size: 0.78rem; padding: 0.3rem 0.6rem; border-radius: 999px;
+    background: linear-gradient(135deg, rgba(251,191,36,0.18), rgba(168,85,247,0.18));
+    border: 1px solid rgba(251,191,36,0.45); color: #fde68a;
+    cursor: pointer; display: inline-flex; align-items: center; gap: 0.3rem;
+    transition: transform 120ms, background 120ms;
+  }
+  #recommend-chips .rec-chip:hover { background: linear-gradient(135deg, rgba(251,191,36,0.32), rgba(168,85,247,0.32)); }
+  #recommend-chips .rec-chip:active { transform: scale(0.95); }
+  #recommend-chips .rec-chip.rec-selected {
+    background: linear-gradient(135deg, rgba(34,197,94,0.32), rgba(34,197,94,0.18));
+    border-color: #22c55e; color: #d1fae5;
+  }
+  #recommend-chips .rec-label { font-size: 0.7rem; color: #fde68a; opacity: 0.85; }
+  @media (prefers-reduced-motion: reduce) { #recommend-chips .rec-chip { transition: none; } }
   /* v3.1: parts-based question renderers */
   .q-parts { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 0.4rem; font-size: 1.8rem; }
   .q-parts .q-fruit { font-size: 2rem; line-height: 1; }
@@ -226,8 +243,7 @@
     50%      { box-shadow: 0 0 0 6px rgba(34,197,94,0); }
   }
   /* V3.5-P0: TTS Karaoke — per-token highlight synced to speech boundary events.
-     .tts-tok sits inside .q-fruit (emoji clusters) or .tracking-widest (text) wrappers
-     so it never breaks layout. inline-block + tiny padding keeps CJK highlight crisp. */
+     .tts-tok sits inside .q-fruit or .tracking-widest wrappers (no layout break). */
   .tts-tok {
     display: inline-block;
     padding: 0 0.15em;
@@ -316,7 +332,7 @@
     60% { transform: translate(-4px, 4px); }
     80% { transform: translate(4px, -4px); }
   }
-  /* V3.4-UI2: confetti particle burst (答對) */
+  /* V3.4-UI2: confetti burst (答對) */
   @keyframes confetti-fall {
     0%   { transform: translate(0, 0) rotate(0deg);   opacity: 1; }
     100% { transform: translate(var(--cx), var(--cy)) rotate(var(--cr)); opacity: 0; }
@@ -329,7 +345,7 @@
     z-index: 70;
     animation: confetti-fall 1.2s cubic-bezier(0.2, 0.7, 0.5, 1) forwards;
   }
-  /* V3.4-UI2: screen shake (答錯) — 整個 body 唔止 boss */
+  /* V3.4-UI2: screen shake (答錯 — 整個 body 唔止 boss) */
   @keyframes screen-shake {
     0%,100% { transform: translate(0,0); }
     20% { transform: translate(-8px, 3px); }
@@ -1420,6 +1436,8 @@
           <button id="btn-type-none" class="btn-sm bg-white/10 hover:bg-white/20 text-xs text-purple-200 hover:text-white border border-white/10">✗ 全清</button>
           <span id="type-count" class="text-xs text-white/40 ml-auto"></span>
         </div>
+        <!-- V3.5-cycle16: 自動推薦 chips row (tap-to-toggle, 跟 recommendationEnabled) -->
+        <div id="recommend-chips" class="mt-3" role="group" aria-label="自動推薦題型" hidden></div>
       </div>
 
       <!-- 4) 隊伍模式 -->
@@ -1723,6 +1741,12 @@
               <input type="checkbox" id="td-adaptive-enabled" class="w-5 h-5 cursor-pointer" aria-describedby="td-adaptive-enabled-desc" />
               <span>✨ 自動推薦題型 (Adaptive.nextType)</span>
               <span id="td-adaptive-enabled-desc" class="sr-only">根據學生嘅 per-type 命中率自動標記最值得練習嘅 3 個題型</span>
+            </label>
+            <!-- V3.5-cycle16: 自動推薦 chips row 獨立開關 -->
+            <label class="flex items-center gap-3 cursor-pointer">
+              <input type="checkbox" id="td-recommendation-enabled" class="w-5 h-5 cursor-pointer" aria-describedby="td-recommendation-enabled-desc" />
+              <span>✨ 推薦題型 chips row (tap-to-toggle)</span>
+              <span id="td-recommendation-enabled-desc" class="sr-only">喺 type-picker 下面顯示 ✨ 建議 chips，tap 即可加 / 減題型 (結合當前 + 過往 10 場 sessions)</span>
             </label>
           </div>
         </div>
@@ -2502,8 +2526,8 @@ const QuestionGen = (() => {
 })();
 
 /* ============== [4.6] V3.5-AUDIT10 Question Bank ==============
- * Curated 題庫 — 12 類型 × 10 題 = 120 條 fixtures (rotation: weak 70/30, normal 30/70)
- * Storage: mg2.bank.v1. Question format 同 Generators 一致，choice-mode fallback 自動生。
+ * 12 類型 × 10 題 = 120 條 fixtures (rotation: weak 70/30, normal 30/70)
+ * Storage: mg2.bank.v1.
  */
 const QuestionBank = (() => {
   // === Seed fixtures — 12 types × 10 條 = 120 題 ===
@@ -2918,6 +2942,58 @@ function updateTypeCount() {
   el.textContent = `已選 ${n} / ${total}`;
 }
 
+/* ============== V3.5-cycle16: 自動推薦 chips row ==============
+ * Tap 一個 chip → toggle settings.types。rec-selected = 已選 (綠)。
+ * Cold start → 5 easiest types；after 1+ sessions → cross-session weighted。
+ */
+function renderRecommendChips() {
+  const container = $('recommend-chips');
+  if (!container) return;
+  if (!Game.settings.recommendationEnabled) {
+    container.hidden = true;
+    container.innerHTML = '';
+    return;
+  }
+  const recs = (typeof Adaptive !== 'undefined')
+    ? Adaptive.recommendWithHistory(Game.state.currentTeam || 'knight', 5)
+    : [];
+  if (recs.length === 0) {
+    container.hidden = true;
+    container.innerHTML = '';
+    return;
+  }
+  const selectedSet = new Set(Game.settings.types);
+  container.hidden = false;
+  container.innerHTML = `<span class="rec-label">✨ 建議：</span>` + recs.map(r => {
+    const reg = TYPE_REGISTRY[r.typeId];
+    if (!reg) return '';
+    const isSel = selectedSet.has(r.typeId);
+    return `<button type="button" class="rec-chip ${isSel ? 'rec-selected' : ''}"
+              data-rec-type="${r.typeId}"
+              role="checkbox"
+              aria-checked="${isSel ? 'true' : 'false'}"
+              aria-label="${reg.label} 自動推薦 — ${r.reason}。${isSel ? '已選，點擊取消' : '點擊加入題型'}"
+              title="${r.reason}">${reg.emoji} ${reg.label}</button>`;
+  }).join('');
+  // V3.5-cycle16: tap chip → toggle settings.types (至少保留 1 個 — 防 stale UI)
+  container.querySelectorAll('.rec-chip').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const typeId = btn.dataset.recType;
+      if (!typeId || !TYPE_REGISTRY[typeId]) return;
+      const idx = Game.settings.types.indexOf(typeId);
+      if (idx >= 0) {
+        if (Game.settings.types.length > 1) Game.settings.types.splice(idx, 1);
+      } else {
+        Game.settings.types.push(typeId);
+      }
+      renderTypePicker();
+      updateTypeCount();
+      renderRecommendChips();
+      Audio.tick();
+    });
+  });
+}
+
 /**
  * v3.2: mode helper text 動態 render
  *  - 全部 type 都支援 choice
@@ -2988,6 +3064,7 @@ const Game = {
     ttsEnabled: true,     // V3.4-F2: TTS 開關
     ttsKaraoke: true,     // V3.5-P0: 朗讀題目時同步高亮文字 (per-token highlight synced to TTS boundary)
     adaptiveEnabled: true,// V3.5-AUDIT11: 自動推薦 next type chips (default ON; 學生睇到「✨ 建議」標記)
+    recommendationEnabled: true, // V3.5-cycle16: 獨立 chips row (跟 adaptiveEnabled 分開)
   },
 
   state: {
@@ -3656,6 +3733,7 @@ function setupMenu() {
   });
   // 題型（可多選，至少一個）— v3.1 dynamic picker via delegation
   renderTypePicker();
+  renderRecommendChips();   // V3.5-cycle16: chips row
   const picker = $('type-picker');
   if (picker) picker.onclick = (e) => {
     const b = e.target.closest('.opt-type');
@@ -3680,12 +3758,14 @@ function setupMenu() {
   $('btn-type-all').onclick = () => {
     Game.settings.types = Object.keys(TYPE_REGISTRY);
     renderTypePicker();
+    renderRecommendChips();   // V3.5-cycle16: sync chips
     updateTypeCount();
     updateModeHelper();
   };
   $('btn-type-none').onclick = () => {
     Game.settings.types = ['add10'];  // 至少一個 fallback
     renderTypePicker();
+    renderRecommendChips();   // V3.5-cycle16: sync chips
     updateTypeCount();
     updateModeHelper();
   };
@@ -3893,6 +3973,7 @@ function startGame() {
   if (Game.settings.types.length === 0) {
     Game.settings.types = ['add10'];
     renderTypePicker();
+    renderRecommendChips();   // V3.5-cycle16: sync chips
   }
   // V3.5-AUDIT8-F10: 新局 reset quota flag — 上局若 quota-failed，新局可重新嘗試 save
   Snapshot._resetQuotaFlag();
@@ -3905,7 +3986,7 @@ function startGame() {
   // 會令 time-mode 第二場 instant endGame)；_frostTickAt 同理 (會 over-fire 一次冰凍 step)
   s._startAt = 0;
   s._frostTickAt = 0;
-  // V3.4-AUDIT2-FIX: 確保 pause-overlay 隱藏 (從 teacher-pause / Space-pause → endGame → 玩多次殘留)
+  // V3.4-AUDIT2-FIX: hide pause-overlay residual from previous game
   const _po = $('pause-overlay'); if (_po) _po.classList.add('hidden');
   // P1-C: 套用 Bosses.current 嘅 sprite + name + scene theme
   if (Bosses.current) {
@@ -3980,7 +4061,7 @@ function startGame() {
   // 啟動 boss 自動攻擊（合作模式：每 8s 打一次左/右 castle；巔峰：每 12s 打隨機）
   Audio.prime();
   Audio.startBGM();
-  // V3.4-AUDIT2-FIX: 清 visibilitychange listener 嘅 resume-flag (module-scoped, 唔識 restore)
+  // V3.4-AUDIT2-FIX: clear visibilitychange listener resume-flag
   _wasPlayingBGM = false;
   UI.refreshAll();
   nextQuestion('knight');
@@ -4092,7 +4173,7 @@ function showInstantHint(team, q) {
   setTimeout(() => overlay.remove(), 4000);
 }
 
-// R5 (cycle 15): pure answer compare — array (ordering) / number / string.
+// R5: pure answer compare (array / number / string)
 // Returns { correct, debug? } — caller uses .correct only.
 // V3.5-AUDIT7-F03: ordering JSON.stringify 已經夠 strict (順序+長度敏感)。
 function _compareAnswer(expected, actual, type) {
@@ -4111,7 +4192,7 @@ function _compareAnswer(expected, actual, type) {
   return { correct: String(actual) === String(expected) };
 }
 
-// R5 (cycle 15): pendingUlt branch — 答啱 releaseUlt / 答錯作罷。
+// R5: pendingUlt branch (答啱 releaseUlt / 答錯作罷)
 // Returns true if ult path was taken (caller 應該 return 跳過 regular stats)。
 function _handlePendingUlt(team, q, value, correct, btn) {
   if (!Game.state.pendingUlt || Game.state.pendingUlt.team !== team) return false;
@@ -4136,7 +4217,7 @@ function _handlePendingUlt(team, q, value, correct, btn) {
   return true;
 }
 
-// R5 (cycle 15): correct effects — energy gain / ult charge / 動畫 / boss damage / a11y。
+// R5: correct effects (energy / ult charge / 動畫 / boss damage / a11y)
 // prevRagePct 由 caller 預 capture (用嚟 detect threshold 跨越觸發 hp tick)。
 function _applyCorrectEffects(team, q, btn, prevRagePct) {
   const t = Game.state.teams[team];
@@ -4161,7 +4242,7 @@ function _applyCorrectEffects(team, q, btn, prevRagePct) {
   announceToA11y(`${TEAM_META[team].name} 答啱喇！對 boss 造成傷害。`);
 }
 
-// R5 (cycle 15): wrong effects — hurt 動畫 / review queue / instant hint / boss counter / a11y。
+// R5: wrong effects — hurt / review queue / instant hint / boss counter / a11y
 function _applyWrongEffects(team, q, btn) {
   Game.state.teams[team].wrong++;
   charAnimate(team, 'hurting');
@@ -4179,8 +4260,8 @@ function _applyWrongEffects(team, q, btn) {
   Profile.resetStreak(q.type);       // P1-E-2: 答錯清 streak
 }
 
-// R5 (cycle 15): post-answer stats — reaction time / Profile recordAnswer / mastery / streak trigger。
-// 順序重要：recordAnswer 先 (statsByType update)，跟住 checkMastery 再讀 accuracy (cycle 14 fix)。
+// R5: post-answer stats (reaction / Profile / mastery / streak)
+// recordAnswer 先 (statsByType update)，跟住 checkMastery 再讀 accuracy。
 function _recordAnswerStats(team, q, correct) {
   const reactionMs = q.pickedAt ? (now() - q.pickedAt) : null;
   Profile.recordAnswer(q.type, correct, reactionMs);
@@ -4194,7 +4275,7 @@ function _recordAnswerStats(team, q, correct) {
   }
 }
 
-// R5 (cycle 15): next-question routing — coop (round-robin) vs versus (self)。
+// R5: next-question routing (coop round-robin / versus self)
 // V3.5-AUDIT6-F01: re-entrancy null-out — double-tap 撞入嚟即 early exit 喺 line 1。
 function _scheduleNextQuestion(team) {
   Game.state.current[team] = null;
@@ -4481,7 +4562,7 @@ function renderEndBadges(victory) {
 
 /* ============== R3 (cycle 12) — showEndScreen sub-helpers ==============
  * 5 helpers: _endTitleFor (pure), _renderEndIcon, _renderEndBackground,
- * _renderEndStats, _announceEndVictory (aria-live + focus restore).
+ * _renderEndStats, _announceEndVictory.
  */
 
 // Pure: 根據 victory / Game.settings 計出 title / msg / icon
@@ -4774,8 +4855,7 @@ function trapFocusInModal(modal) {
 }
 
 /* ============== R2 (cycle 12) — setupTeacher sub-helpers ==============
- * 5 module-level helpers (open/close modal, pwd, pause overlay, actions).
- * setupTeacher() 6-line orchestrator + IIFE state container (_teacherModalState / _pauseOverlayState).
+ * 5 helpers + IIFE state container. setupTeacher() 6-line orchestrator.
  */
 
 // State container for teacher modal lifecycle
@@ -5349,6 +5429,9 @@ function syncAudioSettingsUI() {
   // V3.5-AUDIT11: 自動推薦 toggle sync
   const adaptiveCb = $('td-adaptive-enabled');
   if (adaptiveCb) adaptiveCb.checked = Game.settings.adaptiveEnabled !== false;
+  // V3.5-cycle16: chips row toggle sync
+  const recommendCb = $('td-recommendation-enabled');
+  if (recommendCb) recommendCb.checked = Game.settings.recommendationEnabled !== false;
 }
 function wireAudioSettings() {
   syncAudioSettingsUI();
@@ -5392,6 +5475,13 @@ function wireAudioSettings() {
     Game.settings.adaptiveEnabled = e.target.checked;
     renderTypePicker();   // 重新 render chips (顯示/隱藏 ✨)
     announceToA11y(`自動推薦已${e.target.checked ? '開啟' : '關閉'}`);
+  };
+  // V3.5-cycle16: chips row toggle (獨立於 adaptiveEnabled)
+  const recommendCb = $('td-recommendation-enabled');
+  if (recommendCb) recommendCb.onchange = (e) => {
+    Game.settings.recommendationEnabled = e.target.checked;
+    renderRecommendChips();
+    announceToA11y(`推薦題型 chips 已${e.target.checked ? '開啟' : '關閉'}`);
   };
 }
 
@@ -5658,12 +5748,22 @@ function archiveReport() {
   const teams = Game.state.teams;
   const total = { c: teams.knight.correct + teams.mage.correct,
                   w: teams.knight.wrong + teams.mage.wrong };
+  // V3.5-cycle16+17: per-type snapshot。Iterate statsByType 全部 12 keys (唔係 settings.types)
+  // — 防止 upgrade 後 settings.types 嘅 typeId 唔 match statsByType 嘅原 typeId
+  const perType = {};
+  const statTypes = Object.keys(Profile.data.statsByType || {});
+  for (const t of statTypes) {
+    const s = (Profile.data.statsByType || {})[t] || { c: 0, w: 0 };
+    const c = s.c || 0, w = s.w || 0;
+    if (c + w > 0) perType[t] = { c, w };
+  }
   hist.push({
     ts: Date.now(),
     duration: Game.state.endedAt ? Math.floor((Game.state.endedAt - Game.state.startedAt) / 1000) : 0,
     settings: { ...Game.settings },
     total,
     teams: JSON.parse(JSON.stringify(teams)),
+    perType,
     review: Game.state.review.length,
     adaptiveDowngrades: Profile.data.adaptiveDowngrades,
     won: Game.state.bossHp <= 0,
@@ -5674,9 +5774,7 @@ function archiveReport() {
 }
 
 /* ============== P1-B: Adaptive Difficulty (P1-B) ============== */
-// 學生連錯 3 題同 type → 自動降一級難度（lock boundary）
-// 連對 5 題 → 自動升級
-// 唔可以越過最低 / 最高界
+// 連錯 3 題 → 降級 / 連對 5 題 → 升級 (lock boundary)
 const TYPE_ORDER = ['add10','sub10','add20','sub20','add2d','sub2d'];   // 簡單 → 難
 const Adaptive = {
   // Per-type rolling counters — 跨 team 共享一個 counter 易壞，per-team 準確啲
@@ -5739,7 +5837,7 @@ const Adaptive = {
     }
   },
   reset() { this.counters = {}; },
-  // V3.5-AUDIT14: Mastered promote — 學生喺某 type 持續高準確率 (≥ 90%, samples ≥ 8) 就 promote 做 "已精通"。
+  // V3.5-AUDIT14: Mastered promote (acc ≥ 90% + samples ≥ 8 → "已精通")
   // 一旦 mastered：
   //   - onWrong 跳過降級 (保護精通成果)
   //   - suggestNextType 排到 priority=5 (最低，推介俾其他 type)
@@ -5751,7 +5849,7 @@ const Adaptive = {
     return !!(m && m[typeId] && typeof m[typeId] === 'object');
   },
   // 觸發點：onCorrect 入面 call。檢查 accuracy + sample size。
-  // threshold：acc ≥ 0.9 AND total ≥ 8。First-time promote 嗰陣 fire screenAlert + bump masteredCount。
+  // threshold: acc ≥ 0.9 AND total ≥ 8. First-time promote fires screenAlert + bump masteredCount.
   checkMastery(team, type) {
     try {
       if (this.isMastered(type)) return;     // 已經精通就唔再 trigger
@@ -5837,6 +5935,94 @@ const Adaptive = {
   topRecommendations(team, n = 3) {
     return this.suggestNextType(team).slice(0, n).map(c => c.typeId);
   },
+  /* V3.5-cycle16: weighted recommend (current 60% + last 10 sessions 40%) */
+  HISTORY_WEIGHT: 0.4,    // 40% weight 過往 sessions
+  CURRENT_WEIGHT: 0.6,    // 60% weight current session
+  HISTORY_WINDOW: 10,     // last N sessions 計 aggregate
+  // Aggregate per-type accuracy from HISTORY (last N sessions with perType snapshot)。
+  // Returns { [typeId]: { accuracy, samples } } — accuracy null if 冇 data。
+  _aggregateHistoryAccuracy(window) {
+    const n = window || this.HISTORY_WINDOW;
+    const recent = (STORAGE.load(STORAGE.HISTORY_KEY) || []).slice(-n);
+    const acc = {};
+    for (const session of recent) {
+      const pt = session.perType || {};
+      for (const typeId of Object.keys(pt)) {
+        const s = pt[typeId] || { c: 0, w: 0 };
+        if (!acc[typeId]) acc[typeId] = { c: 0, w: 0 };
+        acc[typeId].c += s.c || 0;
+        acc[typeId].w += s.w || 0;
+      }
+    }
+    const result = {};
+    for (const typeId of Object.keys(acc)) {
+      const s = acc[typeId];
+      const total = s.c + s.w;
+      result[typeId] = {
+        accuracy: total === 0 ? null : s.c / total,
+        samples: total,
+      };
+    }
+    return result;
+  },
+  // Weighted score: current (60%) + history (40%); null 同 null → null
+  _weightedTypeAccuracy(typeId, histAcc) {
+    const stats = (Profile.data.statsByType || {})[typeId] || { c: 0, w: 0 };
+    const cNow = stats.c || 0, wNow = stats.w || 0;
+    const totalNow = cNow + wNow;
+    const curAcc = totalNow === 0 ? null : cNow / totalNow;
+    const h = histAcc[typeId] || { accuracy: null, samples: 0 };
+    if (curAcc === null && h.accuracy === null) return { accuracy: null, samples: totalNow + h.samples };
+    if (curAcc === null) return { accuracy: h.accuracy, samples: totalNow + h.samples };
+    if (h.accuracy === null) return { accuracy: curAcc, samples: totalNow + h.samples };
+    return {
+      accuracy: curAcc * this.CURRENT_WEIGHT + h.accuracy * this.HISTORY_WEIGHT,
+      samples: totalNow + h.samples,
+    };
+  },
+  // 自動推薦 with history — 5 types, lowest weighted accuracy first (pure)
+  recommendWithHistory(team, n = 5) {
+    const histAcc = this._aggregateHistoryAccuracy(this.HISTORY_WINDOW);
+    const counters = this.counters[team] || {};
+    const candidates = [];
+    for (const typeId of Object.keys(TYPE_REGISTRY)) {
+      const w = this._weightedTypeAccuracy(typeId, histAcc);
+      const reg = TYPE_REGISTRY[typeId];
+      const counter = counters[typeId] || { streak: 0, dir: 0 };
+      let priority, reason, score;
+      if (w.accuracy === null) {
+        // Cold start → tiebreaker by difficulty level (5 easiest first)
+        priority = 3;
+        score = 100 - (reg.difficulty || 1) * 10;
+        reason = `未試過 · 難度 ${reg.difficulty}`;
+      } else if (w.accuracy < 0.7) {
+        priority = 1;
+        score = 100 - Math.round(w.accuracy * 100);
+        reason = `弱 (${Math.round(w.accuracy * 100)}%)`;
+      } else if (w.accuracy < 0.9) {
+        priority = 2;
+        score = 50 - Math.round(w.accuracy * 100);
+        reason = `可進步 (${Math.round(w.accuracy * 100)}%)`;
+      } else {
+        priority = 4;
+        score = 10;
+        reason = `已精通 (${Math.round(w.accuracy * 100)}%)`;
+      }
+      if (this.isMastered(typeId)) {
+        priority = 5;
+        reason = `⭐ 已精通 (${Math.round((w.accuracy || 0) * 100)}%)`;
+      }
+      // Streak tiebreaker — momentum
+      if (counter.streak >= 3) score += counter.streak;
+      candidates.push({ typeId, score, reason, priority, accuracy: w.accuracy, samples: w.samples });
+    }
+    candidates.sort((a, b) => {
+      if (a.priority !== b.priority) return a.priority - b.priority;
+      if (a.score !== b.score) return b.score - a.score;
+      return a.typeId.localeCompare(b.typeId);
+    });
+    return candidates.slice(0, n);
+  },
 };
 
 /* ============== P1-C: Boss registry + 解鎖流程 ============== */
@@ -5913,8 +6099,13 @@ window.addEventListener('DOMContentLoaded', () => {
   // 預設選擇 — v3.1 透過 renderTypePicker 處理
   Game.settings.types = ['add10'];
   renderTypePicker();
+  renderRecommendChips();   // V3.5-cycle16: chips row
   // P1-A: 載入 profile + 檢查 resume
   Profile.load();
+  // V3.5-cycle16: lazy-migrate 老 user 嘅 recommendationEnabled field
+  if (typeof Game.settings.recommendationEnabled !== 'boolean') {
+    Game.settings.recommendationEnabled = true;
+  }
   Bosses.current = Bosses.list[0];
   if (Snapshot.hasResumable() && !location.search.includes('autostart=1')) {
     const btn = document.createElement('button');
@@ -6119,7 +6310,7 @@ document.addEventListener('visibilitychange', () => {
   }
 });
 
-// V3.3-U5: keyboard shortcuts (老師 demo 用 — 1-9 choice / Enter OK / Backspace clear / Space pause)
+// V3.3-U5: keyboard shortcuts (1-9 choice / Enter / Backspace / Space)
 document.addEventListener('keydown', (e) => {
   // 跳過 input/textarea (future-proof，唔影響 v3.3 單層 UI)
   if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
@@ -6131,8 +6322,8 @@ document.addEventListener('keydown', (e) => {
       return;
     }
   }
-  // V3.4-AUDIT2-FIX: 加入 game-state guard，避免 Backspace/Enter/1-9 喺 menu / end / teacher modal
-  // 嗰陣，雖然 .key-btn / .option-btn 唔再喺 game screen，但若 menu 內另有相同 class (e.g. dev probe / future layout)
+  // V3.4-AUDIT2-FIX: game-state guard for menu/end/teacher modal
+  // 若 menu 內另有相同 class (e.g. dev probe / future layout)
   // 會誤觸。統一用 running + screen-game 雙 gate。
   const inGameScreen = $('screen-game') && !$('screen-game').classList.contains('hidden');
   // Space → pause / resume

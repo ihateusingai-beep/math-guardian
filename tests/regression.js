@@ -500,8 +500,8 @@ assert('AUDIT6-F01 handleAnswer nulls current[team] before setTimeout',
   /function _scheduleNextQuestion[\s\S]{0,400}current\[team\] = null;[\s\S]{0,300}setTimeout/.test(src));
 assert('AUDIT6-F01 comment documents the null-out rationale',
   /AUDIT6-F01: re-entrancy null-out[\s\S]{0,500}if \(\!q\) return[\s\S]{0,300}early exit/.test(src) ||
-  // R5 (cycle 15): comment 留喺 _scheduleNextQuestion
-  /R5 \(cycle 15\): next-question routing[\s\S]{0,500}AUDIT6-F01: re-entrancy null-out[\s\S]{0,500}early exit/.test(src));
+  // R5: comment 留喺 _scheduleNextQuestion
+  /R5: next-question routing[\s\S]{0,500}AUDIT6-F01: re-entrancy null-out[\s\S]{0,500}early exit/.test(src));
 // AUDIT6-F02: askReReview guards pendingUlt — 大絕答題進行中唔可以開新重練題
 assert('AUDIT6-F02 askReReview early-returns when pendingUlt is set',
   /Game\.askReReview = function\(idx\) \{[\s\S]{0,500}if \(Game\.state\.pendingUlt\) return;/.test(src));
@@ -761,6 +761,62 @@ assert('F-20 CSS rule for opt-mastered highlight exists',
 assert('F-21 teacher dashboard surfaces mastered count via td-mastered',
   /id="td-mastered"[\s\S]{0,200}title="達到 ≥ 90%/.test(src) &&
   /\$?\('td-mastered'\)\.textContent = masteredKeys/.test(src));
+
+// =========== T29: V3.5 cycle-16 自動推薦 (cross-session weighted + tap-to-toggle chips) ===========
+console.log('\n[T29] V3.5 audit cycle-16 自動推薦');
+// REC-1: Adaptive.recommendWithHistory method defined
+assert('REC-1  Adaptive.recommendWithHistory defined',
+  /Adaptive = \{[\s\S]{0,20000}recommendWithHistory\(team, n = 5\) \{/.test(src) ||
+  /recommendWithHistory\(team, n = 5\) \{/.test(src));
+// REC-2: weighted score uses CURRENT_WEIGHT + HISTORY_WEIGHT
+assert('REC-2  weighted score formula current*0.6 + history*0.4',
+  /HISTORY_WEIGHT[\s\S]{0,300}CURRENT_WEIGHT[\s\S]{0,2000}accuracy:\s*curAcc\s*\*\s*this\.CURRENT_WEIGHT\s*\+\s*h\.accuracy\s*\*\s*this\.HISTORY_WEIGHT/.test(src));
+// REC-3: cold start returns 5 easiest by difficulty
+assert('REC-3  cold start: priority 3 with difficulty-based score',
+  /w\.accuracy === null\)[\s\S]{0,400}priority\s*=\s*3[\s\S]{0,300}100 - \(reg\.difficulty \|\| 1\) \* 10/.test(src));
+// REC-4: aggregate history accuracy from HISTORY_KEY
+assert('REC-4  aggregate reads STORAGE.HISTORY_KEY last N sessions',
+  /_aggregateHistoryAccuracy[\s\S]{0,800}STORAGE\.load\(STORAGE\.HISTORY_KEY\)[\s\S]{0,400}\.slice\(-/.test(src));
+// REC-5: chips row DOM element exists
+assert('REC-5  recommend-chips DOM element exists',
+  /id="recommend-chips"[\s\S]{0,200}role="group"[\s\S]{0,200}aria-label="自動推薦題型"/.test(src));
+// REC-6: renderRecommendChips toggles via recommendationEnabled
+assert('REC-6  renderRecommendChips respects recommendationEnabled',
+  /function renderRecommendChips\(\) \{[\s\S]{0,400}!Game\.settings\.recommendationEnabled[\s\S]{0,300}container\.hidden = true/.test(src));
+// REC-7: chip click toggles settings.types
+assert('REC-7  chip click toggles settings.types (splice + push)',
+  /\.rec-chip[\s\S]{0,800}Game\.settings\.types\.splice\([\s\S]{0,400}Game\.settings\.types\.push\(typeId\)/.test(src));
+// REC-8: teacher modal has recommendation checkbox
+assert('REC-8  teacher modal has td-recommendation-enabled checkbox',
+  /id="td-recommendation-enabled"[\s\S]{0,500}aria-describedby="td-recommendation-enabled-desc"/.test(src));
+// REC-9: archiveReport records perType snapshot
+assert('REC-9  archiveReport records perType for cross-session recommend',
+  /function archiveReport\(\) \{[\s\S]{0,1000}const perType = \{\}[\s\S]{0,800}perType,/.test(src));
+// REC-10: lazy-migrate recommendationEnabled on cold start
+assert('REC-10 lazy-migrate recommendationEnabled on cold start',
+  /typeof Game\.settings\.recommendationEnabled !== 'boolean'\)[\s\S]{0,200}recommendationEnabled = true/.test(src));
+
+// =========== T30: V3.5 cycle-17 bug fix (perType key mismatch + team param + 0/0 filter) ===========
+console.log('\n[T30] V3.5 audit cycle-17 bug fix');
+// BUG-A-1: archiveReport iterates Object.keys(Profile.data.statsByType) — not settings.types
+// (cycle 16 spec 用 settings.types，導致 upgrade 後原 typeId 嘅 learning data silently lost)
+assert('BUG-A-1  archiveReport iterates statsByType keys (not settings.types)',
+  /function archiveReport\(\) \{[\s\S]{0,1500}Object\.keys\(Profile\.data\.statsByType \|\| \{\}\)[\s\S]{0,300}for \(const t of statTypes\)/.test(src));
+// BUG-A-2: 0/0 records filtered out (cycle 17 同時修 Bug E bloat)
+assert('BUG-A-2  archiveReport filters c+w > 0 records',
+  /Object\.keys\(Profile\.data\.statsByType \|\| \{\}\)[\s\S]{0,400}if \(c \+ w > 0\) perType\[t\] = \{ c, w \}/.test(src));
+// BUG-A-3: 唔再用 settings.types 嘅 keys 提取 statsByType (防止 key mismatch)
+assert('BUG-A-3  archiveReport no longer iterates settings.types for perType',
+  !/function archiveReport\(\) \{[\s\S]{0,1500}Game\.settings\.types[\s\S]{0,400}for \(const t of types\)/.test(src));
+// BUG-B-1: renderRecommendChips uses Game.state.currentTeam (not hardcode 'knight')
+assert('BUG-B-1  renderRecommendChips uses Game.state.currentTeam',
+  /function renderRecommendChips\(\) \{[\s\S]{0,800}Adaptive\.recommendWithHistory\(Game\.state\.currentTeam \|\| 'knight'/.test(src));
+// BUG-B-2: 唔再 hardcode 'knight' for recommendWithHistory (cycle 16 carryover fix)
+assert('BUG-B-2  no hardcoded "knight" passed to recommendWithHistory',
+  !/Adaptive\.recommendWithHistory\('knight'/.test(src));
+// BUG-A-4: cycle 17 嘅 comment 解釋為何唔用 settings.types (rationale lock-in)
+assert('BUG-A-4  archiveReport comment references upgrade key mismatch rationale',
+  /V3\.5-cycle16\+17: per-type snapshot[\s\S]{0,500}settings\.types[\s\S]{0,300}唔 match/.test(src));
 
 // =========== T28: V3.5 R5 cycle-15 Game.handleAnswer refactor ===========
 console.log('\n[T28] V3.5 audit cycle-15 R5 handleAnswer refactor');
