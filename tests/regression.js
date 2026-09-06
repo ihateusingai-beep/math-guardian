@@ -226,8 +226,8 @@ assert('AUDIT2-B5  endGame hides pause-overlay',  endGameSrc.includes('pause-ove
 // B5+B17: startGame resets _startAt + _frostTickAt + hides pause-overlay
 const startGameMatch = src.match(/function startGame\(\)\s*\{[\s\S]*?Audio\.startBGM\(\);[\s\S]{0,800}/);
 const startGameSrc = startGameMatch ? startGameMatch[0] : '';
-assert('AUDIT2-B6  startGame resets _startAt',     startGameSrc.includes('s._startAt = 0'));
-assert('AUDIT2-B17 startGame resets _frostTickAt', startGameSrc.includes('s._frostTickAt = 0'));
+assert('AUDIT2-B6  startGame resets _startAt',     startGameSrc.includes('Game.state._startAt = 0'));
+assert('AUDIT2-B17 startGame resets _frostTickAt', startGameSrc.includes('Game.state._frostTickAt = 0'));
 assert('AUDIT2-B5  startGame hides pause-overlay', startGameSrc.includes('pause-overlay'));
 // B1: confirm-modal escHandler cleanup on close (not just on keypress)
 assert('AUDIT2-B1  confirm close() removes escListener',

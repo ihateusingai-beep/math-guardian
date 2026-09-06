@@ -3984,8 +3984,8 @@ function startGame() {
   Game.state.endedAt = 0;
   // V3.4-AUDIT2-FIX: 重設 timer state flags 避免 stale _startAt (_startAt 由舊 session 殘留
   // 會令 time-mode 第二場 instant endGame)；_frostTickAt 同理 (會 over-fire 一次冰凍 step)
-  s._startAt = 0;
-  s._frostTickAt = 0;
+  Game.state._startAt = 0;
+  Game.state._frostTickAt = 0;
   // V3.4-AUDIT2-FIX: hide pause-overlay residual from previous game
   const _po = $('pause-overlay'); if (_po) _po.classList.add('hidden');
   // P1-C: 套用 Bosses.current 嘅 sprite + name + scene theme
