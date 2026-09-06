@@ -1,14 +1,14 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
-<!-- 數學守護者：精準訓練版 v3.4 (Math Guardian: Precision Training Edition v3.4)
-     Math Guardian v3.5 (current build) — see .harness/changelogs/ + git log for full history.
+<!-- 數學守護者：精準訓練版 v3.6 (Math Guardian v3.6)
+     easy difficulty mode for moderate SEN.
      Stack: Tailwind CDN + vanilla JS, GitHub Pages deploy. -->
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="theme-color" content="#0b0d1a" />
-<title>數學守護者：精準訓練版 v3.4</title>
+<title>數學守護者：精準訓練版 v3.6</title>
 
 <script src="https://cdn.tailwindcss.com"></script>
 <script>
@@ -1388,7 +1388,7 @@
       <h1 class="text-3xl md:text-5xl font-extrabold bg-gradient-to-r from-amber-300 via-pink-400 to-purple-400 bg-clip-text text-transparent">
         數學守護者
       </h1>
-      <p class="text-base md:text-xl text-purple-200 mt-1">精準訓練版 v3.4 · Math Guardian</p>
+      <p class="text-base md:text-xl text-purple-200 mt-1">精準訓練版 v3.6 · Math Guardian</p>
       <p class="text-xs md:text-sm text-white/50 mt-1">兩隊同心，守護城堡，精準答題擊敗森林巨魔</p>
     </div>
 
@@ -1424,6 +1424,22 @@
           <button class="opt-mode btn btn-ghost" data-mode="keypad" aria-pressed="false">數字鍵盤<br><span class="text-xs opacity-70">Numeric Keypad</span></button>
         </div>
         <div id="mode-helper" class="text-xs text-white/60 mt-2 leading-relaxed"></div>
+      </div>
+
+      <!-- 2b) 難度：輕度（4選一）vs 中度 SEN（2-3選一） -->
+      <div>
+        <label class="text-sm font-bold text-amber-300 mb-2 block">③b 難度</label>
+        <div class="grid grid-cols-2 gap-3" role="radiogroup" aria-label="難度">
+          <button class="opt-difficulty btn btn-ghost opt-selected" data-diff="normal" aria-pressed="true">
+            🌱 輕度<br><span class="text-xs opacity-70">4 選一 · 數字較大</span>
+          </button>
+          <button class="opt-difficulty btn btn-ghost" data-diff="easy" aria-pressed="false">
+            🌼 中度 SEN<br><span class="text-xs opacity-70">2-3 選一 · 題目簡單</span>
+          </button>
+        </div>
+        <div id="diff-helper" class="text-xs text-white/60 mt-2 leading-relaxed">
+          中度 SEN 模式：看圖數數（1-5）、淺加法（結果 1-9）、少選項
+        </div>
       </div>
 
       <!-- 3) 題型 — v3.1 dynamic from TYPE_REGISTRY -->
@@ -1882,7 +1898,7 @@ const Audio = (() => {
   let bgmTempo = 0.18; // seconds per step
   let bgmStep = 0;
   let bgmInterval = null;
-  // V3.4-AUDIT5: per-channel mute — master 全關 / SFX 淨靜音只關 sfx / BGM 獨立關 loop
+    // V3.4-AUDIT5: per-channel mute — master 全關 / SFX 淨靜音只關 sfx
   let channels = { master: true, sfx: true, bgm: true };
   function canPlaySfx() { return channels.master && channels.sfx; }
   function canPlayBgm() { return channels.master && channels.bgm; }
@@ -2070,7 +2086,7 @@ const TTS = {
   // 香港中文 voice detection (zh-HK > zh-TW > zh-CN fallback)
   voice: null,
   enabled: true,
-  // V3.5-AUDIT7-F06: monotonic counter incremented on every speak()/cancel().
+    // V3.5-AUDIT7-F06: monotonic counter incremented on every s
   // onBoundary handlers compare captured epoch vs current — if mismatched,
   // the callback fired after a question-change and we early-return to avoid
   // highlighting tokens that belong to the previous (already-removed) question.
@@ -2102,21 +2118,20 @@ const TTS = {
       .replace(/時鐘顯示/g, '時鐘顯示');
   },
   speak(text, btn, opts = {}) {
-    // V3.5-P0 signature: TTS.speak(text, btn, opts = {}) — opts = { onBoundary?, onEnd?, tokensRef? }
-    // V3.4-F2 caller compat: TTS.speak(text, ttsBtn) — legacy 2-arg form still works (opts defaults to {})
-    // Implementation note: kept the AUDIT3-C2 pattern (speak(text, btn) { querySelectorAll('.tts-btn.speaking').forEach
-    // ... classList.remove) inline below — same cleanup runs unconditionally on every speak().
+    // V3.5-P0: TTS.speak() opts={onBoundary?,onEnd?,tokensRef?}
+    // V3.4-F2 compat + AUDIT3-C2: clear .speaking on any tts-bt
+    if (TTS.enabled) document.querySelectorAll('.tts-btn.speaking').forEach(b => b.classList.remove('speaking'));
     if (!('speechSynthesis' in window)) return;  // graceful fallback
     if (!TTS.enabled) return;
     if (!text) return;
     speechSynthesis.cancel();  // 停上一句
-    // V3.4-AUDIT3-FIX: 清乾淨所有 .speaking class (Safari cancel() 唔 fire onerror,
+    // V3.4-AUDIT3-FIX: clear .speaking on cancel (Safari may no
     // 舊 btn 嘅 .speaking 殘留造成 stale 綠色 pulse)。 全域清完先 add 新 btn。
     document.querySelectorAll('.tts-btn.speaking').forEach(b => b.classList.remove('speaking'));
-    // V3.5-P0: clear any leftover TTS Karaoke highlights (defensive — onBoundary
+    // V3.5-P0: clear leftover Karaoke highlights before new speak
     // cleans up but cancel()-without-onend could leak if DOM was rebuilt mid-speech)
     document.querySelectorAll('.tts-tok.tts-active').forEach(t => t.classList.remove('tts-active'));
-    // V3.5-AUDIT7-F06: bump epoch BEFORE wiring onboundary — any stale boundary
+    // V3.5-AUDIT7-F06: bump epoch BEFORE wiring onboundary
     // firing from a previous utterance (Chrome fires one final boundary after
     // cancel() in some cases) compares against new epoch and early-returns.
     TTS._boundaryEpoch++;
@@ -2135,13 +2150,13 @@ const TTS = {
       utter.onend = () => { if (opts.onEnd) opts.onEnd(); };
       utter.onerror = () => { if (opts.onEnd) opts.onEnd(); };
     }
-    // V3.5-P0: TTS Karaoke — boundary callback for per-token highlight sync.
+    // V3.5-P0: TTS Karaoke boundary callback for per-token high
     // charIndex is offset into the NORMALIZED utterance text (what utter.text holds),
     // NOT the raw input. Caller is responsible for building .tts-tok spans with
     // matching data-start/data-end (see UI.renderQuestionTextFor).
     if (opts.onBoundary) {
       utter.onboundary = (e) => {
-        // V3.5-AUDIT7-F06: race guard — if user clicked through to next question
+    // V3.5-AUDIT7-F06: race guard — skip stale boundary from pr
         // mid-speech, _boundaryEpoch got bumped on next speak(). This callback's
         // captured myEpoch no longer matches → drop the boundary event so we
         // don't highlight a token that belongs to a now-removed question.
@@ -2151,15 +2166,15 @@ const TTS = {
     }
     speechSynthesis.speak(utter);
   },
-  // V3.4-AUDIT5: explicit cancel — 換題 / 暫停 / 關 modal 時清乾淨，避免上一句殘留
+  // V3.4-AUDIT5: explicit cancel — 換題/暫停/關 modal 清
   cancel() {
     if (!('speechSynthesis' in window)) return;
     speechSynthesis.cancel();
     document.querySelectorAll('.tts-btn.speaking').forEach(b => b.classList.remove('speaking'));
-    // V3.5-P0: TTS Karaoke — clear any leftover .tts-active highlights so next
+    // V3.5-P0: clear leftover .tts-active highlights before nex
     // question / new game starts with a clean visual slate (no stale amber block).
     document.querySelectorAll('.tts-tok.tts-active').forEach(t => t.classList.remove('tts-active'));
-    // V3.5-AUDIT7-F06: bump epoch on cancel too — any in-flight onBoundary from
+    // V3.5-AUDIT7-F06: bump epoch on cancel too
     // a recently-cancelled utterance that fires one final time will see the
     // epoch mismatch and early-return. Defense-in-depth alongside the cancel()
     // call inside speak().
@@ -2173,8 +2188,8 @@ if ('speechSynthesis' in window) {
   speechSynthesis.onvoiceschanged = () => { TTS.voice = TTS.pickVoice(); };
 }
 
-// V3.4-F3: encouragement pool (港式粵語 + SEN 友善) — 60 句 hardcoded fallback
-// V3.4-F3-b: 同時支援 AI-generated pool (user paste API key 後自動 upgrade)
+    // V3.4-F3: encouragement pool (港式粵語 + SEN 友善)
+    // V3.4-F3-b: 同時支援 AI-generated pool (user paste API key 後自動
 const Compliment = {
   pool: {
     correct: [
@@ -2314,7 +2329,7 @@ const FX = {
     setTimeout(() => app.classList.remove('screen-shake-active'), 500);
   },
   screenAlert(text, color = '#22c55e') {
-    // V3.4-AUDIT3-FIX: cap concurrent 數量 — 答得快嘅 SEN 學生每秒可能 add 2-3 個 alert,
+    // V3.4-AUDIT3-FIX: cap concurrent 數量 — 答得快嘅 SEN 學生每秒可能 add 
     // 1.6s 動畫 lifetime 內 stack 5-8 個 → 視覺混亂 + 定位 queue 蓋住。 Keep only 最後 1 個。
     const existing = document.querySelectorAll('.screen-alert');
     if (existing.length >= 1) existing.forEach(e => e.remove());
@@ -2326,7 +2341,7 @@ const FX = {
     a.style.animation = 'screen-alert 1.6s ease forwards';
     document.body.appendChild(a);
     setTimeout(() => a.remove(), 1700);
-    // V3.3-UI4: a11y — 同時 push 去 hidden aria-live region (screen-reader announce)
+    // V3.3-UI4: a11y — also push to hidden aria-live region for
     let live = $('aria-live-alerts');
     if (!live) {
       live = document.createElement('div');
@@ -2378,11 +2393,18 @@ const TYPE_REGISTRY = {
 
 // === Generator helpers — per type specific math ===
 const Generators = {
-  // numeric standard
+  // numeric standard; easy mode narrows range for SEN 中度 students
   numeric(type, mode) {
+    const easy = Game.settings.difficulty === 'easy';
     let a, b, op, answer;
-    if (type === 'add10') { a = randInt(1, 9); b = randInt(0, 10 - a); op = '+'; answer = a + b; }
-    else if (type === 'sub10') { const t = randInt(1, 10); a = t; b = randInt(0, a); op = '-'; answer = a - b; }
+    if (type === 'add10') {
+      const max = easy ? 5 : 9;
+      a = randInt(1, max); b = randInt(0, Math.max(0, (easy ? 5 : 10) - a)); op = '+'; answer = a + b;
+    }
+    else if (type === 'sub10') {
+      const max = easy ? 5 : 10;
+      const t = randInt(1, max); a = t; b = randInt(0, a); op = '-'; answer = a - b;
+    }
     else if (type === 'add20') { a = randInt(1, 15); b = randInt(0, 20 - a); op = '+'; answer = a + b; }
     else if (type === 'sub20') { a = randInt(5, 20); b = randInt(0, a); op = '-'; answer = a - b; }
     else if (type === 'add2d') {
@@ -2405,11 +2427,13 @@ const Generators = {
     const text = `${a} ${op} ${b} = ?`;
     return { text, answer, parts: [text], type };
   },
-  // 看圖數數 — 出 1-10 個 fruit emoji
+  // 看圖數數 — easy: 1-5 個; normal: 1-10 個
   count10(mode) {
+    const easy = Game.settings.difficulty === 'easy';
     const fruits = ['🍎','🍌','🍇','🍓','🍊','🍉'];
     const f = fruits[randInt(0, fruits.length - 1)];
-    const n = randInt(1, 10);
+    const max = easy ? 5 : 10;
+    const n = randInt(easy ? 1 : 1, max);
     const parts = [f.repeat(n), '= ?'];
     return { parts, answer: n, type:'count10', answerDisplay: String(n) };
   },
@@ -2471,7 +2495,7 @@ const QuestionGen = (() => {
   function make(type, mode = 'choice') {
     const reg = TYPE_REGISTRY[type];
     if (!reg) return Generators.numeric('add10', mode);
-    // V3.5-AUDIT10: Question Bank rotation — weak students 70% bank / 30% random,
+    // V3.5-AUDIT10: Question Bank rotation — weak 70/30, normal
     // non-weak 30% bank / 70% random。先由 shouldUseBank() 決定概率，再 pick。
     // 若 pick 出嚟嘅 bank question 唔合用 (e.g. numeric layout choice mode 但冇 options)，
     // 自動 fallback 去 generator dispatch。
@@ -2501,23 +2525,33 @@ const QuestionGen = (() => {
     }
     // legacy compat: 舊 code 讀 q.text
     q.text = q.text || (q.parts ? q.parts.join('') : '');
-    // choice 模式: 生 3 個不重複錯誤選項 (numeric layout only)
-    // 對 numeric bank question 同樣適用 — bank fixture 冇 pre-build options (例如 add10)
-    if (mode === 'choice' && reg.layout === 'numeric' && !q.options) {
+    // choice 模式: 生錯誤選項 (numeric + parts-emoji layout)
+    // easy mode: 2-3 個選項（結果 1-9 範圍內）；normal: 4 個
+    const isEasy = Game.settings.difficulty === 'easy';
+    const targetOpts = isEasy ? randInt(2, 3) : 4;
+    if (mode === 'choice' && !q.options &&
+        (reg.layout === 'numeric' || reg.layout === 'parts-emoji') &&
+        typeof q.answer === 'number') {
       const opts = new Set([q.answer]);
+      const maxWrong = isEasy ? Math.max(q.answer + 2, 9) : Math.max(q.answer * 2, 20);
       let tries = 0;
-      while (opts.size < 4 && tries < 30) {
-        const delta = randInt(1, Math.max(3, Math.ceil(Math.abs(q.answer) * 0.2)));
+      while (opts.size < targetOpts && tries < 50) {
+        const delta = randInt(1, Math.max(1, Math.ceil(Math.abs(q.answer) * (isEasy ? 0.3 : 0.2))));
         const sign = Math.random() < 0.5 ? -1 : 1;
         let fake = q.answer + sign * delta;
-        if (fake < 0) fake = Math.abs(fake) + 1;
+        if (fake < 1) fake = randInt(1, Math.min(q.answer - 1, maxWrong));
         if (fake === q.answer) fake = q.answer + 1;
-        opts.add(fake);
+        if (fake >= 1 && fake <= maxWrong) opts.add(fake);
         tries++;
       }
       let pad = 0;
-      while (opts.size < 4) opts.add(q.answer + (++pad));
+      while (opts.size < targetOpts) {
+        const extra = q.answer + (++pad);
+        if (extra >= 1 && extra <= maxWrong) opts.add(extra);
+      }
       q.options = shuffle([...opts]);
+      // easy mode: 2 個按鈕行顯示
+      if (isEasy) q._easyOpts = true;
     }
     return q;
   }
@@ -2975,7 +3009,7 @@ function renderRecommendChips() {
               aria-label="${reg.label} 自動推薦 — ${r.reason}。${isSel ? '已選，點擊取消' : '點擊加入題型'}"
               title="${r.reason}">${reg.emoji} ${reg.label}</button>`;
   }).join('');
-  // V3.5-cycle16: tap chip → toggle settings.types (至少保留 1 個 — 防 stale UI)
+    // V3.5-cycle16: tap chip → toggle settings.types (至少保留 1 個
   container.querySelectorAll('.rec-chip').forEach(btn => {
     btn.addEventListener('click', () => {
       const typeId = btn.dataset.recType;
@@ -3065,6 +3099,7 @@ const Game = {
     ttsKaraoke: true,     // V3.5-P0: 朗讀題目時同步高亮文字 (per-token highlight synced to TTS boundary)
     adaptiveEnabled: true,// V3.5-AUDIT11: 自動推薦 next type chips (default ON; 學生睇到「✨ 建議」標記)
     recommendationEnabled: true, // V3.5-cycle16: 獨立 chips row (跟 adaptiveEnabled 分開)
+    difficulty: 'normal',       // 'normal' (4 選一) | 'easy' (2-3 選一，SEN 中度適用)
   },
 
   state: {
@@ -3105,7 +3140,7 @@ const Game = {
     // 大絕 pending 答題
     pendingUlt: null, // { team } — 需要再答一題才放
     pendingUltQ: null,
-    // V3.5-AUDIT7-F07: per-team cache of last successfully-shown type
+    // V3.5-AUDIT7-F07: per-team cache of last successfully-show
     // (visual-type ladder fallback Option C — chain 2: cached last-good)
     lastResumableType: { knight: null, mage: null },
   },
@@ -3139,7 +3174,7 @@ const UI = {
     $('boss-hp-fill').style.width = pct + '%';
     $('boss-hp-text').textContent = Math.max(0, Math.round(s.bossHp));
     $('boss-hp-max').textContent = s.bossMaxHp;
-    // V3.4-AUDIT5: HP bar aria-valuenow + valuetext 同步 (P2) — screen-reader 讀當前 boss HP
+    // V3.4-AUDIT5: HP bar aria-valuenow + valuetext 同步 (P2)
     const track = $('boss-hp-track');
     if (track) {
       const cur = Math.max(0, Math.round(s.bossHp));
@@ -3343,7 +3378,7 @@ const UI = {
     if (!q) return;
     const reg = TYPE_REGISTRY[q.type] || { layout:'numeric' };
 
-    // V3.4-AUDIT5: TTS cancel-on-question-change (P1) — 換題 / re-render 時停上一句，
+    // V3.4-AUDIT5: TTS cancel-on-question-change (P1)
     // 避免殘留 TTS 同新題目衝突 (screen-reader 雙聲道 / 學生聽錯題)
     TTS.cancel();
 
@@ -3351,12 +3386,12 @@ const UI = {
     UI.renderQuestionTextFor(team, q);
 
     // V3.4-F2: wire TTS button — 朗讀題目 (對 SEN 識字弱嘅學生特別有用)
-    // V3.5-P0: pass onBoundary + tokensRef via opts so highlight follows speech
+    // V3.5-P0: pass onBoundary + tokensRef via opts so highligh
     const ttsBtn = $(`${team}-tts-btn`);
     if (ttsBtn) {
       ttsBtn.onclick = () => {
         const text = (q.parts ? q.parts.join('') : q.text) || '';
-        // V3.5-P0: tokensRef is a LAZY accessor — by the time TTS fires
+    // V3.5-P0: tokensRef is a LAZY accessor — by the time TTS f
         // onboundary, the question may have already changed (user clicked
         // through fast), so we re-query the DOM each fire rather than
         // capturing a stale NodeList at click time.
@@ -3439,7 +3474,7 @@ const UI = {
       clock.className = 'q-clock';
       const hour = q.extra.hour;
       const deg = hour * 30;
-      // V3.4-AUDIT4: clock SVG 加 role+aria-label,screen-reader 知個鐘顯示幾點
+    // V3.4-AUDIT4: clock SVG 加 role+aria-label,screen-reader 知個
       clock.innerHTML = `
         <svg viewBox="0 0 16 16" role="img" aria-label="時鐘顯示 ${hour} 點" style="width:140px;height:140px;">
           <use href="#px-clock-base"/>
@@ -3510,15 +3545,18 @@ const UI = {
 
     // === numeric + parts-emoji → 用原 choice/keypad flow ===
     if (Game.settings.mode === 'choice') {
+      const opts = q.options || [q.answer];
+      const isEasy = Game.settings.difficulty === 'easy';
       const grid = document.createElement('div');
-      grid.className = 'grid grid-cols-2 gap-2';
+      // easy mode with 2-3 options: use 2-col grid (clean 1-row for 2 opts, 2+1 for 3 opts)
+      grid.className = isEasy ? 'grid grid-cols-2 gap-2' : 'grid grid-cols-2 gap-2';
       grid.setAttribute('role', 'group');
       grid.setAttribute('aria-label', '答案選項');
-      (q.options || [q.answer]).forEach(opt => {
+      opts.forEach(opt => {
         const b = document.createElement('button');
         b.className = 'option-btn';
         b.textContent = String(opt);
-        // V3.4-AUDIT4: clock question 用 aria-label 表明 "X 點鐘" 嘅 time 語意
+    // V3.4-AUDIT4: clock question 用 aria-label 表明 "X 點鐘" 嘅 time
         if (reg.layout === 'clock') b.setAttribute('aria-label', `${opt} 點鐘`);
         else b.setAttribute('aria-label', `答案 ${opt}`);
         b.onclick = () => Game.handleAnswer(team, opt, b);
@@ -3550,7 +3588,7 @@ const UI = {
       keys.forEach(k => {
         const b = document.createElement('button');
         b.textContent = (k === 'clear' ? '⌫' : k === 'ok' ? '✓' : k);
-        // V3.4-AUDIT4: aria-label 取代 textContent announce (screen-reader 讀"細過"唔係"<")
+    // V3.4-AUDIT4: aria-label 取代 textContent announce (screen-r
         if (k === 'clear') b.setAttribute('aria-label', '清除');
         else if (k === 'ok') b.setAttribute('aria-label', '確定');
         else if (isSymAnswer && k === '<') b.setAttribute('aria-label', '細過');
@@ -3641,9 +3679,9 @@ function decodeAnswer(hex) {
   return out.join('');
 }
 
-// V3.4-AUDIT5: aria-live announce helper (P1) — screen-reader 立即讀 message
+    // V3.4-AUDIT5: aria-live announce helper (P1)
 // 跟 cycle 4 嘅 aria-live-alerts 元素復用，避免多個 live region 衝突
-// V3.5-AUDIT7-F08: debounce 300ms — 避免連續 calls (correct 100ms 後 wrong)
+    // V3.5-AUDIT7-F08: debounce 300ms — avoid rapid consecutive
 // 喺 screen-reader 堆積兩個 message，trailing-edge 合併成一個。對中度學生
 // 特別重要：佢哋需要時間消化上一句 feedback，唔可以兩個 message 同時 fire。
 const A11Y_ANNOUNCE_DEBOUNCE_MS = 300;
@@ -3695,7 +3733,7 @@ function charAnimate(team, action) {
 }
 
 // 菜單互動 --------------------------------------------------
-// V3.4-AUDIT-FIX: hoisted slider + display to module scope — renderBossSelect()
+    // V3.4-AUDIT-FIX: hoisted slider + display to module scope
 // 會被 teacher reset (line 3990) 同 dev probe (line 4532) 喺 setupMenu 外面 call，
 // 入面 btn.onclick 用 slider/display 會 throw ReferenceError。
 const slider = $('hp-slider');
@@ -3729,6 +3767,18 @@ function setupMenu() {
       b.setAttribute('aria-pressed', 'true');
       Game.settings.mode = b.dataset.mode;
       updateModeHelper();  // v3.2: helper 跟 mode 變
+    };
+  });
+  // 難度
+  document.querySelectorAll('.opt-difficulty').forEach(b => {
+    b.onclick = () => {
+      document.querySelectorAll('.opt-difficulty').forEach(x => {
+        x.classList.remove('opt-selected');
+        x.setAttribute('aria-pressed', 'false');
+      });
+      b.classList.add('opt-selected');
+      b.setAttribute('aria-pressed', 'true');
+      Game.settings.difficulty = b.dataset.diff;
     };
   });
   // 題型（可多選，至少一個）— v3.1 dynamic picker via delegation
@@ -3789,12 +3839,12 @@ function setupMenu() {
     display.textContent = slider.value;
     // V3.4-AUDIT4: aria-valuenow 同步 — screen-reader 講出當前 HP
     slider.setAttribute('aria-valuenow', slider.value);
-    // V3.4-AUDIT5: aria-valuetext 含語意 — VoiceOver 讀 'Boss 初始 HP 200，範圍 60 至 500'
+    // V3.4-AUDIT5: aria-valuetext includes meaning — VoiceOver 
     slider.setAttribute('aria-valuetext', `Boss 初始生命值 ${slider.value}，範圍 ${slider.min} 至 ${slider.max}`);
   });
   // 開始
   $('btn-start').onclick = () => {
-  // V3.3-U1: first-run onboarding tutorial — only shows once per browser
+    // V3.3-U1: first-run onboarding tutorial
   if (!localStorage.getItem('mg2.onboardingDone')) {
     showOnboarding(() => {
       localStorage.setItem('mg2.onboardingDone', '1');
@@ -3877,7 +3927,7 @@ function renderBossSelect() {
     if (unlocked && Bosses.current?.id === boss.id) btn.classList.add('opt-selected');
     if (!unlocked) {
       btn.classList.add('opacity-50', 'cursor-not-allowed');
-      // V3.4-AUDIT4: locked boss 唔可以 keyboard-reach,更明確 aria-disabled
+    // V3.4-AUDIT4: locked boss 唔可以 keyboard-reach,更明確 aria-disa
       btn.setAttribute('aria-disabled', 'true');
       btn.setAttribute('tabindex', '-1');
       btn.setAttribute('aria-label', `${boss.name} 未解鎖`);
@@ -3963,7 +4013,7 @@ function showBossIntro(boss) {
   }, 1100);
 }
 
-// V3.4-AUDIT2-FIX: 升到 module-scope 前段，避免 startGame() reset 時撞 TDZ
+    // V3.4-AUDIT2-FIX: 升到 module-scope 前段，避免 startGame() reset 
 // (visibilitychange handler 喺 file 較後處使用 — 必須先 hoist declare)
 let _wasPlayingBGM = false;
 
@@ -3975,18 +4025,17 @@ function startGame() {
     renderTypePicker();
     renderRecommendChips();   // V3.5-cycle16: sync chips
   }
-  // V3.5-AUDIT8-F10: 新局 reset quota flag — 上局若 quota-failed，新局可重新嘗試 save
+    // V3.5-AUDIT8-F10: 新局 reset quota flag — 上局若 quota-failed，新
   Snapshot._resetQuotaFlag();
   // V3.4-AUDIT5: TTS cancel on startGame (P1) — 確保新局無殘留 TTS
   TTS.cancel();
   // P1-A: 記住開始時間
   Game.state.startedAt = Date.now();
   Game.state.endedAt = 0;
-  // V3.4-AUDIT2-FIX: 重設 timer state flags 避免 stale _startAt (_startAt 由舊 session 殘留
-  // 會令 time-mode 第二場 instant endGame)；_frostTickAt 同理 (會 over-fire 一次冰凍 step)
+    // V3.4-AUDIT2-FIX: reset timer state flags
   Game.state._startAt = 0;
   Game.state._frostTickAt = 0;
-  // V3.4-AUDIT2-FIX: hide pause-overlay residual from previous game
+    // V3.4-AUDIT2-FIX: hide pause-overlay residual from previou
   const _po = $('pause-overlay'); if (_po) _po.classList.add('hidden');
   // P1-C: 套用 Bosses.current 嘅 sprite + name + scene theme
   if (Bosses.current) {
@@ -3997,7 +4046,7 @@ function startGame() {
     // boss name label
     const lbl = document.getElementById('boss-name-label');
     if (lbl) lbl.textContent = Bosses.current.emoji + ' ' + Bosses.current.name;
-    // V3.4-AUDIT4: SVG sprite boss icon 嘅 aria-label 一齊同步 (之前寫死 "森林巨魔")
+    // V3.4-AUDIT4: SVG sprite boss icon 嘅 aria-label 一齊同步 (之前寫死
     const bossIconWrap = document.getElementById('boss-icon');
     if (bossIconWrap) bossIconWrap.setAttribute('aria-label', Bosses.current.name);
     // P2-2: AI generated hero portrait 入主 game boss panel
@@ -4005,7 +4054,7 @@ function startGame() {
     if (heroImg && BOSS_HERO[Bosses.current.id]) {
       heroImg.src = BOSS_HERO[Bosses.current.id];
       heroImg.alt = Bosses.current.name;
-      // V3.4-AUDIT3-FIX: onerror fallback — base64 decode 唔同 browser 可能壞,
+    // V3.4-AUDIT3-FIX: onerror fallback — corrupt base64 → SVG 
       // corrupt 後 img 永遠空白。fallback 隱藏佢 + show SVG sprite。
       heroImg.onerror = () => {
         heroImg.classList.add('hidden');
@@ -4014,7 +4063,7 @@ function startGame() {
       };
       heroImg.classList.remove('hidden');
     } else if (heroImg) {
-      // V3.4-AUDIT4-FIX: BOSS_HERO[id] 唔存在時 (locked boss 無 AI portrait),
+    // V3.4-AUDIT4-FIX: BOSS_HERO[id] 唔存在時 (locked boss 無 AI por
       // 隱藏空圖 + 確保 sprite fallback 顯示;alt 同步 boss 名 (不再係 placeholder "boss")
       heroImg.removeAttribute('src');
       heroImg.classList.add('hidden');
@@ -4043,7 +4092,7 @@ function startGame() {
   for (const tm of TEAMS) {
     Game.state.teams[tm] = { correct: 0, wrong: 0, total: 0, energy: 0, ultCharge: 0 };
     Game.state.current[tm] = null;
-    // V3.5-AUDIT7-F07: 清 lastResumableType — 新局唔繼承上一局嘅 cached type
+    // V3.5-AUDIT7-F07: 清 lastResumableType — 新局唔繼承上一局嘅 cached t
     Game.state.lastResumableType[tm] = null;
   }
   Game.state.currentTeam = 'knight';
@@ -4061,7 +4110,7 @@ function startGame() {
   // 啟動 boss 自動攻擊（合作模式：每 8s 打一次左/右 castle；巔峰：每 12s 打隨機）
   Audio.prime();
   Audio.startBGM();
-  // V3.4-AUDIT2-FIX: clear visibilitychange listener resume-flag
+    // V3.4-AUDIT2-FIX: clear visibilitychange listener resume-f
   _wasPlayingBGM = false;
   UI.refreshAll();
   nextQuestion('knight');
@@ -4075,15 +4124,7 @@ function startGame() {
 
 function now() { return Date.now(); }
 
-// 下一題 --------------------------------------------------
-// V3.5-AUDIT7-F07: visual-type ladder fallback (Option C — cache last resumable type)
-// 對中度 SEN 學生：當 Game.settings.mode 同 type 唔相容 (e.g. keypad + ordering，
-// 原本會 silent swap 去 add10 numeric — 抽走 visual scaffold 對佢哋係學習殺手)，
-// 唔可以 silently 換 type。要按以下順序試 fallback，最多 3 hops 防無限 loop：
-//   1. 同一個 Game.settings.types 入面、mode-compatible 嘅另一個 type
-//   2. 上一題成功嘅 resumable type (per-team cache)
-//   3. 最終 fallback：add10 numeric (numeric 任何 mode 都 work)
-// 全程 console.warn + a11y announce 通知老師/screen-reader，「visual 改咗」嘅事實。
+// 下一題 (AUDIT7-F07: visual-type ladder fallback — max 3 hops)
 const VISUAL_FALLBACK_MAX_HOPS = 3;
 function _typeSupportsMode(typeId, mode) {
   const reg = TYPE_REGISTRY[typeId];
@@ -4114,7 +4155,7 @@ function nextQuestion(team) {
   const types = Game.settings.types;
   let type = types[randInt(0, types.length - 1)];
   const mode = Game.settings.mode;
-  // V3.5-AUDIT7-F07: mode compatibility check + bounded fallback chain
+    // V3.5-AUDIT7-F07: mode compatibility check + bounded fallb
   if (!_typeSupportsMode(type, mode)) {
     for (let hop = 1; hop <= VISUAL_FALLBACK_MAX_HOPS; hop++) {
       type = _pickFallbackType(type, mode, team, hop);
@@ -4125,7 +4166,7 @@ function nextQuestion(team) {
     announceToA11y(`題型已切換：原本嘅 ${type} 唔適合目前操作模式，已自動調整。`);
   }
   const q = QuestionGen.make(type, mode);
-  // V3.5-AUDIT7-F07: 答啱嘅題 cache 入 lastResumableType — 下次 fallback chain 優先用
+    // V3.5-AUDIT7-F07: 答啱嘅題 cache 入 lastResumableType
   // (只 cache type，唔 cache 答案，因為同 type 嘅 question 內容每次 random)
   Game.state.current[team] = { ...q, type, pickedAt: now() };
   UI.showQuestion(team);
@@ -4158,13 +4199,13 @@ function showInstantHint(team, q) {
   overlay.innerHTML = `<div class="bg-amber-500/95 text-slate-900 rounded-2xl px-6 py-3 text-lg font-bold shadow-2xl pointer-events-auto cursor-pointer">${hint}<div class="text-xs mt-1 opacity-70">（點擊關閉）</div></div>`;
   overlay.style.cssText = 'position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:80;pointer-events:none;';
   overlay.onclick = () => overlay.remove();
-  // V3.4-AUDIT3-FIX: cap 1 — SEN 學生連錯幾題會 overlay 堆疊 4-5 個 hint，每個 4s 才清。
+    // V3.4-AUDIT3-FIX: cap 1 — prevent multiple stacked hint ov
   // 先清舊嘅再 append 新嘅，避免畫面被覆蓋 + TTS cancel() 唔 fire onerror 都會 queue 撞。
   const existingHints = document.querySelectorAll('.instant-hint');
   if (existingHints.length >= 1) existingHints.forEach(e => e.remove());
   document.body.appendChild(overlay);
   // 順便 TTS 朗讀 hint
-  // V3.5-P0: cancel 上一句 (含任何 active Karaoke highlight) 避免 visual bleed
+    // V3.5-P0: cancel 上一句 (含任何 active Karaoke highlight) 避免 vis
   // 入 hint overlay — sequential wrong answers 會造成 highlight 殘留喺題目文字
   if (Game.settings.ttsEnabled) {
     TTS.cancel();  // 清乾淨 .tts-active (hint 唔 wrap Karaoke，唔需要 onBoundary)
@@ -4175,7 +4216,7 @@ function showInstantHint(team, q) {
 
 // R5: pure answer compare (array / number / string)
 // Returns { correct, debug? } — caller uses .correct only.
-// V3.5-AUDIT7-F03: ordering JSON.stringify 已經夠 strict (順序+長度敏感)。
+    // V3.5-AUDIT7-F03: ordering JSON.stringify 已經夠 strict (順序+長
 function _compareAnswer(expected, actual, type) {
   if (Array.isArray(expected)) {
     const isOrdering = type === 'ordering';
@@ -4276,7 +4317,7 @@ function _recordAnswerStats(team, q, correct) {
 }
 
 // R5: next-question routing (coop round-robin / versus self)
-// V3.5-AUDIT6-F01: re-entrancy null-out — double-tap 撞入嚟即 early exit 喺 line 1。
+// V3.5-AUDIT6-F01: re-entrancy null-out on double-tap
 function _scheduleNextQuestion(team) {
   Game.state.current[team] = null;
   if (Game.settings.team === 'coop') {
@@ -4321,7 +4362,7 @@ function highlightBtn(btn, correct) {
 // 重練題處理
 Game.askReReview = function(idx) {
   if (!Game.state.running || Game.state.paused || Game.state.ended) return;
-  // V3.5-AUDIT6-F02: pendingUlt guard — 大絕答題進行中 (pendingUlt ≠ null) 唔可以
+    // V3.5-AUDIT6-F02: pendingUlt guard — block during ult answer
   // 開新重練題，否則 handleAnswer 撞 ult resolve path 會 releaseUlt 錯 team / 錯 state。
   if (Game.state.pendingUlt) return;
   const item = Game.state.review[idx];
@@ -4390,7 +4431,7 @@ function gameLoop() {
 
   // 限時模式
   if (Game.settings.win === 'time' && s.timeLimitSec > 0) {
-    // V3.5-AUDIT6-F05: order fix — 先 lazy-init _startAt (第一 tick 設 tNow)，
+    // V3.5-AUDIT6-F05: order fix — lazy-init _startAt on first 
     // 再算 elapsed / timeLeftSec。原本 line 3939 會用 stale _startAt=0 算一次，
     // 再喺 line 3941 set _startAt=tNow，line 3942-3943 再 re-compute — 浪費 + 雙 Math.max。
     if (!s._startAt) s._startAt = tNow;
@@ -4491,7 +4532,7 @@ function endGame(victory) {
   Game.state.endedAt = Date.now();
   if (window._mgLoop) clearInterval(window._mgLoop);
   Audio.stopBGM();
-  // V3.4-AUDIT2-FIX: 確保 pause-overlay + paused flag 清乾淨 (teacher-pause → endGame 殘留)
+    // V3.4-AUDIT2-FIX: ensure pause-overlay + paused flag clear
   Game.state.paused = false;
   const _po2 = $('pause-overlay'); if (_po2) _po2.classList.add('hidden');
   // P1-A + P1-E: 結束時 archive report 入 history，清 snapshot 防 resume 舊 session
@@ -4549,7 +4590,7 @@ function renderEndBadges(victory) {
     const style = unlocked
       ? `opacity:1;filter:drop-shadow(0 0 8px rgba(251,191,36,0.5));animation:badge-in 0.4s ${i*0.08}s cubic-bezier(0.34,1.56,0.64,1) both;`
       : `opacity:0.25;filter:grayscale(0.85);`;
-    // V3.4-AUDIT4: locked badge 加 sr-only text (visible "未解鎖") + aria-disabled,
+    // V3.4-AUDIT4: locked badge 加 sr-only text (visible "未解鎖") 
     // SVG aria-label 移除 (下方 span 已 carry 文字,避免重複 announce)
     return `<div title="${b.label}${unlocked ? '' : ' (未解鎖)'}" ${unlocked ? '' : 'aria-disabled="true"'} style="display:inline-flex;flex-direction:column;align-items:center;gap:2px;${style}">
       <svg class="pixel" width="40" height="40" aria-hidden="true"><use href="#${b.symbol}"/></svg>
@@ -4596,7 +4637,7 @@ function _renderEndIcon(victory) {
     portrait.src = defeatedSrc;
     // V3.4-AUDIT4: 戰勝時 portrait 顯示"被擊敗嘅boss",alt text 同步
     portrait.alt = `${Bosses.current.name} 已被擊敗`;
-    // V3.4-AUDIT3-FIX: onerror fallback — AI base64 corrupt 時 fallback 去 SVG trophy
+    // V3.4-AUDIT3-FIX: onerror fallback for corrupt AI base64
     portrait.onerror = () => {
       portrait.classList.add('hidden');
       iconSvg.classList.remove('hidden');
@@ -4614,7 +4655,7 @@ function _renderEndBackground() {
   const bgKey = Bosses.current?.scene === 'snow' ? 'frost' : 'forest';
   const endBg = $('end-bg');
   if (endBg && AI_ASSETS.endBg[bgKey]) {
-    // V3.4-AUDIT3-FIX: inline style 會 override CSS gradient fallback
+    // V3.4-AUDIT3-FIX: inline style 會 override CSS gradient fal
     endBg.style.backgroundImage = `url(${AI_ASSETS.endBg[bgKey]})`;
   }
 }
@@ -4717,7 +4758,7 @@ $('btn-back').onclick = () => {
       Game.state.ended = true;
       Game.state.paused = false;       // V3.4-AUDIT-FIX: 清 paused 否則下次 startGame 狀態混亂
       if (window._mgLoop) clearInterval(window._mgLoop);
-      // V3.4-AUDIT-FIX: 確保 pause-overlay 隱藏 (teacher-pause / Space-pause 殘留)
+    // V3.4-AUDIT-FIX: 確保 pause-overlay 隱藏 (teacher-pause / Spac
       const po = $('pause-overlay'); if (po) po.classList.add('hidden');
       $('screen-game').classList.add('hidden');
       $('screen-menu').classList.remove('hidden');
@@ -4751,7 +4792,7 @@ function showConfirmModal({title, body, confirmText='確認', cancelText='取消
   modal.classList.remove('hidden');
   const okBtn = $('confirm-modal-ok');
   const cancelBtn = $('confirm-modal-cancel');
-  // V3.4-AUDIT2-FIX: 加入 Esc/Enter 鍵 cleanup — 避免 btn-onclick 直接 close (即無 key 觸發)
+    // V3.4-AUDIT2-FIX: Esc/Enter cleanup on confirm close
   // 時 listener 殘留。每次 open modal 都加新 handler，如果唔 cleanup，N 次 open → N 個 stale
   // handlers，每次之後嘅 Esc 會 cascade close 多個 modal。
   let escHandler = null;
@@ -4819,7 +4860,7 @@ reviewList.addEventListener('touchmove', lpEnd);   // scrolling → cancel
 reviewList.addEventListener('mousedown', lpStart);
 reviewList.addEventListener('mouseup', lpEnd);
 reviewList.addEventListener('mouseleave', lpEnd);
-// V3.4-AUDIT5: keyboard retry (P1) — T 鍵直接 reveal 最後一條 review chip 嘅答案
+    // V3.4-AUDIT5: keyboard retry (P1) — T 鍵直接 reveal 最後一條 revi
 // 老師 demo 用：唔需要 mouse hover，keyboard 即可 show answer
 function revealLatestReviewAnswer() {
   const chips = $('review-list').querySelectorAll('button[data-idx]');
@@ -4869,12 +4910,12 @@ function _openTeacherModal() {
   $('teacher-pwd').value = '';
   $('teacher-pwd-error').classList.add('hidden');
   $('teacher-controls').classList.add('hidden');
-  // V3.4-AUDIT4: focus password input (50ms 延遲等同 confirm-modal 一致)
+    // V3.4-AUDIT4: focus password input (50ms 延遲等同 confirm-moda
   setTimeout(() => $('teacher-pwd').focus(), 50);
   // V3.4-AUDIT4: Esc 關閉 + focus-trap
   if (_teacherModalState.escHandler) document.removeEventListener('keydown', _teacherModalState.escHandler);
   _teacherModalState.escHandler = (e) => {
-    // V3.4-AUDIT5: Esc stack — teacher-modal 係最 top，但若其他 modal-on-modal
+    // V3.4-AUDIT5: Esc stack — teacher-modal 係最 top，但若其他 modal-
     // (e.g. browser confirm dialog) 喺度，唔搶 Esc
     if (e.key === 'Escape') { _closeTeacherModal(); }
   };
@@ -4927,7 +4968,7 @@ function _tryTeacherPwd() {
 // State container for pause overlay lifecycle
 const _pauseOverlayState = { escHandler: null };
 
-// V3.4-AUDIT4: pause overlay a11y — 自動 focus resume button + Esc 關閉 + focus-trap
+    // V3.4-AUDIT4: pause overlay a11y — focus + Esc + focus-trap
 // Esc stack: 若 teacher-modal 開住，skip (let teacher-modal 嘅 Esc 先處理)
 function _showPauseOverlay() {
   const overlay = $('pause-overlay');
@@ -4954,7 +4995,7 @@ function _hidePauseOverlay() {
     $('pause-overlay')._trapDispose();
     $('pause-overlay')._trapDispose = null;
   }
-  // V3.4-AUDIT4: focus restoration — Space-pause return focus to body (冇 trigger btn),
+    // V3.4-AUDIT4: focus restoration on Space-pause return
   // teacher-pause return focus to teacher-pause button
 }
 
@@ -5213,7 +5254,7 @@ function _wireTeacherActions() {
     alert('已重設');
     TeacherDashboard.render();
   };
-  // V3.5-AUDIT10: 重設精選題庫 — 清 STORAGE.BANK_KEY，下次 load() 自動 re-seed 預設 fixtures
+    // V3.5-AUDIT10: reset bank — clear BANK_KEY, load() re-seeds
   $('td-reset-bank').onclick = () => {
     if (!confirm('確定要重設精選題庫嗎？下次遊戲將會重新使用 12 類型 × 10 題嘅預設題目。')) return;
     const stats = QuestionBank.stats();
@@ -5404,7 +5445,7 @@ const SOUND_ON_ICON  = '<svg class="pixel icon-mini"><use href="#px-sound-on"/><
 $('btn-sound').onclick = () => {
   const newVal = !Audio.isEnabled();
   Audio.enable(newVal);
-  // V3.4-AUDIT5: master toggle 一併翻轉 sub-channels — 老師 toggle 統一 UX
+    // V3.4-AUDIT5: master toggle 一併翻轉 sub-channels — 老師 toggle 
   Audio.setChannel('sfx', newVal);
   Audio.setChannel('bgm', newVal);
   TTS.setEnabled(newVal);
@@ -5456,7 +5497,7 @@ function wireAudioSettings() {
     if (e.target.checked && Game.state && Game.state.running) Audio.startBGM();
   };
   if (ttsCb) ttsCb.onchange = (e) => { TTS.setEnabled(e.target.checked); };
-  // V3.5-P0: Karaoke toggle — 切換時清乾淨任何 active highlight (UX 一致性)
+    // V3.5-P0: Karaoke toggle — 切換時清乾淨任何 active highlight (UX 一
   if (karaokeCb) karaokeCb.onchange = (e) => {
     Game.settings.ttsKaraoke = e.target.checked;
     if (!e.target.checked) {
@@ -5469,7 +5510,7 @@ function wireAudioSettings() {
     }
     announceToA11y(`TTS 同步高亮已${e.target.checked ? '開啟' : '關閉'}`);
   };
-  // V3.5-AUDIT11: 自動推薦 toggle — 切換後 re-render type-picker (refresh chips)
+    // V3.5-AUDIT11: auto-recommend toggle — re-render type-picker
   const adaptiveCb = $('td-adaptive-enabled');
   if (adaptiveCb) adaptiveCb.onchange = (e) => {
     Game.settings.adaptiveEnabled = e.target.checked;
@@ -5498,7 +5539,7 @@ const STORAGE = {
   SESSION_CAP: 256 * 1024,
   HISTORY_CAP: 512 * 1024,
   BANK_CAP: 64 * 1024,               // 120 題 × ~150 chars ≈ 18KB；cap 寬鬆
-  // V3.4-AUDIT3-FIX: dead code removed — _cap() was defined but never called
+    // V3.4-AUDIT3-FIX: dead code removed — _cap() never called
   // (cap check is inline in save()). Keep one-line stub for legacy callers if any.
   load(key) {
     try { return JSON.parse(localStorage.getItem(key) || 'null'); }
@@ -5617,8 +5658,7 @@ const Profile = {
 const Snapshot = {
   dirty: false,
   saveTimer: null,
-  // V3.5-AUDIT8-F10: quota-exceeded flag — 一旦 STORAGE.save return false (quota 超或 browser
-  // 拒絕寫)，就停 autosave 等 user 唔會每 800ms 打 console。學生/家長唔需要見到呢啲 noise。
+    // V3.5-AUDIT8-F10: quota-exceeded → stop autosave, alert on
   _quotaExceeded: false,
   schedule(reason = '') {
     this.dirty = true;
@@ -5626,7 +5666,7 @@ const Snapshot = {
     this.saveTimer = setTimeout(() => this.flush(reason), 800);
   },
   flush(reason = '') {
-    // V3.5-P0: ttsKaraoke rides along via the settings spread — Snapshot.flush
+    // V3.5-P0: ttsKaraoke rides along via the settings spread
     // spreads { ...Game.settings } so any new key on Game.settings persists automatically.
     if (!Game.state.running || Game.state.ended) {
       STORAGE.clear(STORAGE.SESSION_KEY);
@@ -5634,7 +5674,7 @@ const Snapshot = {
       return;
     }
     if (this._quotaExceeded) {
-      // V3.5-AUDIT8-F10: 已經 silently 停 autosave,只保留 in-memory state。
+    // V3.5-AUDIT8-F10: 已經 silently 停 autosave,只保留 in-memory sta
       // 唔重複 spam logging,但 keep dirty flag 等 UI 知道有 unsaved change。
       return;
     }
@@ -5666,7 +5706,7 @@ const Snapshot = {
       console.warn('[Snapshot] autosave disabled — storage quota / write failure. Game continues in-memory only.');
     }
   },
-  // V3.5-AUDIT8-F10: clear quota flag — endGame / 新局時 reset 狀態,下次 save 再試。
+    // V3.5-AUDIT8-F10: clear quota flag on endGame / new game
   _resetQuotaFlag() {
     this._quotaExceeded = false;
   },
@@ -5675,7 +5715,7 @@ const Snapshot = {
     if (!s || s.v !== 1) return null;
     // 過期 (24h) 就當無效，避免 stale resume
     if (Date.now() - s.savedAt > 24 * 3600 * 1000) return null;
-    // V3.5-AUDIT8-F09: corrupt-state guard — localStorage 可能因為 quota crash、
+    // V3.5-AUDIT8-F09: corrupt-state guard for localStorage quo
     // 第三方 extension 寫花、不完全 JSON 等等。逐個 required key 驗證，
     // missing 即視為 corrupt, return null 觸發新局（避免 reload 一 reload就 instant endGame）。
     if (!s.state || typeof s.state !== 'object') return null;
@@ -5690,18 +5730,18 @@ const Snapshot = {
   clear() { STORAGE.clear(STORAGE.SESSION_KEY); },
   // Resume 流程：將 snapshot 寫返 Game.* 然後 refreshAll
   resume() {
-    // V3.5-P0: ttsKaraoke restored via { ...s.settings } spread — Snapshot.resume
+    // V3.5-P0: ttsKaraoke restored via { ...s.settings } spread
     // merges persisted settings into current Game.settings without schema bump.
     const s = this.load();
     if (!s) return false;
     Game.settings = { ...Game.settings, ...s.settings };
-    // V3.5-AUDIT8-F12: review array corrupt-check — 個別 item 缺 type/answer/text
+    // V3.5-AUDIT8-F12: review array corrupt-check
     // 會喺 UI.renderReview() crash。filter 出 sanitized entries。
     const rawReview = Array.isArray(s.state.review) ? s.state.review : [];
     Game.state.review = rawReview
       .filter(q => q && typeof q === 'object' && q.type && q.answer !== undefined)
       .map(q => ({ text: q.text || '', answer: q.answer, type: q.type }));
-    // V3.5-AUDIT8-F12: current question per-team sanitization — null 都 OK（game 開新題時會 fill）
+    // V3.5-AUDIT8-F12: per-team current null-sanitization on re
     const rawCurrent = s.state.current && typeof s.state.current === 'object' ? s.state.current : {};
     Game.state.current = {};
     for (const tm of ['knight', 'mage']) {
@@ -5713,7 +5753,7 @@ const Snapshot = {
     Game.state.castle = { ...s.state.castle };
     Game.state.teams = JSON.parse(JSON.stringify(s.state.teams));
     Game.state.currentTeam = s.state.currentTeam || 'knight';
-    // V3.4-AUDIT5: timer resume — 計算由 savedAt 到 now 嘅 elapsed 秒數，reduce timeLeftSec
+    // V3.4-AUDIT5: timer resume — reduce timeLeftSec by elapsed
     // 防 stale timer (e.g. reload 過夜之後 timer 仲以為有 5:00)
     if (s.settings && s.settings.win === 'time' && s.state.timeLeftSec > 0 && s.savedAt) {
       const elapsed = Math.floor((Date.now() - s.savedAt) / 1000);
@@ -5723,17 +5763,13 @@ const Snapshot = {
     }
     Game.state.pendingUlt = s.state.pendingUlt;
     Game.state.pendingUltQ = s.state.pendingUltQ;
-    // V3.5-AUDIT6-F04: 重設 _startAt 同 _frostTickAt — startGame() 有 reset 但 resume()
-    // 唔有。first gameLoop tick 會見 (tNow - 0) → timeLeftSec 跌到 0 → instant endGame，
-    // time-mode resume 按鈕實際壞咗。reset 後 gameLoop 嘅 lazy-init (line 3941) 會喺
-    // 第一 tick 將 _startAt = tNow，timer 由 full timeLeftSec 開始倒數。
+    // V3.5-AUDIT6-F04: reset _startAt/_frostTickAt
     Game.state._startAt = 0;
     Game.state._frostTickAt = 0;
     Game.state.running = true;
     Game.state.paused = false;
     Game.state.ended = false;
-    // V3.5-AUDIT8-F09: soft-resume hint — corrupt-resistance OK 但若 savedAt 過 6 小時,
-    // 顯示輕量提示等老師/家長知道呢個係 resume 嘅舊 session。
+    // V3.5-AUDIT8-F09: soft-resume hint for sessions > 6h old
     const ageHours = (Date.now() - s.savedAt) / 3600000;
     if (ageHours > 6 && typeof FX !== 'undefined' && FX.screenAlert) {
       FX.screenAlert(`恢復咗一個 ${ageHours.toFixed(1)} 小時前嘅進度`, '#fbbf24');
@@ -5748,7 +5784,7 @@ function archiveReport() {
   const teams = Game.state.teams;
   const total = { c: teams.knight.correct + teams.mage.correct,
                   w: teams.knight.wrong + teams.mage.wrong };
-  // V3.5-cycle16+17: per-type snapshot。Iterate statsByType 全部 12 keys (唔係 settings.types)
+    // V3.5-cycle16+17: per-type snapshot over all 12 statsByTyp
   // — 防止 upgrade 後 settings.types 嘅 typeId 唔 match statsByType 嘅原 typeId
   const perType = {};
   const statTypes = Object.keys(Profile.data.statsByType || {});
@@ -5810,7 +5846,7 @@ const Adaptive = {
         FX.screenAlert(`${TEAM_META[team].name} 升級到 ${next}！`, '#fbbf24');
       }
     }
-    // V3.5-AUDIT14: checkMastery 唔喺度 call — 等 Profile.recordAnswer 之後先 check
+    // V3.5-AUDIT14: call checkMastery after Profile.recordAnswer
     // (避免 statsByType 仲未 bump 嗰陣讀 stat)
   },
   onWrong(team, type) {
@@ -5837,7 +5873,7 @@ const Adaptive = {
     }
   },
   reset() { this.counters = {}; },
-  // V3.5-AUDIT14: Mastered promote (acc ≥ 90% + samples ≥ 8 → "已精通")
+    // V3.5-AUDIT14: Mastered promote (acc ≥ 90% + samples ≥ 8 →
   // 一旦 mastered：
   //   - onWrong 跳過降級 (保護精通成果)
   //   - suggestNextType 排到 priority=5 (最低，推介俾其他 type)
@@ -5871,7 +5907,7 @@ const Adaptive = {
       announceToA11y(`已精通 ${label}`);
     } catch (e) { /* 防 Profile / TYPE_REGISTRY 未載入 */ }
   },
-  // V3.5-AUDIT11: 自動推薦 next type chips。返回 top 3-5 type IDs，按 score 降冪排。
+    // V3.5-AUDIT11: 自動推薦 next type chips。返回 top 3-5 type IDs，按 
   // 輸入：team (knight/mage) — per-team stats + counters
   // 輸出：[{ typeId, score, reason }] array，length 1-5 (取決於有幾多 type 有足夠數據)
   // 排序邏輯（按 priority）：
@@ -6102,7 +6138,7 @@ window.addEventListener('DOMContentLoaded', () => {
   renderRecommendChips();   // V3.5-cycle16: chips row
   // P1-A: 載入 profile + 檢查 resume
   Profile.load();
-  // V3.5-cycle16: lazy-migrate 老 user 嘅 recommendationEnabled field
+    // V3.5-cycle16: lazy-migrate recommendationEnabled for old 
   if (typeof Game.settings.recommendationEnabled !== 'boolean') {
     Game.settings.recommendationEnabled = true;
   }
@@ -6273,7 +6309,7 @@ window.addEventListener('DOMContentLoaded', () => {
     }, 200);
   }
 
-  // V3.4-AUDIT5: beforeunload guard (P1) — 防 close-tab-loss progress
+    // V3.4-AUDIT5: beforeunload guard to prevent close-tab loss
   // Snapshot 已 throttle 800ms，但 user 答完一題後可能 800ms 內關 tab → 進度丟失
   // 用 beforeunload 強制 flush + 設 returnValue 觸發 browser "Leave site?" 提示
   window.addEventListener('beforeunload', (e) => {
@@ -6310,7 +6346,7 @@ document.addEventListener('visibilitychange', () => {
   }
 });
 
-// V3.3-U5: keyboard shortcuts (1-9 choice / Enter / Backspace / Space)
+    // V3.3-U5: keyboard shortcuts (1-9 choice / Enter / Backspa
 document.addEventListener('keydown', (e) => {
   // 跳過 input/textarea (future-proof，唔影響 v3.3 單層 UI)
   if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
@@ -6322,15 +6358,15 @@ document.addEventListener('keydown', (e) => {
       return;
     }
   }
-  // V3.4-AUDIT2-FIX: game-state guard for menu/end/teacher modal
+    // V3.4-AUDIT2-FIX: game-state guard for menu/end/teacher mo
   // 若 menu 內另有相同 class (e.g. dev probe / future layout)
   // 會誤觸。統一用 running + screen-game 雙 gate。
   const inGameScreen = $('screen-game') && !$('screen-game').classList.contains('hidden');
   // Space → pause / resume
-  // V3.4-AUDIT-FIX: 移除 lazy pause-overlay 創建 (HTML 已 inline 定義 #pause-overlay,
+    // V3.4-AUDIT-FIX: 移除 lazy pause-overlay 創建 (HTML 已 inline 定
   // 永遠唔會係 null — lazy branch 係 dead code。改用 HTML overlay 統一處理。
   // 老師控制台開咗嗰陣 keyboard-pause 唔 trigger (避免覆蓋 teacher-pause UX)。
-  // V3.4-AUDIT4-FIX: BUTTON focus 時 Space 唔應該同時 pause — 跳過觸發按鈕 click 嘅 case
+    // V3.4-AUDIT4-FIX: BUTTON focus 時 Space 唔應該同時 pause
   if (e.key === ' ') {
     // 焦點喺 button / a 等 clickable element 嗰陣,讓瀏覽器原生 Space-activate (唔 preventDefault)
     const t = e.target;
@@ -6349,7 +6385,7 @@ document.addEventListener('keydown', (e) => {
       // keyboard-pause: 只喺冇 teacher modal 嗰陣先 trigger
       Game.state.paused = true;
       pauseOverlay.classList.remove('hidden');
-      // V3.4-AUDIT4: focus resume button + focus trap 同 teacher-pause UX 一致
+    // V3.4-AUDIT4: focus resume button + focus trap 同 teacher-p
       setTimeout(() => $('pause-resume-2').focus(), 50);
       if (!pauseOverlay._trapDispose) {
         pauseOverlay._trapDispose = trapFocusInModal(pauseOverlay);
@@ -6357,7 +6393,7 @@ document.addEventListener('keydown', (e) => {
     }
     return;
   }
-  // V3.4-AUDIT2-FIX: 只喺 running + inGameScreen 先允許 keyboard-input 操作
+    // V3.4-AUDIT2-FIX: 只喺 running + inGameScreen 先允許 keyboard-i
   const keyboardActive = Game.state && Game.state.running && !Game.state.paused && !Game.state.ended && inGameScreen;
   if (!keyboardActive) return;
   // Backspace → keypad clear (only if keypad exists)
