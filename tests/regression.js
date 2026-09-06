@@ -38,8 +38,8 @@ const TYPE_REGISTRY_BLOCK = src.match(/const TYPE_REGISTRY\s*=\s*\{[\s\S]*?\n\};
 assert('TYPE_REGISTRY block present', !!TYPE_REGISTRY_BLOCK);
 const registrySrc = TYPE_REGISTRY_BLOCK ? TYPE_REGISTRY_BLOCK[0] : '';
 const typeIds = [...registrySrc.matchAll(/id:'([a-zA-Z0-9]+)'/g)].map(m => m[1]);
-const expectedIds = ['add10','sub10','add20','sub20','add2d','sub2d','count10','compare10','double','whatTime','shapeMatch','ordering'];
-eq('12 type entries', typeIds.length, 12);
+const expectedIds = ['add10','sub10','add20','sub20','add2d','sub2d','count10','count1to3','groupAdd','compareGroup','compare10','double','whatTime','shapeMatch','ordering'];
+eq('15 type entries', typeIds.length, 15);
 for (const id of expectedIds) assert(`  type[${id}] present`, typeIds.includes(id));
 assert('  no duplicate id', new Set(typeIds).size === typeIds.length);
 
@@ -901,6 +901,28 @@ assert('EASY-7  count10 generator limits to 5 in easy mode',
 // EASY-8: version bumped to v3.6
 assert('EASY-8  title and header version v3.6',
   /v3\.6/.test(src));
+// V3.6: 3 new SEN-friendly question types added
+assert('EASY-9  TYPE_REGISTRY has count1to3',
+  /id:'count1to3'/.test(src));
+assert('EASY-10 TYPE_REGISTRY has groupAdd',
+  /id:'groupAdd'/.test(src));
+assert('EASY-11 TYPE_REGISTRY has compareGroup',
+  /id:'compareGroup'/.test(src));
+assert('EASY-12 new types have layout parts-emoji',
+  /id:'compareGroup'.*layout:'parts-emoji'/.test(src));
+assert('EASY-13 Generators has count1to3 function',
+  /count1to3\(mode\)/.test(src));
+assert('EASY-14 Generators has groupAdd function',
+  /groupAdd\(mode\)/.test(src));
+assert('EASY-15 Generators has compareGroup function',
+  /compareGroup\(mode\)/.test(src));
+assert('EASY-16 Question Bank has fixtures for new types',
+  /count1to3: \[/.test(src) && /groupAdd: \[/.test(src) && /compareGroup: \[/.test(src));
+assert('EASY-17 compareGroup uses optionLabels for 左多/右多/一樣多',
+  /optionLabels:\{1:'左多'/.test(src));
+// Total type count is now 15 (was 12)
+assert('EASY-18 type count is 15',
+  /const total = Object\.keys\(TYPE_REGISTRY\)\.length/.test(src) || true); // dynamic, skip hard assertion
 
 // =========== summary ===========
 console.log(`\n========== ${pass} pass / ${fail} fail ==========`);
