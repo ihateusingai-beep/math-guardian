@@ -918,11 +918,33 @@ assert('EASY-15 Generators has compareGroup function',
   /compareGroup\(mode\)/.test(src));
 assert('EASY-16 Question Bank has fixtures for new types',
   /count1to3: \[/.test(src) && /groupAdd: \[/.test(src) && /compareGroup: \[/.test(src));
-assert('EASY-17 compareGroup uses optionLabels for 左多/右多/一樣多',
-  /optionLabels:\{1:'左多'/.test(src));
+assert('EASY-17 compareGroup uses optionLabels with visual direction icons',
+  /optionLabels:\{1:/.test(src));
 // Total type count is now 15 (was 12)
 assert('EASY-18 type count is 15',
   /const total = Object\.keys\(TYPE_REGISTRY\)\.length/.test(src) || true); // dynamic, skip hard assertion
+
+// V3.6-SEN: UI fixes for moderate SEN students
+assert('EASY-18 showInstantHint has count1to3 branch',
+  /q\.type === 'count1to3'/.test(src));
+assert('EASY-19 showInstantHint has groupAdd branch',
+  /q\.type === 'groupAdd'/.test(src));
+assert('EASY-20 showInstantHint has compareGroup branch',
+  /q\.type === 'compareGroup'/.test(src));
+assert('EASY-21 easy mode disables keypad button',
+  /isEasy[\s\S]*?disabled/.test(src));
+assert('EASY-22 boss panel has id for easy-mode hiding',
+  /id="boss-panel"/.test(src));
+assert('EASY-23 boss panel toggled hidden in easy mode',
+  /difficulty === 'easy'.*hidden.*hidden/.test(src) || /toggle\('hidden'/.test(src));
+assert('EASY-24 中度 SEN 一鍵開始 button in menu HTML',
+  /id="btn-easy-start"/.test(src));
+assert('EASY-25 一鍵開始 sets 4 SEN-friendly types',
+  /count1to3.*count10.*groupAdd.*compareGroup/.test(src));
+assert('EASY-26 groupAdd uses ❓ emoji instead of plain ?',
+  /' = ❓'/.test(src));
+assert('EASY-27 TTS normalize maps ❓ to 等於幾多',
+  /❓.*等於幾多/.test(src));
 
 // =========== summary ===========
 console.log(`\n========== ${pass} pass / ${fail} fail ==========`);

@@ -1402,6 +1402,17 @@
         </div>
       </div>
 
+      <!-- V3.6-SEN: 一鍵中度 SEN 模式 -->
+      <button id="btn-easy-start" class="w-full btn text-white text-xl py-4 mt-2 flex items-center justify-center gap-3"
+        style="background:linear-gradient(135deg,#a78bfa,#7c3aed);border:2px solid #c4b5fd;"
+        aria-label="一鍵開始中度 SEN 模式">
+        <span class="text-3xl">🌼</span>
+        <span>
+          <span class="block text-xl font-extrabold">中度 SEN 一鍵開始</span>
+          <span class="text-xs opacity-80">自動揀 4 種簡單題型 · 2-3 選一 · 專心模式</span>
+        </span>
+      </button>
+
       <!-- 1b) 勝利條件 -->
       <div>
         <label class="text-sm font-bold text-amber-300 mb-2 block">② 勝利條件</label>
@@ -1504,8 +1515,8 @@
       </div>
     </header>
 
-    <!-- Boss 區 -->
-    <div class="relative bg-black/30 border border-white/10 rounded-3xl p-3 md:p-4 shadow-2xl overflow-hidden">
+    <!-- Boss 區 (V3.6-SEN: hidden in easy mode) -->
+    <div id="boss-panel" class="relative bg-black/30 border border-white/10 rounded-3xl p-3 md:p-4 shadow-2xl overflow-hidden">
       <div class="flex items-center gap-3 mb-2">
         <!-- P2-2: AI generated hero portrait (替補小 pixel sprite) -->
         <img id="boss-hero-portrait" class="hidden" style="width:64px;height:64px;object-fit:contain;image-rendering:pixelated;flex-shrink:0;" alt="">
@@ -2104,6 +2115,7 @@ const TTS = {
   normalize(text) {
     if (!text) return '';
     return text
+      .replace(/❓/g, '，等於幾多？')   // V3.6-SEN: emoji question mark
       .replace(/\?/g, '，等於幾多？')
       .replace(/=/g, '等於')
       .replace(/\+/g, '加')
@@ -2456,7 +2468,7 @@ const Generators = {
     const g1 = randInt(1, maxG), g2 = randInt(1, maxG);
     const f1 = fruits[randInt(0, fruits.length - 1)];
     const f2 = fruits[randInt(0, fruits.length - 1)];
-    return { parts: [f1.repeat(g1), ' + ', f2.repeat(g2), ' = ?'], answer: g1 + g2, type:'groupAdd' };
+    return { parts: [f1.repeat(g1), ' + ', f2.repeat(g2), ' = ❓'], answer: g1 + g2, type:'groupAdd' };
   },
   // 兩組比多少
   compareGroup(mode) {
@@ -2471,7 +2483,7 @@ const Generators = {
     if (roll < 0.35) { g2 = g1 + randInt(1, 2); ans = 2; }
     else if (roll < 0.70) { g2 = Math.max(1, g1 - randInt(1, 2)); ans = 1; }
     else { g2 = g1; ans = 3; }
-    return { parts: [f1.repeat(g1), ' ? ', f2.repeat(g2)], answer: ans, type:'compareGroup', optionLabels:{1:'左多',2:'右多',3:'一樣多'} };
+    return { parts: [f1.repeat(g1), ' ? ', f2.repeat(g2)], answer: ans, type:'compareGroup', optionLabels:{1:'⬅️',2:'➡️',3:'⚖️'} };
   },
   // 大小比較 — answer ∈ '<' | '=' | '>'
   compare10() {
@@ -3844,8 +3856,83 @@ function setupMenu() {
       b.classList.add('opt-selected');
       b.setAttribute('aria-pressed', 'true');
       Game.settings.difficulty = b.dataset.diff;
+      // V3.6-SEN: easy mode locks to choice — auto-switch + disable keypad
+      const isEasy = b.dataset.diff === 'easy';
+      if (isEasy && Game.settings.mode !== 'choice') {
+        Game.settings.mode = 'choice';
+        document.querySelectorAll('.opt-mode').forEach(x => {
+          x.classList.remove('opt-selected');
+          x.setAttribute('aria-pressed', 'false');
+          if (x.dataset.mode === 'choice') {
+            x.classList.add('opt-selected');
+            x.setAttribute('aria-pressed', 'true');
+          }
+        });
+        updateModeHelper();
+      }
+      document.querySelectorAll('.opt-mode[data-mode="keypad"]').forEach(kb => {
+        kb.disabled = isEasy;
+        kb.classList.toggle('opacity-40', isEasy);
+        kb.setAttribute('aria-disabled', String(isEasy));
+      });
     };
   });
+  // V3.6-SEN: 中度 SEN 一鍵開始 preset
+  const easyStartBtn = $('btn-easy-start');
+  if (easyStartBtn) easyStartBtn.onclick = () => {
+    // 1. Set easy difficulty
+    Game.settings.difficulty = 'easy';
+    document.querySelectorAll('.opt-difficulty').forEach(x => {
+      x.classList.remove('opt-selected');
+      x.setAttribute('aria-pressed', 'false');
+      if (x.dataset.diff === 'easy') {
+        x.classList.add('opt-selected');
+        x.setAttribute('aria-pressed', 'true');
+      }
+    });
+    // 2. Lock to choice mode
+    Game.settings.mode = 'choice';
+    document.querySelectorAll('.opt-mode').forEach(x => {
+      x.classList.remove('opt-selected');
+      x.setAttribute('aria-pressed', 'false');
+      if (x.dataset.mode === 'choice') {
+        x.classList.add('opt-selected');
+        x.setAttribute('aria-pressed', 'true');
+      }
+    });
+    updateModeHelper();
+    document.querySelectorAll('.opt-mode[data-mode="keypad"]').forEach(kb => {
+      kb.disabled = true;
+      kb.classList.add('opacity-40');
+      kb.setAttribute('aria-disabled', 'true');
+    });
+    // 3. Lock HP to minimum (60)
+    Game.settings.initialBossHp = 60;
+    slider.value = 60;
+    display.textContent = '60';
+    slider.setAttribute('aria-valuenow', '60');
+    slider.setAttribute('aria-valuetext', 'Boss 初始生命值 60，範圍 60 至 500');
+    // 4. Coop team mode
+    Game.settings.team = 'coop';
+    document.querySelectorAll('.opt-team').forEach(x => {
+      x.classList.remove('opt-selected');
+      x.setAttribute('aria-pressed', 'false');
+      if (x.dataset.team === 'coop') {
+        x.classList.add('opt-selected');
+        x.setAttribute('aria-pressed', 'true');
+      }
+    });
+    // 5. Select only SEN-friendly types
+    const senTypes = ['count1to3', 'count10', 'groupAdd', 'compareGroup'];
+    Game.settings.types = senTypes;
+    renderTypePicker();
+    renderRecommendChips();
+    updateTypeCount();
+    // 6. Visual feedback + scroll to start button
+    easyStartBtn.style.transform = 'scale(0.97)';
+    setTimeout(() => { easyStartBtn.style.transform = ''; }, 200);
+    $('btn-start').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  };
   // 題型（可多選，至少一個）— v3.1 dynamic picker via delegation
   renderTypePicker();
   renderRecommendChips();   // V3.5-cycle16: chips row
@@ -3907,6 +3994,14 @@ function setupMenu() {
     // V3.4-AUDIT5: aria-valuetext includes 
     slider.setAttribute('aria-valuetext', `Boss 初始生命值 ${slider.value}，範圍 ${slider.min} 至 ${slider.max}`);
   });
+  // V3.6-SEN: init — if easy already saved, disable keypad
+  if (Game.settings.difficulty === 'easy') {
+    document.querySelectorAll('.opt-mode[data-mode="keypad"]').forEach(kb => {
+      kb.disabled = true;
+      kb.classList.add('opacity-40');
+      kb.setAttribute('aria-disabled', 'true');
+    });
+  }
   // 開始
   $('btn-start').onclick = () => {
     // V3.3-U1: first-run onboarding tutoria
@@ -4136,6 +4231,9 @@ function startGame() {
     // P2-3: cinematic intro — 700ms scale + glow 入場
     showBossIntro(Bosses.current);
   }
+  // V3.6-SEN: easy mode hides boss panel for distraction-free math practice
+  const bossPanel = $('boss-panel');
+  if (bossPanel) bossPanel.classList.toggle('hidden', Game.settings.difficulty === 'easy');
   // 重設 adaptive
   Adaptive.reset();
   if (Game.settings.win === 'time') {
@@ -4245,6 +4343,16 @@ function showInstantHint(team, q) {
   const reg = TYPE_REGISTRY[q.type];
   if (reg && reg.layout === 'numeric') {
     hint = `💡 ${text} = ${q.answer}`;
+  } else if (q.type === 'count1to3') {
+    // V3.6-SEN: show emoji count — count the fruits
+    hint = `💡 數吓有 ${q.parts[0]} = ${q.answer} 個`;
+  } else if (q.type === 'groupAdd') {
+    // V3.6-SEN: show the visual answer
+    hint = `💡 ${q.parts.join('').replace('= ❓', `= ${q.answer}`)}`;
+  } else if (q.type === 'compareGroup') {
+    // V3.6-SEN: show direction icon
+    const labels = {1:'⬅️ 左邊多', 2:'➡️ 右邊多', 3:'⚖️ 一樣多'};
+    hint = `💡 ${labels[q.answer] || `答案係 ${q.answer}`}`;
   } else if (reg && reg.layout === 'parts-emoji') {
     hint = `💡 答案係 ${q.answer}`;
   } else if (reg && reg.layout === 'sym-button') {
