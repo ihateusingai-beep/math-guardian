@@ -946,6 +946,27 @@ assert('EASY-26 groupAdd uses ❓ emoji instead of plain ?',
 assert('EASY-27 TTS normalize maps ❓ to 等於幾多',
   /❓.*等於幾多/.test(src));
 
+// V3.6-SEN P1: distraction-free game screen
+assert('EASY-28 easy mode hides castle bar row',
+  /castle-bar-row/.test(src) && /toggle\('hidden'/.test(src));
+assert('EASY-29 easy mode hides energy rows',
+  /energy-row/.test(src) && /toggle\('hidden'/.test(src));
+assert('EASY-30 easy mode hides question labels (keeps TTS btn)',
+  /q-label/.test(src) && /toggle\('hidden'/.test(src));
+assert('EASY-31 easy mode shows only active team card',
+  /currentTeam/.test(src) && /card[\s\S]{0,100}hidden/.test(src) && /isEasy/.test(src));
+assert('EASY-32 nextTeamInCoop updates card visibility in easy mode',
+  /nextTeamInCoop/.test(src) && /card/.test(src) && /hidden/.test(src));
+// V3.6-SEN P2: TTS + animations + keyboard
+assert('EASY-33 easy mode auto-plays TTS on new question',
+  /auto-plays TTS/.test(src));
+assert('EASY-34 keyboard shortcuts blocked in easy mode',
+  /no keyboard shortcuts/.test(src));
+assert('EASY-35 flash-correct animation 1.2s (not 0.6s)',
+  /flash-correct 1\.2s/.test(src));
+assert('EASY-36 review area label simplified to 🔁',
+  /重練區 🔁/.test(src));
+
 // =========== summary ===========
 console.log(`\n========== ${pass} pass / ${fail} fail ==========`);
 if (fail > 0) {

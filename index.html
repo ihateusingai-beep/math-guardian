@@ -464,8 +464,8 @@
     color: #1f2937;
     border: 3px solid transparent;
   }
-  .option-btn.correct { animation: flash-correct 0.6s; background: #22c55e !important; color: white; border-color: #16a34a; }
-  .option-btn.wrong   { animation: flash-wrong 0.6s;   background: #ef4444 !important; color: white; border-color: #b91c1c; }
+  .option-btn.correct { animation: flash-correct 1.2s; background: #22c55e !important; color: white; border-color: #16a34a; }
+  .option-btn.wrong   { animation: flash-wrong 1.2s;   background: #ef4444 !important; color: white; border-color: #b91c1c; }
   /* V3.4-AUDIT4: ✓/✗ symbol 用 ::before 注入 — color-blind / 較弱視用戶不靠 color-only signal */
   .option-btn.correct::before { content: '✓ '; font-weight: 900; margin-right: 4px; }
   .option-btn.wrong::before   { content: '✗ '; font-weight: 900; margin-right: 4px; }
@@ -1541,7 +1541,7 @@
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-3">
 
       <!-- 騎士隊 -->
-      <div class="knight-card bg-gradient-to-br from-blue-900/40 to-indigo-900/30 border border-blue-400/30 rounded-3xl p-3 md:p-4 relative overflow-hidden">
+      <div id="knight-card" class="knight-card bg-gradient-to-br from-blue-900/40 to-indigo-900/30 border border-blue-400/30 rounded-3xl p-3 md:p-4 relative overflow-hidden">
         <div class="flex items-center justify-between mb-2 gap-2">
           <h3 class="font-bold text-blue-200 flex items-center gap-2 text-base">
             <svg class="pixel icon-md sword-shine"><use href="#px-knight"/></svg>
@@ -1561,7 +1561,7 @@
           </div>
         </div>
         <div class="track mb-1"><div id="knight-energy-fill" class="fill energy" style="width:0%"></div></div>
-        <div class="text-xs flex justify-between items-center text-white/60 mb-2">
+        <div id="knight-energy-row" class="text-xs flex justify-between items-center text-white/60 mb-2">
           <span>能量 <span id="knight-energy-text">0</span>/100</span>
           <button id="knight-ultimate" class="btn bg-gradient-to-r from-amber-500 to-rose-500 text-white py-1 px-3 text-sm disabled:opacity-40 flex items-center gap-1" disabled>
             <svg class="pixel icon-mini"><use href="#px-meteor"/></svg>
@@ -1570,7 +1570,7 @@
         </div>
         <!-- 答題區 -->
         <div id="knight-question-box" class="bg-black/40 rounded-2xl p-4 mt-2 min-h-[220px] flex flex-col items-center justify-center border-2 border-blue-400/20 relative">
-          <div class="text-xs text-blue-200 mb-2 flex items-center gap-1">
+          <div id="knight-q-label" class="text-xs text-blue-200 mb-2 flex items-center gap-1">
             <svg class="pixel icon-mini"><use href="#px-knight"/></svg>本題題目
             <button id="knight-tts-btn" class="tts-btn ml-auto" aria-label="朗讀題目">🔊</button>
           </div>
@@ -1587,7 +1587,7 @@
       </div>
 
       <!-- 法師隊 -->
-      <div class="mage-card bg-gradient-to-br from-purple-900/40 to-pink-900/30 border border-purple-400/30 rounded-3xl p-3 md:p-4 relative overflow-hidden">
+      <div id="mage-card" class="mage-card bg-gradient-to-br from-purple-900/40 to-pink-900/30 border border-purple-400/30 rounded-3xl p-3 md:p-4 relative overflow-hidden">
         <div class="flex items-center justify-between mb-2 gap-2">
           <h3 class="font-bold text-purple-200 flex items-center gap-2 text-base">
             <svg class="pixel icon-md orb-pulse"><use href="#px-mage"/></svg>
@@ -1606,7 +1606,7 @@
           </div>
         </div>
         <div class="track mb-1"><div id="mage-energy-fill" class="fill energy" style="width:0%"></div></div>
-        <div class="text-xs flex justify-between items-center text-white/60 mb-2">
+        <div id="mage-energy-row" class="text-xs flex justify-between items-center text-white/60 mb-2">
           <span>能量 <span id="mage-energy-text">0</span>/100</span>
           <button id="mage-ultimate" class="btn bg-gradient-to-r from-amber-500 to-rose-500 text-white py-1 px-3 text-sm disabled:opacity-40 flex items-center gap-1" disabled>
             <svg class="pixel icon-mini"><use href="#px-meteor"/></svg>
@@ -1614,7 +1614,7 @@
           </button>
         </div>
         <div id="mage-question-box" class="bg-black/40 rounded-2xl p-4 mt-2 min-h-[220px] flex flex-col items-center justify-center border-2 border-purple-400/20 relative">
-          <div class="text-xs text-purple-200 mb-2 flex items-center gap-1">
+          <div id="mage-q-label" class="text-xs text-purple-200 mb-2 flex items-center gap-1">
             <svg class="pixel icon-mini"><use href="#px-mage"/></svg>本題題目
             <button id="mage-tts-btn" class="tts-btn ml-auto" aria-label="朗讀題目">🔊</button>
           </div>
@@ -1634,9 +1634,9 @@
     <!-- 重練區 -->
     <div class="bg-black/20 border border-amber-300/30 rounded-2xl p-3">
       <div class="flex items-center justify-between mb-2">
-        <h3 class="font-bold text-amber-300 text-sm flex items-center gap-2">
+        <h3 id="review-title" class="font-bold text-amber-300 text-sm flex items-center gap-2">
           <svg class="pixel icon-mini"><use href="#px-target"/></svg>
-          重練區 — 答錯過可再挑戰的題目（點擊重新作答）
+          重練區 🔁
         </h3>
         <button id="btn-clear-review" class="btn-sm bg-white/10 hover:bg-white/20 text-xs text-white/70 hover:text-white border border-white/10">清空</button>
       </div>
@@ -1645,8 +1645,8 @@
       </div>
     </div>
 
-    <!-- Castle 防禦條 -->
-    <div class="grid grid-cols-2 gap-3">
+    <!-- Castle 防禦條 (V3.6-SEN: hidden in easy mode) -->
+    <div id="castle-bar-row" class="grid grid-cols-2 gap-3">
       <div id="castle-left-wrap" class="bg-gradient-to-br from-slate-800 to-slate-900 border-2 border-amber-300/40 rounded-2xl p-3 text-center">
         <svg class="pixel mx-auto mb-1" style="width:42px;height:42px"><use href="#px-castle"/></svg>
         <div class="text-xs text-amber-200 mb-1">左翼城塔</div>
@@ -3223,6 +3223,13 @@ const Game = {
 
   nextTeamInCoop() {
     this.state.currentTeam = (this.state.currentTeam === 'knight') ? 'mage' : 'knight';
+    // V3.6-SEN: in easy mode, show only the active team card
+    if (Game.settings.difficulty === 'easy') {
+      ['knight', 'mage'].forEach(tm => {
+        const card = document.getElementById(`${tm}-card`);
+        if (card) card.classList.toggle('hidden', tm !== this.state.currentTeam);
+      });
+    }
   },
 };
 
@@ -3476,6 +3483,11 @@ const UI = {
           : null;
         TTS.speak(text, ttsBtn, { onBoundary, onEnd });
       };
+    }
+    // V3.6-SEN: easy mode auto-plays TTS on new question
+    if (Game.settings.difficulty === 'easy' && Game.settings.ttsEnabled) {
+      const text = (q.parts ? q.parts.join('') : q.text) || '';
+      if (text) TTS.speak(text, ttsBtn, {});
     }
 
     // === 渲染答案 area (依 layout dispatch) ===
@@ -4234,6 +4246,34 @@ function startGame() {
   // V3.6-SEN: easy mode hides boss panel for distraction-free math practice
   const bossPanel = $('boss-panel');
   if (bossPanel) bossPanel.classList.toggle('hidden', Game.settings.difficulty === 'easy');
+  // V3.6-SEN: easy mode hides castle bars
+  const castleRow = $('castle-bar-row');
+  if (castleRow) castleRow.classList.toggle('hidden', Game.settings.difficulty === 'easy');
+  // V3.6-SEN: easy mode hides energy rows + ult buttons
+  const isEasy = Game.settings.difficulty === 'easy';
+  ['knight', 'mage'].forEach(tm => {
+    const er = $(`${tm}-energy-row`);
+    if (er) er.classList.toggle('hidden', isEasy);
+  });
+  // V3.6-SEN: easy mode hides question labels (keep TTS btn)
+  ['knight', 'mage'].forEach(tm => {
+    const ql = $(`${tm}-q-label`);
+    if (ql) ql.classList.toggle('hidden', isEasy);
+  });
+  // V3.6-SEN: easy mode shows only active team card (single-team focus for SEN)
+  if (isEasy) {
+    const activeTeam = Game.state.currentTeam;
+    ['knight', 'mage'].forEach(tm => {
+      const card = $(`${tm}-card`);
+      if (card) card.classList.toggle('hidden', tm !== activeTeam);
+    });
+  } else {
+    // Normal mode: show both
+    ['knight', 'mage'].forEach(tm => {
+      const card = $(`${tm}-card`);
+      if (card) card.classList.remove('hidden');
+    });
+  }
   // 重設 adaptive
   Adaptive.reset();
   if (Game.settings.win === 'time') {
@@ -6569,6 +6609,8 @@ document.addEventListener('keydown', (e) => {
     // V3.4-AUDIT2-FIX: 只喺 running + inGameS
   const keyboardActive = Game.state && Game.state.running && !Game.state.paused && !Game.state.ended && inGameScreen;
   if (!keyboardActive) return;
+  // V3.6-SEN: no keyboard shortcuts in easy mode — prevents accidental input
+  if (Game.settings.difficulty === 'easy') return;
   // Backspace → keypad clear (only if keypad exists)
   if (e.key === 'Backspace' && document.querySelector('.key-btn.clear')) {
     document.querySelector('.key-btn.clear').click();
