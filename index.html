@@ -2753,19 +2753,19 @@ const QuestionBank = (() => {
       { parts:['🍎🍎🍎'], answer:3 },
     ],
     groupAdd: [
-      { parts:['🍎 + 🍌'], answer:2 },
-      { parts:['🍇🍇 + 🍓'], answer:3 },
-      { parts:['🍊 + 🍉🍉'], answer:3 },
-      { parts:['🍎🍎 + 🍌'], answer:3 },
-      { parts:['🍓 + 🌟'], answer:2 },
-      { parts:['🐶🐶 + 🐱'], answer:3 },
+      { parts:['🍎', ' + ', '🍌', ' = ?'], answer:2 },
+      { parts:['🍇🍇', ' + ', '🍓', ' = ?'], answer:3 },
+      { parts:['🍊', ' + ', '🍉🍉', ' = ?'], answer:3 },
+      { parts:['🍎🍎', ' + ', '🍌', ' = ?'], answer:3 },
+      { parts:['🍓', ' + ', '🌟', ' = ?'], answer:2 },
+      { parts:['🐶🐶', ' + ', '🐱', ' = ?'], answer:3 },
     ],
     compareGroup: [
-      { parts:['🍎🍎 ? 🍌'], answer:1 },
-      { parts:['🍇 ? 🍓🍓'], answer:2 },
-      { parts:['🌟🌟 ? 🌟🌟'], answer:3 },
-      { parts:['🍊🍊🍊 ? 🍌'], answer:1 },
-      { parts:['🐶 ? 🐱🐱'], answer:2 },
+      { parts:['🍎🍎', ' ? ', '🍌'], answer:1 },
+      { parts:['🍇', ' ? ', '🍓🍓'], answer:2 },
+      { parts:['🌟🌟', ' ? ', '🌟🌟'], answer:3 },
+      { parts:['🍊🍊🍊', ' ? ', '🍌'], answer:1 },
+      { parts:['🐶', ' ? ', '🐱🐱'], answer:2 },
     ],
     double: [
       { parts:['🍎 + 🍎 = ?'], answer:2 },
@@ -3809,29 +3809,56 @@ const UI = {
     const fb = $('sen-feedback');
     if (fb) fb.innerHTML = '';  // clear feedback
 
-    // Determine what to show as emoji vs text
+    // V3.6-SEN-fix: split each part by emoji char so mixed strings like '🍎 + 🍌'
+    // render correctly — emoji clusters go to emojiEl, operators/text to textEl
     if (q.parts) {
-      // Find the emoji cluster(s) and the operator/text parts
-      const parts = q.parts;
-      const emojiParts = parts.filter(p => /^[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]{1,30}$/u.test(p));
-      const textParts = parts.filter(p => !/^[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]{1,30}$/u.test(p));
+      const chineseMap = {
+        '+':'加','-':'減','=':'等於','?':'？','❓':'等於幾多？',
+        '◁':'細啲','▷':'大啲','＝':'等於',' ':''
+      };
+      const isEmoji = c => /^[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]$/u.test(c);
+      const emojiParts = [];
+      const textTokens = [];
+      q.parts.forEach(part => {
+        let i = 0;
+        while (i < part.length) {
+          const c = part[i];
+          if (isEmoji(c)) {
+            let cluster = '';
+            while (i < part.length && isEmoji(part[i])) { cluster += part[i]; i++; }
+            emojiParts.push(cluster);
+          } else {
+            // Collect non-emoji run
+            let run = '';
+            while (i < part.length && !isEmoji(part[i])) { run += part[i]; i++; }
+            // Normalize operator spacing and map to Chinese
+            const normalized = run.replace(/\s+/g, ' ').trim();
+            if (normalized) {
+              textTokens.push(chineseMap[normalized] || normalized.replace(/\?/g,'？'));
+            }
+          }
+        }
+      });
       emojiEl.textContent = emojiParts.join(' ');
-      // Map operators to Chinese
-      const chineseMap = {'+':'加','-':'減','=':'等於','?':'？','❓':'等於幾多？',' < ':' 小過 ',' > ':' 大過 ',' ◁ ':' 小過 ',' ▷ ':' 大過 ',' ＝ ':' 等於 ',' ? ':' ？ '};
-      textEl.textContent = textParts.map(t => chineseMap[t] || t.replace(/\?/g,'？')).join('');
+      textEl.textContent = textTokens.join('');
     } else {
       emojiEl.textContent = q.text || '';
       textEl.textContent = '';
     }
 
-    // Build option buttons
+    // Build option buttons (shuffled so correct answer isn't always in same spot)
     const opts = q.options || [q.answer];
     const labels = q.optionLabels;
+    // Fisher-Yates shuffle but keep a copy of original order for answer matching
+    const shuffled = opts.slice();
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
     optsArea.innerHTML = '';
-    opts.forEach(opt => {
+    shuffled.forEach(opt => {
       const b = document.createElement('button');
       b.className = 'sen-opt-btn';
-      // Label: use optionLabels if available, else use the option value
       if (labels && labels[opt] !== undefined) {
         b.textContent = labels[opt];
         b.setAttribute('aria-label', labels[opt]);
@@ -3840,8 +3867,6 @@ const UI = {
         b.setAttribute('aria-label', `答案 ${opt}`);
       }
       b.onclick = () => {
-        // V3.6-SEN: answer from SEN ultra-simple screen
-        // Game.handleAnswer will trigger _senShowFeedback + showQuestionSEN
         Game.handleAnswer('knight', opt, b);
       };
       optsArea.appendChild(b);
