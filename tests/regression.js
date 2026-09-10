@@ -967,6 +967,26 @@ assert('EASY-35 flash-correct animation 1.2s (not 0.6s)',
 assert('EASY-36 review area label simplified to 🔁',
   /重練區 🔁/.test(src));
 
+// V3.6-SEN Direction A: ultra-simple SEN screen
+assert('EASY-37 screen-game-sen section exists in HTML',
+  /id="screen-game-sen"/.test(src));
+assert('EASY-38 startGame toggles screen-game vs screen-game-sen',
+  /\$\('screen-game'\)/.test(src) && /\$\('screen-game-sen'\)/.test(src));
+assert('EASY-39 showQuestion calls showQuestionSEN in easy mode',
+  /difficulty === 'easy'[\s\S]{0,200}showQuestionSEN/.test(src));
+assert('EASY-40 Game.handleAnswer SEN branch shows feedback',
+  /_senShowFeedback/.test(src));
+assert('EASY-41 Game.handleAnswer SEN branch calls refreshSENScreen',
+  /refreshSENScreen/.test(src));
+assert('EASY-42 _scheduleNextQuestion skips team switch in easy mode',
+  /difficulty === 'easy'[\s\S]{0,100}knight/.test(src));
+assert('EASY-43 endGame hides SEN screen before showing end screen',
+  /screen-game-sen.*classList.*add.*hidden/.test(src));
+assert('EASY-44 _wireSENScreen function exists',
+  /function _wireSENScreen/.test(src));
+assert('EASY-45 SEN screen has option area id',
+  /id="sen-options-area"/.test(src));
+
 // =========== summary ===========
 console.log(`\n========== ${pass} pass / ${fail} fail ==========`);
 if (fail > 0) {

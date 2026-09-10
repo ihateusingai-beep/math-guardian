@@ -746,6 +746,27 @@
     z-index: 1;
   }
   .knight-card, .mage-card { position: relative; }
+  /* V3.6-SEN: 超簡版面 */
+  .sen-opt-btn {
+    width: 100%;
+    min-height: 80px;
+    font-size: 2.5rem;
+    font-weight: 900;
+    border-radius: 1.5rem;
+    background: rgba(255,255,255,0.12);
+    border: 3px solid rgba(255,255,255,0.25);
+    color: #fff;
+    cursor: pointer;
+    transition: transform 0.1s, background 0.15s;
+    padding: 1rem 2rem;
+  }
+  .sen-opt-btn:hover { background: rgba(255,255,255,0.2); transform: scale(1.02); }
+  .sen-opt-btn:active { transform: scale(0.97); }
+  @keyframes sen-fb {
+    0%   { opacity: 1; }
+    70%  { opacity: 1; }
+    100% { opacity: 0; }
+  }
 </style>
 </head>
 
@@ -1660,6 +1681,31 @@
         <div class="text-xs mt-1"><span id="castle-right-text">100</span> / 100</div>
       </div>
     </div>
+  </section>
+
+  <!-- ========== V3.6-SEN: 超簡遊戲畫面 (中度 SEN 專用) ========== -->
+  <section id="screen-game-sen" class="hidden fixed inset-0 flex flex-col items-center justify-center gap-6 p-6" style="background:#1e1b4b;z-index:50;">
+    <!-- 頂部bar -->
+    <div class="fixed top-0 left-0 right-0 flex items-center justify-between px-4 py-3" style="background:rgba(0,0,0,0.3);">
+      <button id="sen-btn-back" class="text-white text-xl w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center" aria-label="返回主選單">⬅</button>
+      <div class="flex items-center gap-3">
+        <div id="sen-correct-badge" class="text-green-300 font-extrabold text-2xl">✅ 0</div>
+        <div id="sen-wrong-badge" class="text-red-300 font-extrabold text-2xl">❌ 0</div>
+      </div>
+      <button id="sen-btn-tts" class="text-white text-2xl w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center" aria-label="朗讀題目">🔊</button>
+    </div>
+
+    <!-- 題目區 (全屏居中) -->
+    <div id="sen-q-wrap" class="flex flex-col items-center justify-center gap-4 text-center" style="min-height:40vh;">
+      <div id="sen-q-emoji" class="text-8xl md:text-9xl leading-none" aria-live="polite"></div>
+      <div id="sen-q-text" class="text-white text-3xl font-bold"></div>
+    </div>
+
+    <!-- 答案掣區 -->
+    <div id="sen-options-area" class="w-full max-w-lg flex flex-col gap-3"></div>
+
+    <!-- feedback overlay (答啱/答錯) -->
+    <div id="sen-feedback" class="fixed inset-0 pointer-events-none flex items-center justify-center" style="z-index:60;"></div>
   </section>
 
   <!-- ========== 結束畫面 ========== -->
@@ -3451,10 +3497,15 @@ const UI = {
     const t = Game.state.teams[team];
     const q = Game.state.current[team];
     if (!q) return;
+    // V3.4-AUDIT5: TTS cancel-on-question-change — always call first
+    // V3.6-SEN: also cancels stale utterances from normal mode before SEN switch
+    TTS.cancel();
+    // V3.6-SEN: easy mode uses ultra-simple SEN screen renderer
+    if (Game.settings.difficulty === 'easy') {
+      UI.showQuestionSEN(q);
+      return;
+    }
     const reg = TYPE_REGISTRY[q.type] || { layout:'numeric' };
-
-    // V3.4-AUDIT5: TTS cancel-on-question-c
-    // 避免殘留 TTS 同新題目衝突 (screen-reader 雙聲道 / 學生聽錯題)
     TTS.cancel();
 
     // === 渲染題目文 (parts-based) ===
@@ -3746,6 +3797,85 @@ const UI = {
       list.appendChild(b);
     });
   },
+
+  // ===== V3.6-SEN: 超簡答題版面 =====
+
+  // Render one question in the SEN ultra-simple screen (full-screen, distraction-free)
+  showQuestionSEN(q) {
+    if (!q) return;
+    const emojiEl = $('sen-q-emoji');
+    const textEl = $('sen-q-text');
+    const optsArea = $('sen-options-area');
+    const fb = $('sen-feedback');
+    if (fb) fb.innerHTML = '';  // clear feedback
+
+    // Determine what to show as emoji vs text
+    if (q.parts) {
+      // Find the emoji cluster(s) and the operator/text parts
+      const parts = q.parts;
+      const emojiParts = parts.filter(p => /^[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]{1,30}$/u.test(p));
+      const textParts = parts.filter(p => !/^[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]{1,30}$/u.test(p));
+      emojiEl.textContent = emojiParts.join(' ');
+      // Map operators to Chinese
+      const chineseMap = {'+':'加','-':'減','=':'等於','?':'？','❓':'等於幾多？',' < ':' 小過 ',' > ':' 大過 ',' ◁ ':' 小過 ',' ▷ ':' 大過 ',' ＝ ':' 等於 ',' ? ':' ？ '};
+      textEl.textContent = textParts.map(t => chineseMap[t] || t.replace(/\?/g,'？')).join('');
+    } else {
+      emojiEl.textContent = q.text || '';
+      textEl.textContent = '';
+    }
+
+    // Build option buttons
+    const opts = q.options || [q.answer];
+    const labels = q.optionLabels;
+    optsArea.innerHTML = '';
+    opts.forEach(opt => {
+      const b = document.createElement('button');
+      b.className = 'sen-opt-btn';
+      // Label: use optionLabels if available, else use the option value
+      if (labels && labels[opt] !== undefined) {
+        b.textContent = labels[opt];
+        b.setAttribute('aria-label', labels[opt]);
+      } else {
+        b.textContent = String(opt);
+        b.setAttribute('aria-label', `答案 ${opt}`);
+      }
+      b.onclick = () => {
+        // V3.6-SEN: answer from SEN ultra-simple screen
+        // Game.handleAnswer will trigger _senShowFeedback + showQuestionSEN
+        Game.handleAnswer('knight', opt, b);
+      };
+      optsArea.appendChild(b);
+    });
+
+    // Auto TTS in SEN mode
+    if (Game.settings.ttsEnabled) {
+      const text = (q.parts ? q.parts.join('') : q.text) || '';
+      if (text) TTS.speak(text, null, {});
+    }
+  },
+
+  // Brief green/red feedback overlay
+  _senShowFeedback(correct) {
+    const fb = $('sen-feedback');
+    if (!fb) return;
+    fb.innerHTML = `<div style="
+      position:fixed;inset:0;
+      background:${correct ? 'rgba(34,197,94,0.35)' : 'rgba(239,68,68,0.35)'};
+      display:flex;align-items:center;justify-content:center;
+      z-index:60;pointer-events:none;font-size:8rem;
+      animation:sen-fb 0.8s forwards;
+    ">${correct ? '✅' : '❌'}</div>`;
+    setTimeout(() => { if (fb) fb.innerHTML = ''; }, 800);
+  },
+
+  // Update correct/wrong counters on SEN screen
+  refreshSENScreen() {
+    const tk = Game.state.teams['knight'] || { correct: 0, wrong: 0 };
+    const c = $('sen-correct-badge');
+    const w = $('sen-wrong-badge');
+    if (c) c.textContent = `✅ ${tk.correct}`;
+    if (w) w.textContent = `❌ ${tk.wrong}`;
+  },
 };
 
 function escapeHTML(s) {
@@ -4026,6 +4156,29 @@ function setupMenu() {
     startGame();
   }
 };
+
+// V3.6-SEN: wire SEN ultra-simple screen controls (one-time, idempotent)
+let _senScreenWired = false;
+function _wireSENScreen() {
+  if (_senScreenWired) return;
+  _senScreenWired = true;
+  const backBtn = $('sen-btn-back');
+  if (backBtn) backBtn.onclick = () => {
+    Game.state.running = false;
+    $('screen-game-sen').classList.add('hidden');
+    $('screen-game').classList.remove('hidden');
+    $('screen-menu').classList.remove('hidden');
+  };
+  const ttsBtn = $('sen-btn-tts');
+  if (ttsBtn) {
+    ttsBtn.onclick = () => {
+      const q = Game.state.current['knight'];
+      if (!q) return;
+      const text = (q.parts ? q.parts.join('') : q.text) || '';
+      if (text) TTS.speak(text, ttsBtn, {});
+    };
+  }
+}
 
 // V3.3-U1: 3-step onboarding tutorial
 function showOnboarding(onComplete) {
@@ -4308,7 +4461,12 @@ function startGame() {
   // 切畫面
   $('screen-menu').classList.add('hidden');
   $('screen-end').classList.add('hidden');
-  $('screen-game').classList.remove('hidden');
+  // V3.6-SEN: easy mode uses ultra-simple screen, normal uses full game UI
+  const isEasy = Game.settings.difficulty === 'easy';
+  $('screen-game').classList.toggle('hidden', isEasy);
+  $('screen-game-sen').classList.toggle('hidden', !isEasy);
+  // V3.6-SEN: wire SEN screen controls on first entry
+  if (isEasy) _wireSENScreen();
 
   // 啟動 boss 自動攻擊（合作模式：每 8s 打一次左/右 castle；巔峰：每 12s 打隨機）
   Audio.prime();
@@ -4316,8 +4474,13 @@ function startGame() {
     // V3.4-AUDIT2-FIX: clear visibilitychan
   _wasPlayingBGM = false;
   UI.refreshAll();
-  nextQuestion('knight');
-  nextQuestion('mage');
+  if (isEasy) {
+    UI.refreshSENScreen();
+    nextQuestion('knight');
+  } else {
+    nextQuestion('knight');
+    nextQuestion('mage');
+  }
   UI.renderReview();
 
   // 啟動主循環
@@ -4533,6 +4696,13 @@ function _recordAnswerStats(team, q, correct) {
 // V3.5-AUDIT6-F01: re-entrancy null-out
 function _scheduleNextQuestion(team) {
   Game.state.current[team] = null;
+  // V3.6-SEN: no team-switching in ultra-simple mode — only knight exists
+  if (Game.settings.difficulty === 'easy') {
+    setTimeout(() => {
+      if (Game.state.running && !Game.state.ended) nextQuestion('knight');
+    }, 0);
+    return;
+  }
   if (Game.settings.team === 'coop') {
     Game.nextTeamInCoop();
     setTimeout(() => {
@@ -4549,6 +4719,18 @@ Game.handleAnswer = function(team, value, btn) {
   if (!Game.state.running || Game.state.paused || Game.state.ended) return;
   const q = Game.state.current[team];
   if (!q) return;
+
+  // V3.6-SEN: ultra-simple mode — show feedback and refresh, skip boss/castle/energy effects
+  if (Game.settings.difficulty === 'easy') {
+    const correct = _compareAnswer(q.answer, value, q.type).correct;
+    UI._senShowFeedback(correct);
+    Game.state.teams[team].total++;
+    if (correct) Game.state.teams[team].correct++;
+    else Game.state.teams[team].wrong++;
+    UI.refreshSENScreen();
+    _scheduleNextQuestion(team);
+    return;
+  }
 
   const { correct } = _compareAnswer(q.answer, value, q.type);
 
@@ -4761,6 +4943,8 @@ function endGame(victory) {
   } else {
     setTimeout(() => Audio.defeat(), 100);
   }
+  // V3.6-SEN: hide SEN screen before showing end screen
+  $('screen-game-sen').classList.add('hidden');
   setTimeout(() => showEndScreen(victory), 600);
 }
 
@@ -6364,9 +6548,17 @@ window.addEventListener('DOMContentLoaded', () => {
     btn.onclick = () => {
       if (Snapshot.resume()) {
         $('screen-menu').classList.add('hidden');
-        $('screen-game').classList.remove('hidden');
+        $('screen-end').classList.add('hidden');
+        const isEasy = Game.settings.difficulty === 'easy';
+        $('screen-game').classList.toggle('hidden', isEasy);
+        $('screen-game-sen').classList.toggle('hidden', !isEasy);
         UI.refreshAll();
-        for (const tm of TEAMS) UI.showQuestion(tm);
+        if (isEasy) {
+          _wireSENScreen();
+          UI.refreshSENScreen();
+        } else {
+          for (const tm of TEAMS) UI.showQuestion(tm);
+        }
         UI.renderReview();
         btn.remove();
         if (window._mgLoop) clearInterval(window._mgLoop);
