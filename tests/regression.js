@@ -945,6 +945,17 @@ assert('EASY-25 一鍵開始 sets 4 SEN-friendly types',
   /count1to3.*count10.*groupAdd.*compareGroup/.test(src));
 assert('EASY-26 groupAdd uses ❓ emoji instead of plain ?',
   /' = ❓'/.test(src));
+// V3.6-SEN-FIX: groupAdd same fruit on both sides — one fruit var, both repeats
+// V3.6-SEN-FIX: groupAdd same fruit on both sides — one fruit var, both repeats
+assert('EASY-26b groupAdd generator uses same fruit both sides',
+  (() => {
+    const idx = src.indexOf('groupAdd(mode)');
+    if (idx < 0) return false;
+    const slice = src.slice(idx, idx + 400);
+    return /f = fruits\[/.test(slice) &&
+      !/f1 = fruits\[/.test(slice) &&
+      !/f2 = fruits\[/.test(slice);
+  })());
 assert('EASY-27 TTS normalize maps ❓ to 等於幾多',
   /❓.*等於幾多/.test(src));
 

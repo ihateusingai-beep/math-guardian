@@ -2508,13 +2508,13 @@ const Generators = {
   },
   // 兩組加埋
   groupAdd(mode) {
+    // V3.6-SEN-FIX: same fruit on both sides — easier to count "same thing + same thing"
     const fruits = ['🍎','🍌','🍇','🍓','🍊'];
     const easy = Game.settings.difficulty === 'easy';
     const maxG = easy ? 3 : 4;
     const g1 = randInt(1, maxG), g2 = randInt(1, maxG);
-    const f1 = fruits[randInt(0, fruits.length - 1)];
-    const f2 = fruits[randInt(0, fruits.length - 1)];
-    return { parts: [f1.repeat(g1), ' + ', f2.repeat(g2), ' = ❓'], answer: g1 + g2, type:'groupAdd' };
+    const f = fruits[randInt(0, fruits.length - 1)];
+    return { parts: [f.repeat(g1), ' + ', f.repeat(g2), ' = ❓'], answer: g1 + g2, type:'groupAdd' };
   },
   // 兩組比多少
   compareGroup(mode) {
@@ -2754,12 +2754,13 @@ const QuestionBank = (() => {
       { parts:['🍎🍎🍎'], answer:3 },
     ],
     groupAdd: [
-      { parts:['🍎', ' + ', '🍌', ' = ?'], answer:2 },
-      { parts:['🍇🍇', ' + ', '🍓', ' = ?'], answer:3 },
-      { parts:['🍊', ' + ', '🍉🍉', ' = ?'], answer:3 },
-      { parts:['🍎🍎', ' + ', '🍌', ' = ?'], answer:3 },
-      { parts:['🍓', ' + ', '🌟', ' = ?'], answer:2 },
-      { parts:['🐶🐶', ' + ', '🐱', ' = ?'], answer:3 },
+      // V3.6-SEN-FIX: same fruit on both sides (same thing + same thing)
+      { parts:['🍎', ' + ', '🍎', ' = ?'], answer:2 },
+      { parts:['🍇🍇', ' + ', '🍇', ' = ?'], answer:3 },
+      { parts:['🍊', ' + ', '🍊🍊', ' = ?'], answer:3 },
+      { parts:['🍎🍎', ' + ', '🍎', ' = ?'], answer:3 },
+      { parts:['🍓', ' + ', '🍓', ' = ?'], answer:2 },
+      { parts:['🐶🐶', ' + ', '🐶', ' = ?'], answer:3 },
     ],
     compareGroup: [
       { parts:['🍎🍎', ' ? ', '🍌'], answer:1 },
