@@ -956,6 +956,20 @@ assert('EASY-26b groupAdd generator uses same fruit both sides',
       !/f1 = fruits\[/.test(slice) &&
       !/f2 = fruits\[/.test(slice);
   })());
+// V3.6-SEN-FIX: compareGroup equal probability ≤ 30% (hardest concept for moderate SEN)
+// Check: the 'else' branch (equal, ans=3) follows a second 'roll < X' threshold ≥ 0.70
+assert('EASY-26c compareGroup equal probability ≤ 30%',
+  (() => {
+    const idx = src.indexOf('compareGroup(mode)');
+    if (idx < 0) return false;
+    const slice = src.slice(idx, idx + 600);
+    // Find the second 'roll < N' threshold value (before the 'else ans=3' branch)
+    const thresholds = [...slice.matchAll(/roll < ([\d.]+)/g)].map(m => parseFloat(m[1]));
+    if (thresholds.length < 2) return false;
+    const secondThreshold = thresholds[1]; // e.g. 0.75
+    const equalPct = 1 - secondThreshold; // e.g. 1 - 0.75 = 0.25
+    return equalPct <= 0.30;
+  })());
 assert('EASY-27 TTS normalize maps ❓ to 等於幾多',
   /❓.*等於幾多/.test(src));
 

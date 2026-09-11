@@ -2526,9 +2526,10 @@ const Generators = {
     const f2 = fruits[randInt(0, fruits.length - 1)];
     const roll = Math.random();
     let g2, ans;
-    if (roll < 0.35) { g2 = g1 + randInt(1, 2); ans = 2; }
-    else if (roll < 0.70) { g2 = Math.max(1, g1 - randInt(1, 2)); ans = 1; }
-    else { g2 = g1; ans = 3; }
+    // V3.6-SEN-FIX: equal (ans=3) probability lowered to 25% — hardest concept for moderate SEN
+    if (roll < 0.40) { g2 = g1 + randInt(1, 2); ans = 2; }       // right more: 40%
+    else if (roll < 0.75) { g2 = Math.max(1, g1 - randInt(1, 2)); ans = 1; } // left more: 35%
+    else { g2 = g1; ans = 3; }                                              // equal: 25%
     return { parts: [f1.repeat(g1), ' ? ', f2.repeat(g2)], answer: ans, type:'compareGroup', optionLabels:{1:'⬅️',2:'➡️',3:'⚖️'} };
   },
   // 大小比較 — answer ∈ '<' | '=' | '>'
