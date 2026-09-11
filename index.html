@@ -3918,6 +3918,8 @@ const UI = {
   _senShowFeedback(correct) {
     const fb = $('sen-feedback');
     if (!fb) return;
+    // Clear any pending timer so rapid answers don't overlap
+    if (fb._clearTimer) clearTimeout(fb._clearTimer);
     fb.innerHTML = `<div style="
       position:fixed;inset:0;
       background:${correct ? 'rgba(34,197,94,0.35)' : 'rgba(239,68,68,0.35)'};
@@ -3925,7 +3927,7 @@ const UI = {
       z-index:60;pointer-events:none;font-size:8rem;
       animation:sen-fb 0.8s forwards;
     ">${correct ? '✅' : '❌'}</div>`;
-    setTimeout(() => { if (fb) fb.innerHTML = ''; }, 800);
+    fb._clearTimer = setTimeout(() => { if (fb) fb.innerHTML = ''; }, 800);
   },
 
   // Update correct/wrong counters on SEN screen
@@ -3953,6 +3955,8 @@ function encodeAnswer(s) {
 }
 function decodeAnswer(hex) {
   if (!hex) return '';
+  // Guard: hex must be even-length (2 chars per byte)
+  if (hex.length % 2 !== 0) return '';
   const out = [];
   for (let i = 0; i < hex.length; i += 2) {
     out.push(String.fromCharCode(parseInt(hex.slice(i, i+2), 16) ^ ANSWER_KEY));
@@ -4329,12 +4333,10 @@ function renderBossSelect() {
       btn.setAttribute('aria-label', `${boss.name} HP ${boss.hpDefault}`);
     }
     // P2-1: 用 AI generated hero image 取代細像素 sprite（單檔 inline base64）
-    const heroSrc = BOSS_HERO[boss.id] || '';
+    // AUDIT-REFACTOR: BOSS_HERO 已移除，always show SVG sprite
     btn.innerHTML = `
       <div class="boss-hero-wrap" style="width:64px;height:64px;display:flex;align-items:center;justify-content:center;">
-        ${unlocked && heroSrc
-          ? `<img class="boss-hero-img" src="${heroSrc}" alt="${boss.name}" style="width:100%;height:100%;object-fit:contain;image-rendering:pixelated;display:block;">`
-          : `<svg class="pixel" style="width:42px;height:42px"><use href="#${boss.sprite}"/></svg>`}
+        <svg class="pixel" style="width:42px;height:42px"><use href="#${boss.sprite}"/></svg>
       </div>
       <div class="font-bold">${boss.emoji} ${boss.name}</div>
       <div class="text-xs opacity-70">${unlocked ? `HP ${boss.hpDefault}` : `🔒 ${boss.unlockHint || '未解鎖'}`}</div>
@@ -4369,35 +4371,27 @@ function showBossIntro(boss) {
     _bossIntroOverlay.remove();
     _bossIntroOverlay = null;
   }
-  const heroSrc = BOSS_HERO[boss.id];
-  if (!heroSrc) return;
+  // AUDIT-REFACTOR: BOSS_HERO removed — show SVG sprite + name in intro overlay
+  const glowColor = boss.id === 'frost-giant' ? 'rgba(96,165,250,0.7)' : 'rgba(251,191,36,0.7)';
+  const sceneLabel = boss.scene === 'snow' ? '❄ 雪山場景' : '🌲 森林場景';
   const overlay = document.createElement('div');
   overlay.style.cssText = 'position:fixed;inset:0;z-index:100;background:rgba(0,0,0,0.85);display:flex;flex-direction:column;align-items:center;justify-content:center;animation:boss-intro-fadein 200ms ease-out;';
-  overlay.innerHTML = `
-    <style>
-      @keyframes boss-intro-fadein { from { opacity:0 } to { opacity:1 } }
-      @keyframes boss-intro-pop { 0% { transform:scale(0.3) rotate(-12deg); opacity:0 } 60% { transform:scale(1.15) rotate(2deg); opacity:1 } 100% { transform:scale(1) rotate(0deg); opacity:1 } }
-      /* P2-c: badge fade-in stagger (use first call forward in renderEndBadges) */
-      @keyframes badge-in { 0% { transform:scale(0.5) translateY(8px); opacity:0 } 60% { transform:scale(1.12) translateY(-2px); opacity:1 } 100% { transform:scale(1) translateY(0); opacity:1 } }
-      @keyframes boss-intro-text { from { transform:translateY(20px); opacity:0 } to { transform:translateY(0); opacity:1 } }
-      @keyframes boss-intro-out { 0% { opacity:1 } 100% { opacity:0 } }
-      .bi-img { width:220px; height:220px; object-fit:contain; image-rendering:pixelated;
-        animation: boss-intro-pop 600ms cubic-bezier(0.34,1.56,0.64,1) both;
-        filter: drop-shadow(0 0 24px ${boss.id === 'frost-giant' ? 'rgba(96,165,250,0.7)' : 'rgba(251,191,36,0.7)'});
-      }
-      .bi-name { font-size:1.8rem; font-weight:800; margin-top:14px; color:#fde68a;
-        text-shadow: 0 0 12px rgba(251,191,36,0.6), 2px 2px 0 #000;
-        animation: boss-intro-text 400ms 300ms ease-out both;
-      }
-      .bi-hint { font-size:0.85rem; color:rgba(255,255,255,0.6); margin-top:6px;
-        animation: boss-intro-text 400ms 500ms ease-out both;
-      }
-      .bi-out { animation: boss-intro-out 350ms ease-in both !important; }
-    </style>
-    <img class="bi-img" src="${heroSrc}" alt="${boss.name}">
-    <div class="bi-name">⚔ 挑戰 ${boss.emoji} ${boss.name}</div>
-    <div class="bi-hint">HP ${boss.hpDefault} · ${boss.scene === 'snow' ? '❄ 雪山場景' : '🌲 森林場景'}</div>
-  `;
+  overlay.innerHTML = [
+    '<style>',
+    '@keyframes boss-intro-fadein { from { opacity:0 } to { opacity:1 } }',
+    '@keyframes boss-intro-pop { 0% { transform:scale(0.3) rotate(-12deg); opacity:0 } 60% { transform:scale(1.15) rotate(2deg); opacity:1 } 100% { transform:scale(1) rotate(0deg); opacity:1 } }',
+    '@keyframes badge-in { 0% { transform:scale(0.5) translateY(8px); opacity:0 } 60% { transform:scale(1.12) translateY(-2px); opacity:1 } 100% { transform:scale(1) translateY(0); opacity:1 } }',
+    '@keyframes boss-intro-text { from { transform:translateY(20px); opacity:0 } to { transform:translateY(0); opacity:1 } }',
+    '@keyframes boss-intro-out { 0% { opacity:1 } 100% { opacity:0 } }',
+    '.bi-svg { width:220px; height:220px; animation: boss-intro-pop 600ms cubic-bezier(0.34,1.56,0.64,1) both; filter: drop-shadow(0 0 24px ' + glowColor + '); }',
+    '.bi-name { font-size:1.8rem; font-weight:800; margin-top:14px; color:#fde68a; text-shadow: 0 0 12px rgba(251,191,36,0.6), 2px 2px 0 #000; animation: boss-intro-text 400ms 300ms ease-out both; }',
+    '.bi-hint { font-size:0.85rem; color:rgba(255,255,255,0.6); margin-top:6px; animation: boss-intro-text 400ms 500ms ease-out both; }',
+    '.bi-out { animation: boss-intro-out 350ms ease-in both !important; }',
+    '</style>',
+    '<svg class="bi-svg"><use href="#' + boss.sprite + '"/></svg>',
+    '<div class="bi-name">⚔ 挑戰 ' + boss.emoji + ' ' + boss.name + '</div>',
+    '<div class="bi-hint">HP ' + boss.hpDefault + ' · ' + sceneLabel + '</div>',
+  ].join('');
   document.body.appendChild(overlay);
   _bossIntroOverlay = overlay;
   // 1100ms 後 fade out
@@ -4444,21 +4438,9 @@ function startGame() {
     const bossIconWrap = document.getElementById('boss-icon');
     if (bossIconWrap) bossIconWrap.setAttribute('aria-label', Bosses.current.name);
     // P2-2: AI generated hero portrait 入主 game boss panel
+    // AUDIT-REFACTOR: BOSS_HERO removed — always hide heroImg, show SVG sprite
     const heroImg = document.getElementById('boss-hero-portrait');
-    if (heroImg && BOSS_HERO[Bosses.current.id]) {
-      heroImg.src = BOSS_HERO[Bosses.current.id];
-      heroImg.alt = Bosses.current.name;
-    // V3.4-AUDIT3-FIX: onerror fallback — c
-      // corrupt 後 img 永遠空白。fallback 隱藏佢 + show SVG sprite。
-      heroImg.onerror = () => {
-        heroImg.classList.add('hidden');
-        const svg = document.getElementById('boss-svg-use');
-        if (svg) svg.parentElement?.classList.remove('hidden');
-      };
-      heroImg.classList.remove('hidden');
-    } else if (heroImg) {
-    // V3.4-AUDIT4-FIX: BOSS_HERO[id] 唔存在時 (
-      // 隱藏空圖 + 確保 sprite fallback 顯示;alt 同步 boss 名 (不再係 placeholder "boss")
+    if (heroImg) {
       heroImg.removeAttribute('src');
       heroImg.classList.add('hidden');
     }
@@ -4619,8 +4601,8 @@ function showInstantHint(team, q) {
     // V3.6-SEN: show emoji count — count the fruits
     hint = `💡 數吓有 ${q.parts[0]} = ${q.answer} 個`;
   } else if (q.type === 'groupAdd') {
-    // V3.6-SEN: show the visual answer
-    hint = `💡 ${q.parts.join('').replace('= ❓', `= ${q.answer}`)}`;
+    // V3.6-SEN: show the visual answer — robust: replace = ❓ at end of string only
+    hint = `💡 ${q.parts.join('').replace(/\s*=\s*❓\s*$/, ` = ${q.answer} `)}`;
   } else if (q.type === 'compareGroup') {
     // V3.6-SEN: show direction icon
     const labels = {1:'⬅️ 左邊多', 2:'➡️ 右邊多', 3:'⚖️ 一樣多'};
@@ -4783,9 +4765,6 @@ function _scheduleNextQuestion(team) {
     }, 0);
   }
 }
-
-// P1-R3: Game.handleAnswer is now defined inside the Game object (above).
-// This comment block marks the old reassignment site — safe to remove.
 
 function highlightBtn(btn, correct) {
   if (!btn) return;
@@ -5077,36 +5056,18 @@ function _endTitleFor(victory) {
   return { title: `城塔失守 ${star(false)}`, msg: '下次一起更精準作答吧！', icon: '💔' };
 }
 
-// DOM: 設 end-icon — 戰勝時顯示 AI portrait + onerror fallback 去 SVG
+// DOM: 設 end-icon — always SVG sprite (AI_ASSETS removed)
 function _renderEndIcon(victory) {
+  // AUDIT-REFACTOR: AI_ASSETS.defeat removed — always show SVG sprite
   const portrait = $('end-boss-portrait');
   const iconSvg = $('end-icon-svg');
-  const defeatedSrc = AI_ASSETS.defeat[Bosses.current?.id];
-  if (victory && defeatedSrc && Bosses.current) {
-    portrait.src = defeatedSrc;
-    // V3.4-AUDIT4: 戰勝時 portrait 顯示"被擊敗嘅boss
-    portrait.alt = `${Bosses.current.name} 已被擊敗`;
-    // V3.4-AUDIT3-FIX: onerror fallback for
-    portrait.onerror = () => {
-      portrait.classList.add('hidden');
-      iconSvg.classList.remove('hidden');
-    };
-    portrait.classList.remove('hidden');
-    iconSvg.classList.add('hidden');
-  } else {
-    portrait.classList.add('hidden');
-    iconSvg.classList.remove('hidden');
-  }
+  portrait.classList.add('hidden');
+  iconSvg.classList.remove('hidden');
 }
 
-// DOM: end-bg URL 跟當前 boss scene (snow → frost, 其他 → forest)
+// DOM: end-bg URL — AI_ASSETS.endBg removed; bg stays as CSS default
 function _renderEndBackground() {
-  const bgKey = Bosses.current?.scene === 'snow' ? 'frost' : 'forest';
-  const endBg = $('end-bg');
-  if (endBg && AI_ASSETS.endBg[bgKey]) {
-    // V3.4-AUDIT3-FIX: inline style 會 overr
-    endBg.style.backgroundImage = `url(${AI_ASSETS.endBg[bgKey]})`;
-  }
+  // AUDIT-REFACTOR: AI_ASSETS.endBg removed — no custom end background
 }
 
 // DOM: 兩個 stat 卡片 (knight + mage)，命中率百分比
@@ -6514,22 +6475,6 @@ const Adaptive = {
 };
 
 /* ============== P1-C: Boss registry + 解鎖流程 ============== */
-// P2-1: Boss hero portraits (AI generated, inline base64). Single-file constraint.
-const BOSS_HERO = {
-  'forest-troll': '',
-  'frost-giant':  '',
-};
-// AI generated assets (Phase 2)
-const AI_ASSETS = {
-  endBg: {
-    forest: '',
-    frost: '',
-  },
-  defeat: {
-    'forest-troll': '',
-    'frost-giant': '',
-  },
-};
 const Bosses = {
   list: [
     {

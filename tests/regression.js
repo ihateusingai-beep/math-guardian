@@ -264,14 +264,12 @@ assert('AUDIT3-C2  TTS speak clears .speaking',
 assert('AUDIT3-C3  screenAlert caps concurrent',
   /screenAlert\(text[\s\S]{0,500}querySelectorAll\('\.screen-alert'\)[\s\S]{0,200}remove\(\)/.test(src));
 // C3-B3: instant-hint caps to 1
+// AUDIT-REFACTOR: fn grew >2000 chars; querySelectorAll now at ~2043 offset, raised limit.
 assert('AUDIT3-C3  instant-hint caps concurrent',
-  /function showInstantHint\([\s\S]{0,2000}querySelectorAll\('\.instant-hint'\)[\s\S]{0,500}remove\(\)/.test(src));
-// C1-B3: boss-hero-portrait has onerror fallback (not silent broken image)
-assert('AUDIT3-C1  boss hero portrait has onerror',
-  src.includes("getElementById('boss-hero-portrait')") &&
-  /heroImg\.onerror/.test(src));
-assert('AUDIT3-C1  end-boss-portrait has onerror',
-  /end-boss-portrait[\s\S]{0,500}onerror/.test(src));
+  /function showInstantHint\([\s\S]{0,3000}querySelectorAll\(['\'']\.instant-hint['\'']\)[\s\S]{0,500}forEach.*?remove/.test(src));
+// C1-B3: boss-hero-portrait — onerror removed (BOSS_HERO removed in audit-refactor)
+// C1-B4: end-boss-portrait — onerror removed (AI_ASSETS removed in audit-refactor)
+// assertions removed; covered by T15 AUDIT4-C/M below
 // C1-B2: dead STORAGE._cap removed
 assert('AUDIT3-C1  dead STORAGE._cap removed',
   !/  _cap\(key, val\)\s*\{/.test(src));
@@ -289,9 +287,10 @@ assert('AUDIT4-A  teacher modal aria-labelledby=title',
 assert('AUDIT4-A  teacher-pwd has sr-only label',
   /<label[^>]*for="teacher-pwd"/.test(src));
 assert('AUDIT4-A  trapFocusInModal utility defined',  /function trapFocusInModal\(/.test(src));
-// C3 boss hero portrait: alt synced 與 BOSS_HERO[id] 唔存在時 fallback
-const heroSrcMatch = src.match(/if \(heroImg && BOSS_HERO\[Bosses\.current\.id\]\)\s*\{[\s\S]{0,400}heroImg\.alt = Bosses\.current\.name/);
-assert('AUDIT4-C  boss hero portrait alt synced from Bosses.current.name', !!heroSrcMatch);
+// C3 boss hero portrait: BOSS_HERO removed — always hide heroImg, show SVG sprite
+// AUDIT-REFACTOR: old BOSS_HERO pattern removed; verify heroImg is hidden instead.
+assert('AUDIT4-C  boss hero portrait hidden (BOSS_HERO removed)',
+  /getElementById\('boss-hero-portrait'\)[^}]{0,300}classList\.add\('hidden'\)/.test(src));
 assert('AUDIT4-C  boss icon SVG aria-label synced',
   /bossIconWrap[\s\S]{0,200}setAttribute\('aria-label'/.test(src));
 // C4 pause overlay: role=dialog + aria-modal + focus resume
@@ -346,12 +345,12 @@ assert('AUDIT4-N  option-btn.wrong::before contains ✗',
 // C13 sr-only utility class defined
 assert('AUDIT4    .sr-only utility defined',
   /\.sr-only\s*\{[\s\S]{0,400}clip:\s*rect\(0,0,0,0\)/.test(src));
-// C14 boss intro 用 alt='' (placeholder 改空) + sprite ARIA label 跟 boss-name-label
-assert('AUDIT4-C  boss-hero-portrait alt empty (default) then synced',
+// C14 boss intro uses alt='' (placeholder kept; BOSS_HERO removed, no AI sync needed)
+assert('AUDIT4-C  boss-hero-portrait alt empty (default)',
   /id="boss-hero-portrait"[\s\S]{0,200}alt=""/.test(src));
-// C15 end-screen portrait alt 同步 boss 名 + 已擊敗
-assert('AUDIT4-M  end-boss-portrait alt includes boss name + "已被擊敗"',
-  /portrait\.alt\s*=\s*`\$\{Bosses\.current\.name\} 已被擊敗`/.test(src));
+// C15 end-screen portrait — AI_ASSETS removed; SVG sprite always shown
+assert('AUDIT4-M  end-boss-portrait hidden, iconSvg shown (AI_ASSETS removed)',
+  /_renderEndIcon[^}]*classList\.add\('hidden'\)/.test(src));
 
 // =========== T17: V3.4 audit cycle-5 (per-sfx, beforeunload, touch-target, T-key, Esc stack, a11y announce) ===========
 console.log('\n[T17] V3.4 audit cycle-5 patches');
