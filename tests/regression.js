@@ -121,7 +121,8 @@ if (keypadArr) {
 
 // =========== T5: handleAnswer wired ===========
 console.log('\n[T5] handleAnswer wiring');
-const handleAnsMatch = src.match(/Game\.handleAnswer\s*=\s*function\s*\(\s*team/);
+// P1-R3: handleAnswer is now a named method inside the Game object literal
+const handleAnsMatch = src.match(/handleAnswer\s*\(\s*team\s*,\s*value\s*,\s*btn\s*\)\s*\{/);
 assert('Game.handleAnswer signature', !!handleAnsMatch);
 // R5 (cycle 15): triple-path compare extracted to _compareAnswer helper
 assert('handleAnswer delegates compare to _compareAnswer',
@@ -819,9 +820,11 @@ assert('BUG-A-4  archiveReport comment references upgrade key mismatch rationale
 
 // =========== T28: V3.5 R5 cycle-15 Game.handleAnswer refactor ===========
 console.log('\n[T28] V3.5 audit cycle-15 R5 handleAnswer refactor');
-// R5-1: handleAnswer 縮到 thin orchestrator (< 30 lines body)
-assert('R5-1  Game.handleAnswer body is thin orchestrator',
-  /Game\.handleAnswer = function\(team, value, btn\) \{[\s\S]{0,3000}_scheduleNextQuestion\(team\);/.test(src));
+// R5-1: handleAnswer + QuestionRenderer extracted (P1-R1/R3 refactor)
+assert('R5-1  QuestionRenderer object exists',
+  /const QuestionRenderer = \{/.test(src));
+assert('R5-1  showQuestion dispatches via QuestionRenderer',
+  /QuestionRenderer\[layout\]/.test(src));
 // R5-2: _compareAnswer helper exists
 assert('R5-2  _compareAnswer helper defined',
   /function _compareAnswer\(expected, actual, type\) \{/.test(src));
@@ -958,8 +961,8 @@ assert('EASY-31 easy mode shows only active team card',
 assert('EASY-32 nextTeamInCoop updates card visibility in easy mode',
   /nextTeamInCoop/.test(src) && /card/.test(src) && /hidden/.test(src));
 // V3.6-SEN P2: TTS + animations + keyboard
-assert('EASY-33 easy mode auto-plays TTS on new question',
-  /auto-plays TTS/.test(src));
+assert('EASY-33 showQuestionSEN calls TTS.speak',
+  /showQuestionSEN\(q\) \{[\s\S]{0,6000}TTS\.speak\(text, null/.test(src));
 assert('EASY-34 keyboard shortcuts blocked in easy mode',
   /no keyboard shortcuts/.test(src));
 assert('EASY-35 flash-correct animation 1.2s (not 0.6s)',

@@ -3278,9 +3278,258 @@ const Game = {
       });
     }
   },
+
+  // P1-R3: defined here (not a separate reassignment) — avoids closure ambiguity
+  handleAnswer(team, value, btn) {
+    if (!Game.state.running || Game.state.paused || Game.state.ended) return;
+    const q = Game.state.current[team];
+    if (!q) return;
+
+    // V3.6-SEN: ultra-simple mode — feedback + stats only, skip boss/castle/energy
+    if (Game.settings.difficulty === 'easy') {
+      const correct = _compareAnswer(q.answer, value, q.type).correct;
+      UI._senShowFeedback(correct);
+      Game.state.teams[team].total++;
+      if (correct) {
+        Game.state.teams[team].correct++;
+        Audio.correct && Audio.correct();
+      } else {
+        Game.state.teams[team].wrong++;
+        Audio.wrong && Audio.wrong();
+      }
+      _recordAnswerStats(team, q, correct);
+      UI.refreshSENScreen();
+      _scheduleNextQuestion(team);
+      return;
+    }
+
+    const { correct } = _compareAnswer(q.answer, value, q.type);
+    if (_handlePendingUlt(team, q, value, correct, btn)) return;
+    Game.state.teams[team].total++;
+    const prevRagePct = s_prevRagePct();
+    if (correct) _applyCorrectEffects(team, q, btn, prevRagePct);
+    else _applyWrongEffects(team, q, btn);
+    _recordAnswerStats(team, q, correct);
+    UI.updateTeam(team);
+    _scheduleNextQuestion(team);
+  },
 };
 
 /* ============== [6] UI Updates ============== */
+
+/* ---- Question layout renderers (extracted from showQuestion) ----
+ * Each function receives (q, team, area) and appends DOM nodes to area.
+ * Pure rendering — no state mutation, no Audio/TTS calls.
+ * New layouts: add a function here + one line in the QuestionRenderer dispatch map.
+ */
+const QuestionRenderer = {
+  // --- sym-button: compare10 three symbol buttons ---
+  'sym-button'(q, team, area) {
+    if (Game.settings.mode === 'keypad') return false; // fall through to keypad
+    const row = document.createElement('div');
+    row.className = 'q-sym-row';
+    row.setAttribute('role', 'group');
+    row.setAttribute('aria-label', '大小比較');
+    const symLabelMap = { '<': '細過', '=': '等於', '>': '大過' };
+    ['<', '=', '>'].forEach(sym => {
+      const b = document.createElement('button');
+      b.className = 'q-sym-btn';
+      b.textContent = sym === '<' ? '＜ (細)' : sym === '>' ? '＞ (大)' : '＝ (等)';
+      b.setAttribute('aria-label', symLabelMap[sym]);
+      b.dataset.sym = sym;
+      b.onclick = () => Game.handleAnswer(team, sym, b);
+      row.appendChild(b);
+    });
+    area.appendChild(row);
+    return true;
+  },
+
+  // --- order: three numbers to arrange smallest→largest ---
+  'order'(q, team, area) {
+    if (Game.settings.mode === 'keypad') {
+      const hint = document.createElement('div');
+      hint.className = 'text-center text-amber-200 text-sm mt-2 font-bold';
+      hint.textContent = '👆 keypad：按正確順序 (細→大) 撳 3 個鍵';
+      area.appendChild(hint);
+    }
+    const row = document.createElement('div');
+    row.className = 'q-order-row';
+    const order = [];
+    q.displayNums.forEach(n => {
+      const b = document.createElement('button');
+      b.className = 'q-order-btn';
+      b.textContent = n;
+      b.dataset.n = n;
+      b.onclick = () => {
+        if (b.classList.contains('used')) return;
+        b.classList.add('used');
+        order.push(n);
+        if (order.length === 3) Game.handleAnswer(team, order, row);
+      };
+      row.appendChild(b);
+    });
+    area.appendChild(row);
+    return true;
+  },
+
+  // --- clock: visual clock + answer options ---
+  'clock'(q, team, area) {
+    const clock = document.createElement('div');
+    clock.className = 'q-clock';
+    const hour = q.extra.hour;
+    const deg = hour * 30;
+    clock.innerHTML = `
+      <svg viewBox="0 0 16 16" role="img" aria-label="時鐘顯示 ${hour} 點" style="width:140px;height:140px;">
+        <use href="#px-clock-base"/>
+        <line x1="8" y1="8" x2="8" y2="3" stroke="#dc2626" stroke-width="1.2" transform="rotate(${deg} 8 8)"/>
+        <line x1="8" y1="8" x2="11" y2="8" stroke="#1e293b" stroke-width="0.6"/>
+      </svg>`;
+    area.appendChild(clock);
+    if (Game.settings.mode === 'keypad') {
+      const hint = document.createElement('div');
+      hint.className = 'text-center text-amber-200 text-sm mt-2 font-bold';
+      hint.textContent = '👆 keypad 答 1-12 點';
+      area.appendChild(hint);
+      return false; // fall through to keypad renderer
+    }
+    const grid = document.createElement('div');
+    grid.className = 'grid grid-cols-2 gap-2 mt-3';
+    const hourOpts = [hour];
+    while (hourOpts.length < 4) {
+      const fake = randInt(1, 12);
+      if (!hourOpts.includes(fake)) hourOpts.push(fake);
+    }
+    shuffle(hourOpts).forEach(h => {
+      const b = document.createElement('button');
+      b.className = 'option-btn';
+      b.textContent = h + ' 點';
+      b.onclick = () => Game.handleAnswer(team, h, b);
+      grid.appendChild(b);
+    });
+    area.appendChild(grid);
+    return true;
+  },
+
+  // --- shape: shape SVG + label buttons ---
+  'shape'(q, team, area) {
+    const shapeWrap = document.createElement('div');
+    shapeWrap.className = 'q-shape';
+    shapeWrap.innerHTML = `<svg viewBox="0 0 16 16"><use href="#px-shape-${q.answer}"/></svg>`;
+    area.appendChild(shapeWrap);
+    const labelMap = { circle:'圓形', square:'方形', triangle:'三角形', star:'星形' };
+    if (Game.settings.mode === 'keypad') {
+      const hint = document.createElement('div');
+      hint.className = 'text-center text-amber-200 text-sm mt-2 font-bold';
+      hint.textContent = '👆 keypad 答 1=圓 / 2=方 / 3=三 / 4=星';
+      area.appendChild(hint);
+      const shapeToNum = {};
+      q.options.forEach((s, i) => { shapeToNum[i + 1] = s; });
+      q._shapeToNum = shapeToNum;
+      q._labelMap = labelMap;
+      q._isShapeKeypad = true;
+      return false; // fall through to keypad renderer
+    }
+    const grid = document.createElement('div');
+    grid.className = 'grid grid-cols-2 gap-2';
+    q.options.forEach(opt => {
+      const b = document.createElement('button');
+      b.className = 'option-btn';
+      b.textContent = labelMap[opt] || opt;
+      b.onclick = () => Game.handleAnswer(team, opt, b);
+      grid.appendChild(b);
+    });
+    area.appendChild(grid);
+    return true;
+  },
+
+  // --- numeric / parts-emoji: choice grid or numeric keypad ---
+  'numeric'(q, team, area) {
+    if (Game.settings.mode === 'keypad') return false; // fall through to keypad
+    const opts = q.options || [q.answer];
+    const grid = document.createElement('div');
+    grid.className = 'grid grid-cols-2 gap-2';
+    grid.setAttribute('role', 'group');
+    grid.setAttribute('aria-label', '答案選項');
+    const optLabels = q.optionLabels || null;
+    opts.forEach(opt => {
+      const b = document.createElement('button');
+      b.className = 'option-btn';
+      if (optLabels && optLabels[opt] !== undefined) {
+        b.textContent = optLabels[opt];
+        b.setAttribute('aria-label', optLabels[opt]);
+      } else {
+        b.textContent = String(opt);
+        b.setAttribute('aria-label', `答案 ${opt}`);
+      }
+      b.onclick = () => Game.handleAnswer(team, opt, b);
+      grid.appendChild(b);
+    });
+    area.appendChild(grid);
+    return true;
+  },
+
+  // --- keypad: generic numeric or sym keypad ---
+  'keypad'(q, team, area, extra) {
+    const isSymAnswer = extra && extra.isSym;
+    const wrap = document.createElement('div');
+    wrap.className = 'space-y-2';
+    const display = document.createElement('div');
+    display.className = 'bg-black/50 rounded-xl text-center text-3xl font-extrabold py-3 tracking-widest';
+    display.textContent = '_ _';
+    display.setAttribute('aria-live', 'polite');
+    display.setAttribute('aria-atomic', 'true');
+    display.setAttribute('aria-label', '已輸入答案');
+    wrap.appendChild(display);
+    const kb = document.createElement('div');
+    kb.className = 'grid grid-cols-3 gap-2';
+    kb.setAttribute('role', 'group');
+    kb.setAttribute('aria-label', '數字鍵盤');
+    const keys = isSymAnswer
+      ? ['<', '=', '>', 'clear', '0', 'ok']
+      : ['1','2','3','4','5','6','7','8','9','clear','0','ok'];
+    keys.forEach(k => {
+      const b = document.createElement('button');
+      b.textContent = k === 'clear' ? '⌫' : k === 'ok' ? '✓' : k;
+      if (k === 'clear') b.setAttribute('aria-label', '清除');
+      else if (k === 'ok') b.setAttribute('aria-label', '確定');
+      else if (isSymAnswer && k === '<') b.setAttribute('aria-label', '細過');
+      else if (isSymAnswer && k === '=') b.setAttribute('aria-label', '等於');
+      else if (isSymAnswer && k === '>') b.setAttribute('aria-label', '大過');
+      else b.setAttribute('aria-label', `數字 ${k}`);
+      const isSymKey = isSymAnswer && (k === '<' || k === '=' || k === '>');
+      b.className = 'key-btn' + (k === 'clear' ? ' clear' : k === 'ok' ? ' fn' : '') + (isSymKey ? ' sym' : '');
+      b.onclick = () => {
+        let cur = display.dataset.v || '';
+        if (k === 'clear') { cur = ''; }
+        else if (k === 'ok') {
+          if (q._isShapeKeypad) {
+            const num = parseInt(cur || '0', 10);
+            const shape = q._shapeToNum[num];
+            if (shape) Game.handleAnswer(team, shape, b);
+            return;
+          }
+          const isNumericAnswer = typeof q.answer === 'number';
+          const val = isNumericAnswer ? parseInt(cur || '0', 10) : cur;
+          Game.handleAnswer(team, val);
+          return;
+        } else {
+          if (isSymAnswer && (k === '<' || k === '=' || k === '>')) {
+            Game.handleAnswer(team, k, b);
+            return;
+          }
+          cur += k; if (cur.length > 4) cur = cur.slice(-4);
+        }
+        display.dataset.v = cur;
+        display.textContent = cur ? cur : '_ _';
+      };
+      kb.appendChild(b);
+    });
+    wrap.appendChild(kb);
+    area.appendChild(wrap);
+    return true;
+  },
+};
+
 const UI = {
   refreshAll() {
     this.updateBoss();
@@ -3495,11 +3744,9 @@ const UI = {
   },
 
   showQuestion(team) {
-    const t = Game.state.teams[team];
     const q = Game.state.current[team];
     if (!q) return;
-    // V3.4-AUDIT5: TTS cancel-on-question-change — always call first
-    // V3.6-SEN: also cancels stale utterances from normal mode before SEN switch
+    // V3.4-AUDIT5: TTS cancel-on-question-change
     TTS.cancel();
     // V3.6-SEN: easy mode uses ultra-simple SEN screen renderer
     if (Game.settings.difficulty === 'easy') {
@@ -3507,25 +3754,18 @@ const UI = {
       return;
     }
     const reg = TYPE_REGISTRY[q.type] || { layout:'numeric' };
-    TTS.cancel();
 
-    // === 渲染題目文 (parts-based) ===
+    // Render question text (parts-based)
     UI.renderQuestionTextFor(team, q);
 
-    // V3.4-F2: wire TTS button — 朗讀題目 (對 SE
-    // V3.5-P0: pass onBoundary + tokensRef 
+    // Wire TTS button
     const ttsBtn = $(`${team}-tts-btn`);
     if (ttsBtn) {
       ttsBtn.onclick = () => {
         const text = (q.parts ? q.parts.join('') : q.text) || '';
-    // V3.5-P0: tokensRef is a LAZY accessor
-        // onboundary, the question may have already changed (user clicked
-        // through fast), so we re-query the DOM each fire rather than
-        // capturing a stale NodeList at click time.
         const tokensRoot = () => $(`${team}-question-text`);
         const onBoundary = Game.settings.ttsKaraoke !== false
-          ? UI._ttsKaraokeBoundary(tokensRoot)
-          : null;
+          ? UI._ttsKaraokeBoundary(tokensRoot) : null;
         const onEnd = Game.settings.ttsKaraoke !== false
           ? () => {
               const root = tokensRoot();
@@ -3536,240 +3776,23 @@ const UI = {
         TTS.speak(text, ttsBtn, { onBoundary, onEnd });
       };
     }
-    // V3.6-SEN: easy mode auto-plays TTS on new question
-    if (Game.settings.difficulty === 'easy' && Game.settings.ttsEnabled) {
-      const text = (q.parts ? q.parts.join('') : q.text) || '';
-      if (text) TTS.speak(text, ttsBtn, {});
-    }
 
-    // === 渲染答案 area (依 layout dispatch) ===
+    // Dispatch to layout renderer
     const area = $(`${team}-answer-area`);
     area.innerHTML = '';
 
-    if (reg.layout === 'sym-button') {
-      // v3.1: compare10 兩 mode — 'sym-button' 三按鈕 OR 'keypad' 打 < = >
-      if (Game.settings.mode === 'keypad') {
-        // fall through to keypad flow (with < = > keys added) — handled below
-      } else {
-        const row = document.createElement('div');
-        row.className = 'q-sym-row';
-        row.setAttribute('role', 'group');
-        row.setAttribute('aria-label', '大小比較');
-        const symLabelMap = { '<': '細過', '=': '等於', '>': '大過' };
-        ['<', '=', '>'].forEach(sym => {
-          const b = document.createElement('button');
-          b.className = 'q-sym-btn';
-          b.textContent = sym === '<' ? '＜ (細)' : sym === '>' ? '＞ (大)' : '＝ (等)';
-    // V3.4-AUDIT4: aria-label 取代 screen-rea
-          b.setAttribute('aria-label', symLabelMap[sym]);
-          b.dataset.sym = sym;
-          b.onclick = () => Game.handleAnswer(team, sym, b);
-          row.appendChild(b);
-        });
-        area.appendChild(row);
-        return;
+    const layout = reg.layout;
+    const renderer = QuestionRenderer[layout];
+    if (renderer) {
+      const extra = { isSym: layout === 'sym-button' };
+      const fellThrough = renderer(q, team, area, extra);
+      // false = renderer signalled fall-through to keypad
+      if (!fellThrough && Game.settings.mode === 'keypad') {
+        QuestionRenderer['keypad'](q, team, area, extra);
       }
-    }
-    if (reg.layout === 'order') {
-      // v3.2: ordering — keypad mode 顯示原數按鍵 + 提示「按正確順序」
-      if (Game.settings.mode === 'keypad') {
-        const hint = document.createElement('div');
-        hint.className = 'text-center text-amber-200 text-sm mt-2 font-bold';
-        hint.textContent = '👆 keypad：按正確順序 (細→大) 撳 3 個鍵';
-        area.appendChild(hint);
-      }
-      const row = document.createElement('div');
-      row.className = 'q-order-row';
-      const order = []; // clicked sequence
-      q.displayNums.forEach(n => {
-        const b = document.createElement('button');
-        b.className = 'q-order-btn';
-        b.textContent = n;
-        b.dataset.n = n;
-        b.onclick = () => {
-          if (b.classList.contains('used')) return;
-          b.classList.add('used');
-          order.push(n);
-          if (order.length === 3) {
-            // v3.2: pass order array 直接 — handleAnswer 做 array compare
-            Game.handleAnswer(team, order, row);
-          }
-        };
-        row.appendChild(b);
-      });
-      area.appendChild(row);
-      return;
-    }
-    if (reg.layout === 'clock') {
-      // v3.2: clock 視覺 + keypad mode 落 generic numeric keypad
-      const clock = document.createElement('div');
-      clock.className = 'q-clock';
-      const hour = q.extra.hour;
-      const deg = hour * 30;
-    // V3.4-AUDIT4: clock SVG 加 role+aria-la
-      clock.innerHTML = `
-        <svg viewBox="0 0 16 16" role="img" aria-label="時鐘顯示 ${hour} 點" style="width:140px;height:140px;">
-          <use href="#px-clock-base"/>
-          <line x1="8" y1="8" x2="8" y2="3" stroke="#dc2626" stroke-width="1.2" transform="rotate(${deg} 8 8)"/>
-          <line x1="8" y1="8" x2="11" y2="8" stroke="#1e293b" stroke-width="0.6"/>
-        </svg>`;
-      area.appendChild(clock);
-      if (Game.settings.mode === 'keypad') {
-        // 提示用戶要打 1-12
-        const hint = document.createElement('div');
-        hint.className = 'text-center text-amber-200 text-sm mt-2 font-bold';
-        hint.textContent = '👆 keypad 答 1-12 點';
-        area.appendChild(hint);
-        // fall through to generic keypad flow (numeric) — 已有 keypad 渲染
-      } else {
-        const grid = document.createElement('div');
-        grid.className = 'grid grid-cols-2 gap-2 mt-3';
-        const hourOpts = [hour];
-        while (hourOpts.length < 4) {
-          const fake = randInt(1, 12);
-          if (!hourOpts.includes(fake)) hourOpts.push(fake);
-        }
-        shuffle(hourOpts).forEach(h => {
-          const b = document.createElement('button');
-          b.className = 'option-btn';
-          b.textContent = h + ' 點';
-          b.onclick = () => Game.handleAnswer(team, h, b);
-          grid.appendChild(b);
-        });
-        area.appendChild(grid);
-        return;
-      }
-    }
-    if (reg.layout === 'shape') {
-      // v3.2: shape SVG + keypad mode 落 generic keypad (1-4 揀)
-      const shapeWrap = document.createElement('div');
-      shapeWrap.className = 'q-shape';
-      shapeWrap.innerHTML = `<svg viewBox="0 0 16 16"><use href="#px-shape-${q.answer}"/></svg>`;
-      area.appendChild(shapeWrap);
-      const labelMap = { circle:'圓形', square:'方形', triangle:'三角形', star:'星形' };
-      if (Game.settings.mode === 'keypad') {
-        const hint = document.createElement('div');
-        hint.className = 'text-center text-amber-200 text-sm mt-2 font-bold';
-        hint.textContent = '👆 keypad 答 1=圓 / 2=方 / 3=三 / 4=星';
-        area.appendChild(hint);
-        // 將 shape options map to 1-4 for keypad input
-        const shapeToNum = {};
-        q.options.forEach((s, i) => { shapeToNum[i + 1] = s; });
-        q._shapeToNum = shapeToNum;
-        q._labelMap = labelMap;
-        // fall through to generic keypad — 但需 custom handleAnswer OK 路徑
-        // 為簡單：先在 keypad OK button 注入 shape→num map
-        q._isShapeKeypad = true;
-      } else {
-        const grid = document.createElement('div');
-        grid.className = 'grid grid-cols-2 gap-2';
-        q.options.forEach(opt => {
-          const b = document.createElement('button');
-          b.className = 'option-btn';
-          b.textContent = labelMap[opt] || opt;
-          b.onclick = () => Game.handleAnswer(team, opt, b);
-          grid.appendChild(b);
-        });
-        area.appendChild(grid);
-        return;
-      }
-    }
-
-    // === numeric + parts-emoji → 用原 choice/keypad flow ===
-    if (Game.settings.mode === 'choice') {
-      const opts = q.options || [q.answer];
-      const isEasy = Game.settings.difficulty === 'easy';
-      const grid = document.createElement('div');
-      // easy mode with 2-3 options: use 2-col grid (clean 1-row for 2 opts, 2+1 for 3 opts)
-      grid.className = isEasy ? 'grid grid-cols-2 gap-2' : 'grid grid-cols-2 gap-2';
-      grid.setAttribute('role', 'group');
-      grid.setAttribute('aria-label', '答案選項');
-    // V3.6: compareGroup uses optionLabels 
-      const optLabels = q.optionLabels || null;
-      opts.forEach(opt => {
-        const b = document.createElement('button');
-        b.className = 'option-btn';
-        // compareGroup: use text labels; clock: use "X 點鐘"; else: raw number
-        if (optLabels && optLabels[opt] !== undefined) {
-          b.textContent = optLabels[opt];
-        } else if (reg.layout === 'clock') {
-          b.textContent = String(opt);
-        } else {
-          b.textContent = String(opt);
-        }
-        if (optLabels && optLabels[opt] !== undefined) b.setAttribute('aria-label', optLabels[opt]);
-        else if (reg.layout === 'clock') b.setAttribute('aria-label', `${opt} 點鐘`);
-        else b.setAttribute('aria-label', `答案 ${opt}`);
-        b.onclick = () => Game.handleAnswer(team, opt, b);
-        grid.appendChild(b);
-      });
-      area.appendChild(grid);
     } else {
-      // keypad
-      const wrap = document.createElement('div');
-      wrap.className = 'space-y-2';
-      const display = document.createElement('div');
-      display.className = 'bg-black/50 rounded-xl text-center text-3xl font-extrabold py-3 tracking-widest';
-      display.textContent = '_ _';
-    // V3.4-AUDIT4: display 加 aria-live 讓 sc
-      display.setAttribute('aria-live', 'polite');
-      display.setAttribute('aria-atomic', 'true');
-      display.setAttribute('aria-label', '已輸入答案');
-      wrap.appendChild(display);
-
-      const kb = document.createElement('div');
-      kb.className = 'grid grid-cols-3 gap-2';
-      kb.setAttribute('role', 'group');
-      kb.setAttribute('aria-label', '數字鍵盤');
-      // v3.2: compare10 keypad 收縮成 6-key (3 sym + clear + 0 + ok)
-      const isSymAnswer = reg.layout === 'sym-button';
-      const keys = isSymAnswer
-        ? ['<', '=', '>', 'clear', '0', 'ok']
-        : ['1','2','3','4','5','6','7','8','9','clear','0','ok'];
-      keys.forEach(k => {
-        const b = document.createElement('button');
-        b.textContent = (k === 'clear' ? '⌫' : k === 'ok' ? '✓' : k);
-    // V3.4-AUDIT4: aria-label 取代 textConten
-        if (k === 'clear') b.setAttribute('aria-label', '清除');
-        else if (k === 'ok') b.setAttribute('aria-label', '確定');
-        else if (isSymAnswer && k === '<') b.setAttribute('aria-label', '細過');
-        else if (isSymAnswer && k === '=') b.setAttribute('aria-label', '等於');
-        else if (isSymAnswer && k === '>') b.setAttribute('aria-label', '大過');
-        else b.setAttribute('aria-label', `數字 ${k}`);
-        // v3.1: compare10 keypad mode — < = > 紫粉 highlight
-        const isSymKey = isSymAnswer && (k === '<' || k === '=' || k === '>');
-        b.className = 'key-btn' + (k === 'clear' ? ' clear' : k === 'ok' ? ' fn' : '') + (isSymKey ? ' sym' : '');
-        b.onclick = () => {
-          let cur = display.dataset.v || '';
-          if (k === 'clear') { cur = ''; }
-          else if (k === 'ok') {
-            // v3.2: shape keypad mode — 1-4 轉 shape key
-            if (q._isShapeKeypad) {
-              const num = parseInt(cur || '0', 10);
-              const shape = q._shapeToNum[num];
-              if (shape) Game.handleAnswer(team, shape, b);
-              return;
-            }
-            // v3.2: whatTime keypad — 數字直接係 hour
-            const isNumericAnswer = typeof q.answer === 'number';
-            const val = isNumericAnswer ? parseInt(cur || '0', 10) : cur;
-            Game.handleAnswer(team, val);
-            return;
-          } else {
-            // v3.2: sym-button keypad 單鍵 auto-submit
-            if (isSymAnswer && (k === '<' || k === '=' || k === '>')) {
-              Game.handleAnswer(team, k, b);
-              return;
-            }
-            cur += k; if (cur.length > 4) cur = cur.slice(-4);
-          }
-          display.dataset.v = cur;
-          display.textContent = cur ? cur : '_ _';
-        };
-        kb.appendChild(b);
-      });
-      wrap.appendChild(kb);
-      area.appendChild(wrap);
+      // Unknown layout → numeric choice fallback
+      QuestionRenderer['numeric'](q, team, area);
     }
   },
 
@@ -3919,10 +3942,12 @@ function escapeHTML(s) {
   return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
-/* ============== P0-2: 答案 XOR 編碼 ============== */
-// DevTools 直接睇 data-answer-decoded 拎到答案 → 用簡單 XOR 加密
-// 純 client-side 所以唔係真安全，只係擋 casual inspect
-const ANSWER_KEY = 0x5A;  // 學生打開 DevTools 仍可 reverse-engineer，但 quick inspect 拎唔到
+/* ============== P0-2: 答案 XOR 編碼 (dev-only) ============== */
+// NOT SECURITY — 純 client-side，學生打開 DevTools 仍可 decode。
+// 目的：擋 casual quick-inspect（家長/同學偶然瞄到）。
+// Safe to remove: deleting these 4 lines makes answers always visible in DevTools,
+// which is fine for a single-player classroom game.
+const ANSWER_KEY = 0x5A;
 function encodeAnswer(s) {
   return String(s).split('').map(c => (c.charCodeAt(0) ^ ANSWER_KEY).toString(16).padStart(2,'0')).join('');
 }
@@ -4759,44 +4784,8 @@ function _scheduleNextQuestion(team) {
   }
 }
 
-Game.handleAnswer = function(team, value, btn) {
-  if (!Game.state.running || Game.state.paused || Game.state.ended) return;
-  const q = Game.state.current[team];
-  if (!q) return;
-
-  // V3.6-SEN: ultra-simple mode — show feedback and refresh, skip boss/castle/energy effects
-  // V3.6-SEN-FIX: still play SFX + record Profile/Adaptive stats (was silent / no progress)
-  if (Game.settings.difficulty === 'easy') {
-    const correct = _compareAnswer(q.answer, value, q.type).correct;
-    UI._senShowFeedback(correct);
-    Game.state.teams[team].total++;
-    if (correct) {
-      Game.state.teams[team].correct++;
-      Audio.correct && Audio.correct();
-    } else {
-      Game.state.teams[team].wrong++;
-      Audio.wrong && Audio.wrong();
-    }
-    _recordAnswerStats(team, q, correct);
-    UI.refreshSENScreen();
-    _scheduleNextQuestion(team);
-    return;
-  }
-
-  const { correct } = _compareAnswer(q.answer, value, q.type);
-
-  // Pending ult branch — return early (唔計入 regular stats)
-  if (_handlePendingUlt(team, q, value, correct, btn)) return;
-
-  // Regular answer — stats + effects + post-stats + next-question
-  Game.state.teams[team].total++;
-  const prevRagePct = s_prevRagePct();
-  if (correct) _applyCorrectEffects(team, q, btn, prevRagePct);
-  else _applyWrongEffects(team, q, btn);
-  _recordAnswerStats(team, q, correct);
-  UI.updateTeam(team);
-  _scheduleNextQuestion(team);
-};
+// P1-R3: Game.handleAnswer is now defined inside the Game object (above).
+// This comment block marks the old reassignment site — safe to remove.
 
 function highlightBtn(btn, correct) {
   if (!btn) return;
@@ -6274,6 +6263,9 @@ function archiveReport() {
 const TYPE_ORDER = ['add10','sub10','add20','sub20','add2d','sub2d'];   // 簡單 → 難
 const Adaptive = {
   // Per-type rolling counters — 跨 team 共享一個 counter 易壞，per-team 準確啲
+  // NOTE: counters{} is session-only (not persisted). Reload resets all streak state.
+  // profile.statsByType persists per-type accuracy, so mastery check survives reload,
+  // but the upgrade/downgrade streak does not. Acceptable tradeoff for v3.x.
   counters: {}, // { [team]: { [type]: { streak: int, dir: +1/-1 } } }
   ensure(team, type) {
     if (!this.counters[team]) this.counters[team] = {};
