@@ -2566,7 +2566,8 @@ const Generators = {
     // 4 選 1 — 3 個錯誤 random
     const distractors = shuffle(others).slice(0, 3);
     const options = shuffle([pick, ...distractors]);
-    return { parts: [`這是什麼形狀？`], answer: pick, type:'shapeMatch', options, optionLabels: shapes.map(s => labels[s]) };
+    // optionLabels MUST be map-by-value {circle:'圓形',...} — array breaks labels[opt] lookup after shuffle
+    return { parts: [`這是什麼形狀？`], answer: pick, type:'shapeMatch', options, optionLabels: labels };
   },
   // 由小到大排 3 個數 (1-20)
   ordering() {
@@ -3809,41 +3810,52 @@ const UI = {
     const fb = $('sen-feedback');
     if (fb) fb.innerHTML = '';  // clear feedback
 
-    // V3.6-SEN-fix: split each part by emoji char so mixed strings like '🍎 + 🍌'
-    // render correctly — emoji clusters go to emojiEl, operators/text to textEl
+    // V3.6-SEN-FIX: split by Unicode code point (not UTF-16 unit).
+    // part[i] breaks astral emoji (🍎 = 2 code units) → emojiEl always empty.
+    // for...of / codePointAt walks full grapheme-ish code points.
     if (q.parts) {
       const chineseMap = {
         '+':'加','-':'減','=':'等於','?':'？','❓':'等於幾多？',
         '◁':'細啲','▷':'大啲','＝':'等於',' ':''
       };
-      const isEmoji = c => /^[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]$/u.test(c);
+      const isEmojiCP = (cp) =>
+        (cp >= 0x1F300 && cp <= 0x1FAFF) ||
+        (cp >= 0x2600 && cp <= 0x27BF) ||
+        (cp >= 0x1F600 && cp <= 0x1F64F) ||
+        (cp >= 0x1F900 && cp <= 0x1F9FF);
       const emojiParts = [];
       const textTokens = [];
       q.parts.forEach(part => {
-        let i = 0;
-        while (i < part.length) {
-          const c = part[i];
-          if (isEmoji(c)) {
-            let cluster = '';
-            while (i < part.length && isEmoji(part[i])) { cluster += part[i]; i++; }
-            emojiParts.push(cluster);
-          } else {
-            // Collect non-emoji run
-            let run = '';
-            while (i < part.length && !isEmoji(part[i])) { run += part[i]; i++; }
-            // Normalize operator spacing and map to Chinese
-            const normalized = run.replace(/\s+/g, ' ').trim();
-            if (normalized) {
-              textTokens.push(chineseMap[normalized] || normalized.replace(/\?/g,'？'));
+        let bufE = '', bufT = '';
+        const flush = () => {
+          if (bufE) { emojiParts.push(bufE); bufE = ''; }
+          if (bufT) {
+            let mapped = '';
+            for (const ch of bufT.replace(/\s+/g, ' ').trim()) {
+              if (Object.prototype.hasOwnProperty.call(chineseMap, ch)) mapped += chineseMap[ch];
+              else mapped += ch === '?' ? '？' : ch;
             }
+            if (mapped) textTokens.push(mapped);
+            bufT = '';
+          }
+        };
+        for (const ch of part) {
+          const cp = ch.codePointAt(0);
+          if (isEmojiCP(cp)) {
+            if (bufT) flush();
+            bufE += ch;
+          } else {
+            if (bufE) flush();
+            bufT += ch;
           }
         }
+        flush();
       });
-      emojiEl.textContent = emojiParts.join(' ');
-      textEl.textContent = textTokens.join('');
+      if (emojiEl) emojiEl.textContent = emojiParts.join(' ');
+      if (textEl) textEl.textContent = textTokens.join('');
     } else {
-      emojiEl.textContent = q.text || '';
-      textEl.textContent = '';
+      if (emojiEl) emojiEl.textContent = q.text || '';
+      if (textEl) textEl.textContent = '';
     }
 
     // Build option buttons (shuffled so correct answer isn't always in same spot)
@@ -4189,10 +4201,17 @@ function _wireSENScreen() {
   _senScreenWired = true;
   const backBtn = $('sen-btn-back');
   if (backBtn) backBtn.onclick = () => {
+    // V3.6-SEN-FIX: full abandon cleanup — stop loop/BGM/TTS/snapshot, don't unhide combat UI
+    TTS.cancel();
     Game.state.running = false;
-    $('screen-game-sen').classList.add('hidden');
-    $('screen-game').classList.remove('hidden');
-    $('screen-menu').classList.remove('hidden');
+    Game.state.paused = false;
+    Game.state.ended = false;
+    if (window._mgLoop) { clearInterval(window._mgLoop); window._mgLoop = null; }
+    Audio.stopBGM();
+    Snapshot.clear();
+    const sen = $('screen-game-sen'); if (sen) sen.classList.add('hidden');
+    const game = $('screen-game'); if (game) game.classList.add('hidden');
+    const menu = $('screen-menu'); if (menu) menu.classList.remove('hidden');
   };
   const ttsBtn = $('sen-btn-tts');
   if (ttsBtn) {
@@ -4487,7 +4506,7 @@ function startGame() {
   $('screen-menu').classList.add('hidden');
   $('screen-end').classList.add('hidden');
   // V3.6-SEN: easy mode uses ultra-simple screen, normal uses full game UI
-  const isEasy = Game.settings.difficulty === 'easy';
+  // (reuse isEasy from earlier in startGame — do NOT redeclare const)
   $('screen-game').classList.toggle('hidden', isEasy);
   $('screen-game-sen').classList.toggle('hidden', !isEasy);
   // V3.6-SEN: wire SEN screen controls on first entry
@@ -4746,12 +4765,19 @@ Game.handleAnswer = function(team, value, btn) {
   if (!q) return;
 
   // V3.6-SEN: ultra-simple mode — show feedback and refresh, skip boss/castle/energy effects
+  // V3.6-SEN-FIX: still play SFX + record Profile/Adaptive stats (was silent / no progress)
   if (Game.settings.difficulty === 'easy') {
     const correct = _compareAnswer(q.answer, value, q.type).correct;
     UI._senShowFeedback(correct);
     Game.state.teams[team].total++;
-    if (correct) Game.state.teams[team].correct++;
-    else Game.state.teams[team].wrong++;
+    if (correct) {
+      Game.state.teams[team].correct++;
+      Audio.correct && Audio.correct();
+    } else {
+      Game.state.teams[team].wrong++;
+      Audio.wrong && Audio.wrong();
+    }
+    _recordAnswerStats(team, q, correct);
     UI.refreshSENScreen();
     _scheduleNextQuestion(team);
     return;
@@ -4848,6 +4874,18 @@ function gameLoop() {
   if (!Game.state.running || Game.state.paused || Game.state.ended) return;
   const s = Game.state;
   const tNow = now();
+
+  // V3.6-SEN-FIX: easy = pure practice. No castle damage / frost / forced lose.
+  // (UI already hides boss+castle; silent attacks previously caused auto-defeat.)
+  if (Game.settings.difficulty === 'easy') {
+    if (Game.settings.win === 'time' && s.timeLimitSec > 0) {
+      if (!s._startAt) s._startAt = tNow;
+      const elapsed = Math.floor((tNow - s._startAt) / 1000);
+      s.timeLeftSec = Math.max(0, s.timeLimitSec - elapsed);
+      if (s.timeLeftSec === 0) endGame(true); // practice complete = win
+    }
+    return;
+  }
 
   // 限時模式
   if (Game.settings.win === 'time' && s.timeLimitSec > 0) {

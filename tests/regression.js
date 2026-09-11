@@ -986,6 +986,53 @@ assert('EASY-44 _wireSENScreen function exists',
   /function _wireSENScreen/.test(src));
 assert('EASY-45 SEN screen has option area id',
   /id="sen-options-area"/.test(src));
+// V3.6-SEN cycle36: startGame must NOT redeclare const isEasy (TDZ/SyntaxError)
+assert('EASY-46 startGame declares const isEasy exactly once', (() => {
+  const m = src.match(/function startGame\s*\([^)]*\)\s*\{[\s\S]*?\n\}/);
+  if (!m) return false;
+  const decls = m[0].match(/\bconst isEasy\b/g) || [];
+  return decls.length === 1;
+})());
+// V3.6-SEN cycle36: full script must parse (node --check equivalent via Function)
+assert('EASY-47 main script parses without SyntaxError', (() => {
+  const blocks = src.match(/<script(?![^>]*src=)[^>]*>([\s\S]*?)<\/script>/gi) || [];
+  // largest inline script = main runtime
+  let main = '';
+  for (const b of blocks) {
+    const body = b.replace(/^[\s\S]*?>/, '').replace(/<\/script>$/i, '');
+    if (body.length > main.length) main = body;
+  }
+  try {
+    // Function ctor parses without executing top-level browser APIs as runtime
+    // (still throws on SyntaxError like duplicate const)
+    new Function(main);
+    return true;
+  } catch (e) {
+    if (e instanceof SyntaxError) return false;
+    // ReferenceError etc. at parse-of-body shouldn't happen with Function; treat other as pass-parse
+    return !(e instanceof SyntaxError);
+  }
+})());
+// V3.6-SEN cycle36 batch: emoji / loop / back / shape labels / easy stats
+assert('EASY-48 showQuestionSEN splits emoji via codePointAt (not part[i])',
+  /showQuestionSEN[\s\S]{0,1200}codePointAt/.test(src) &&
+  /isEmojiCP/.test(src) &&
+  !/showQuestionSEN[\s\S]{0,800}isEmoji = c =>/.test(src));
+assert('EASY-49 gameLoop early-returns in easy (no castle attack)',
+  /function gameLoop[\s\S]{0,500}difficulty === 'easy'[\s\S]{0,500}return;/.test(src));
+assert('EASY-50 easy time-up ends as win (endGame(true))',
+  /difficulty === 'easy'[\s\S]{0,400}endGame\(true\)/.test(src));
+assert('EASY-51 sen-btn-back clears _mgLoop + stopBGM + Snapshot.clear',
+  /sen-btn-back[\s\S]{0,600}_mgLoop[\s\S]{0,200}stopBGM[\s\S]{0,200}Snapshot\.clear/.test(src));
+assert('EASY-52 sen-btn-back keeps screen-game hidden (no combat unhide)',
+  /sen-btn-back[\s\S]{0,800}screen-game[\s\S]{0,80}classList\.add\('hidden'\)/.test(src));
+assert('EASY-53 shapeMatch optionLabels is value-map not shapes.map array',
+  /type:'shapeMatch'[\s\S]{0,80}optionLabels:\s*labels/.test(src) &&
+  !/optionLabels:\s*shapes\.map/.test(src));
+assert('EASY-54 easy handleAnswer records Profile stats via _recordAnswerStats',
+  /difficulty === 'easy'[\s\S]{0,500}_recordAnswerStats/.test(src));
+assert('EASY-55 easy handleAnswer plays Audio.correct / Audio.wrong',
+  /difficulty === 'easy'[\s\S]{0,400}Audio\.correct[\s\S]{0,200}Audio\.wrong/.test(src));
 
 // =========== summary ===========
 console.log(`\n========== ${pass} pass / ${fail} fail ==========`);
