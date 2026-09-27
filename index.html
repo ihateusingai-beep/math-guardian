@@ -5,7 +5,7 @@
      Stack: Tailwind CDN + vanilla JS, GitHub Pages deploy. -->
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="theme-color" content="#0b0d1a" />
 <title>數學守護者：精準訓練版 v3.6</title>
@@ -118,6 +118,8 @@
   * { -webkit-tap-highlight-color: transparent; }
   html, body {
     user-select: none; -webkit-user-select: none;
+    -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent;
     overscroll-behavior: none;
     touch-action: manipulation;
     background: var(--c-bg-deep);
@@ -126,6 +128,41 @@
     height: 100%;
   }
   body { overflow-x: hidden; }
+
+  /* V3.6 cycle42: identity cards */
+  .id-card {
+    min-height: 72px;
+    border-radius: 1rem;
+    border: 3px solid rgba(255,255,255,0.2);
+    background: rgba(255,255,255,0.08);
+    color: #fff;
+    font-weight: 800;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    padding: 0.5rem 0.25rem;
+  }
+  .id-card .id-emoji { font-size: 1.75rem; line-height: 1; }
+  .id-card .id-name { font-size: 0.75rem; opacity: 0.9; }
+  .id-card.opt-selected {
+    border-color: #fbbf24;
+    background: rgba(251,191,36,0.2);
+    box-shadow: 0 0 0 2px rgba(251,191,36,0.35);
+  }
+  /* V3.6 cycle42: 金銀銅 cert */
+  .end-medal {
+    font-size: 5rem;
+    line-height: 1;
+    filter: drop-shadow(0 8px 16px rgba(0,0,0,.45));
+    animation: badge-in 0.5s cubic-bezier(0.34,1.56,0.64,1) both;
+  }
+  .end-medal-label {
+    font-size: 1.25rem;
+    font-weight: 900;
+    margin-top: 0.25rem;
+  }
 
   /* ============== 全局 button 互動 feedback (P0-1) ============== */
   /* 解決「按下去冇反應」嘅心理疑慮 — 即時 visual ack < 100ms */
@@ -758,10 +795,40 @@
     color: #fff;
     cursor: pointer;
     transition: transform 0.1s, background 0.15s;
-    padding: 1rem 2rem;
+    padding: 1rem 1.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.85rem;
   }
   .sen-opt-btn:hover { background: rgba(255,255,255,0.2); transform: scale(1.02); }
   .sen-opt-btn:active { transform: scale(0.97); }
+  /* V3.6 cycle41: A/B/C gesture badges (render order) */
+  .sen-opt-letter {
+    flex-shrink: 0;
+    width: 2.6rem;
+    height: 2.6rem;
+    border-radius: 9999px;
+    background: #fbbf24;
+    color: #1e1b4b;
+    font-size: 1.6rem;
+    font-weight: 900;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    box-shadow: 0 2px 0 rgba(0,0,0,.25);
+  }
+  .sen-opt-val { line-height: 1.1; }
+  .sen-hint-line {
+    margin-top: 1rem;
+    font-size: 1.75rem;
+    font-weight: 800;
+    color: #fff;
+    text-shadow: 0 2px 8px rgba(0,0,0,.5);
+    max-width: 90vw;
+    padding: 0 1rem;
+  }
   @keyframes sen-fb {
     0%   { opacity: 1; }
     70%  { opacity: 1; }
@@ -1415,6 +1482,48 @@
 
     <div class="w-full max-w-xl bg-white/5 backdrop-blur-md border border-white/10 rounded-3xl p-4 md:p-6 space-y-4 md:space-y-5 shadow-2xl mb-6">
 
+      <!-- V3.6 cycle42: 身份卡（中度唔強制打字名） -->
+      <div>
+        <label class="text-sm font-bold text-amber-300 mb-2 block">揀你嘅身份</label>
+        <div id="identity-picker" class="grid grid-cols-4 gap-2" role="radiogroup" aria-label="身份卡"></div>
+        <div id="identity-helper" class="text-xs text-white/50 mt-2">可跳過 → 同學</div>
+      </div>
+
+      <!-- V3.6 cycle41: one-click simple practice (no student-facing SEN label) -->
+      <button id="btn-easy-start" class="w-full btn text-white text-xl py-4 mt-2 flex items-center justify-center gap-3"
+        style="background:linear-gradient(135deg,#a78bfa,#7c3aed);border:2px solid #c4b5fd;"
+        aria-label="一鍵開始簡單練習">
+        <span class="text-3xl">🌼</span>
+        <span>
+          <span class="block text-xl font-extrabold">簡單練習 · 一鍵開始</span>
+          <span class="text-xs opacity-80">自動揀 4 種簡單題 · 2-3 選一 · 專心模式 · 10 題</span>
+        </span>
+      </button>
+
+      <!-- 難度（學生可理解字眼；進階設定收喺下面） -->
+      <div>
+        <label class="text-sm font-bold text-amber-300 mb-2 block">難度</label>
+        <div class="grid grid-cols-2 gap-3" role="radiogroup" aria-label="難度">
+          <button class="opt-difficulty btn btn-ghost opt-selected" data-diff="normal" aria-pressed="true">
+            🌱 普通<br><span class="text-xs opacity-70">4 選一 · 數字較大</span>
+          </button>
+          <button class="opt-difficulty btn btn-ghost" data-diff="easy" aria-pressed="false">
+            🌼 簡單<br><span class="text-xs opacity-70">2-3 選一 · 題目簡單</span>
+          </button>
+        </div>
+        <div id="diff-helper" class="text-xs text-white/60 mt-2 leading-relaxed">
+          簡單模式：看圖數數（1-5）、淺加法（結果 1-9）、少選項、答 10 題完
+        </div>
+      </div>
+
+      <button type="button" id="btn-menu-advanced-toggle" class="w-full btn btn-ghost text-sm py-2 border border-white/15"
+        aria-expanded="false" aria-controls="menu-advanced">
+        ⚙️ 進階設定（老師）
+      </button>
+
+      <!-- Advanced combat settings — collapsed when simple mode -->
+      <div id="menu-advanced" class="space-y-5">
+
       <!-- 1a) Boss 選擇 (P1-C) — 動態生成已解鎖嘅 bosses -->
       <div>
         <label class="text-sm font-bold text-amber-300 mb-2 block">① 挑戰 Boss</label>
@@ -1422,17 +1531,6 @@
           <!-- JS injects cards -->
         </div>
       </div>
-
-      <!-- V3.6-SEN: 一鍵中度 SEN 模式 -->
-      <button id="btn-easy-start" class="w-full btn text-white text-xl py-4 mt-2 flex items-center justify-center gap-3"
-        style="background:linear-gradient(135deg,#a78bfa,#7c3aed);border:2px solid #c4b5fd;"
-        aria-label="一鍵開始中度 SEN 模式">
-        <span class="text-3xl">🌼</span>
-        <span>
-          <span class="block text-xl font-extrabold">中度 SEN 一鍵開始</span>
-          <span class="text-xs opacity-80">自動揀 4 種簡單題型 · 2-3 選一 · 專心模式</span>
-        </span>
-      </button>
 
       <!-- 1b) 勝利條件 -->
       <div>
@@ -1452,26 +1550,10 @@
       <div>
         <label class="text-sm font-bold text-amber-300 mb-2 block">③ 答題模式</label>
         <div class="grid grid-cols-2 gap-3" role="radiogroup" aria-label="答題模式">
-          <button class="opt-mode btn btn-ghost opt-selected" data-mode="choice" aria-pressed="true">四選一<br><span class="text-xs opacity-70">Multiple Choice</span></button>
-          <button class="opt-mode btn btn-ghost" data-mode="keypad" aria-pressed="false">數字鍵盤<br><span class="text-xs opacity-70">Numeric Keypad</span></button>
+          <button class="opt-mode btn btn-ghost opt-selected" data-mode="choice" aria-pressed="true">四選一<br><span class="text-xs opacity-70">撳掣揀答案</span></button>
+          <button class="opt-mode btn btn-ghost" data-mode="keypad" aria-pressed="false">數字鍵盤<br><span class="text-xs opacity-70">輸入數字</span></button>
         </div>
         <div id="mode-helper" class="text-xs text-white/60 mt-2 leading-relaxed"></div>
-      </div>
-
-      <!-- 2b) 難度：輕度（4選一）vs 中度 SEN（2-3選一） -->
-      <div>
-        <label class="text-sm font-bold text-amber-300 mb-2 block">③b 難度</label>
-        <div class="grid grid-cols-2 gap-3" role="radiogroup" aria-label="難度">
-          <button class="opt-difficulty btn btn-ghost opt-selected" data-diff="normal" aria-pressed="true">
-            🌱 輕度<br><span class="text-xs opacity-70">4 選一 · 數字較大</span>
-          </button>
-          <button class="opt-difficulty btn btn-ghost" data-diff="easy" aria-pressed="false">
-            🌼 中度 SEN<br><span class="text-xs opacity-70">2-3 選一 · 題目簡單</span>
-          </button>
-        </div>
-        <div id="diff-helper" class="text-xs text-white/60 mt-2 leading-relaxed">
-          中度 SEN 模式：看圖數數（1-5）、淺加法（結果 1-9）、少選項
-        </div>
       </div>
 
       <!-- 3) 題型 — v3.1 dynamic from TYPE_REGISTRY -->
@@ -1506,6 +1588,8 @@
         <label class="text-sm font-bold text-amber-300 mb-2 block">⑥ Boss 初始 HP <span id="hp-display" class="text-white font-extrabold ml-1">200</span></label>
         <input id="hp-slider" type="range" min="60" max="500" step="20" value="200" class="w-full" aria-label="Boss 初始 HP" aria-valuemin="60" aria-valuemax="500" aria-valuenow="200" aria-valuetext="Boss 初始生命值 200，範圍 60 至 500" />
       </div>
+
+      </div><!-- /#menu-advanced -->
 
       <!-- 開始 -->
       <button id="btn-start" class="w-full btn ultimate text-white text-xl mt-2 flex items-center justify-center gap-2" aria-label="開始守護戰役 — 開始新遊戲">
@@ -1683,12 +1767,13 @@
     </div>
   </section>
 
-  <!-- ========== V3.6-SEN: 超簡遊戲畫面 (中度 SEN 專用) ========== -->
+  <!-- ========== V3.6: 超簡遊戲畫面（簡單練習專用） ========== -->
   <section id="screen-game-sen" class="hidden fixed inset-0 flex flex-col items-center justify-center gap-6 p-6" style="background:#1e1b4b;z-index:50;">
     <!-- 頂部bar -->
     <div class="fixed top-0 left-0 right-0 flex items-center justify-between px-4 py-3" style="background:rgba(0,0,0,0.3);">
       <button id="sen-btn-back" class="text-white text-xl w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center" aria-label="返回主選單">⬅</button>
       <div class="flex items-center gap-3">
+        <div id="sen-who-badge" class="text-amber-200 font-extrabold text-lg">同學</div>
         <div id="sen-correct-badge" class="text-green-300 font-extrabold text-2xl">✅ 0</div>
         <div id="sen-wrong-badge" class="text-red-300 font-extrabold text-2xl">❌ 0</div>
       </div>
@@ -1718,7 +1803,9 @@
       <div id="end-icon" class="mb-3 flex justify-center" style="width:128px;height:128px;margin:0 auto;position:relative;">
         <svg id="end-icon-svg" class="pixel w-full h-full"><use href="#px-trophy"/></svg>
         <img id="end-boss-portrait" class="hidden" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;image-rendering:pixelated;" alt="">
+        <div id="end-medal" class="hidden end-medal" aria-hidden="true"></div>
       </div>
+      <div id="end-medal-label" class="hidden end-medal-label text-amber-300"></div>
       <h2 id="end-title" class="text-3xl font-extrabold mb-2">守護成功！</h2>
       <p id="end-message" class="text-white/80 mb-4">兩隊同心協力，森林巨魔已被擊退！</p>
       <div id="end-stats" class="bg-black/30 rounded-2xl p-4 mb-4 text-left space-y-2"></div>
@@ -2530,7 +2617,7 @@ const Generators = {
     if (roll < 0.40) { g2 = g1 + randInt(1, 2); ans = 2; }       // right more: 40%
     else if (roll < 0.75) { g2 = Math.max(1, g1 - randInt(1, 2)); ans = 1; } // left more: 35%
     else { g2 = g1; ans = 3; }                                              // equal: 25%
-    return { parts: [f1.repeat(g1), ' ? ', f2.repeat(g2)], answer: ans, type:'compareGroup', optionLabels:{1:'⬅️',2:'➡️',3:'⚖️'} };
+    return { parts: [f1.repeat(g1), ' ? ', f2.repeat(g2)], answer: ans, type:'compareGroup', optionLabels:{1:'左邊多',2:'右邊多',3:'一樣多'} };
   },
   // 大小比較 — answer ∈ '<' | '=' | '>'
   compare10() {
@@ -3216,7 +3303,9 @@ const Game = {
     ttsKaraoke: true,     // V3.5-P0: 朗讀題目時同步高亮文字 (per-token highlight synced to TTS boundary)
     adaptiveEnabled: true,// V3.5-AUDIT11: 自動推薦 next type chips (default ON; 學生睇到「✨ 建議」標記)
     recommendationEnabled: true, // V3.5-cycle16: 獨立 chips row (跟 adaptiveEnabled 分開)
-    difficulty: 'normal',       // 'normal' (4 選一) | 'easy' (2-3 選一，SEN 中度適用)
+    difficulty: 'normal',       // 'normal' (4 選一) | 'easy' (2-3 選一，簡單練習)
+    playerId: null,             // V3.6 cycle42: identity card id
+    playerLabel: '同學',        // display name e.g. 🐱 小貓
   },
 
   state: {
@@ -3289,8 +3378,13 @@ const Game = {
 
     // V3.6-SEN: ultra-simple mode — feedback + stats only, skip boss/castle/energy
     if (Game.settings.difficulty === 'easy') {
+      if (Game.state._easyEnding) return;
       const correct = _compareAnswer(q.answer, value, q.type).correct;
-      UI._senShowFeedback(correct);
+      if (!correct && Game.settings.instantHint !== false) {
+        UI._senShowFeedback(false, _easyHintText(q));
+      } else {
+        UI._senShowFeedback(correct);
+      }
       Game.state.teams[team].total++;
       if (correct) {
         Game.state.teams[team].correct++;
@@ -3301,7 +3395,18 @@ const Game = {
       }
       _recordAnswerStats(team, q, correct);
       UI.refreshSENScreen();
-      _scheduleNextQuestion(team);
+      // V3.6-SEN cycle37: N-question goal — easy + HP win never damaged boss → endless session
+      const goal = Game.state.easyGoalTotal || 0;
+      if (goal > 0 && Game.state.teams[team].total >= goal) {
+        // cycle42: lock immediately so delayed endGame isn't raced by more answers
+        Game.state._easyEnding = true;
+        Game.state.running = false;
+        const delay = correct ? 500 : 900;
+        setTimeout(() => { if (!Game.state.ended) endGame(true); }, delay);
+        return;
+      }
+      // cycle41: delay next Q so ✅/❌ + hint is readable
+      _scheduleNextQuestion(team, correct ? 650 : 1000);
       return;
     }
 
@@ -3877,7 +3982,13 @@ const UI = {
         flush();
       });
       if (emojiEl) emojiEl.textContent = emojiParts.join(' ');
-      if (textEl) textEl.textContent = textTokens.join('');
+      if (textEl) {
+        // cycle41: short Cantonese prompt — avoid mashed "加等於"
+        if (q.type === 'groupAdd') textEl.textContent = '加埋有幾多？';
+        else if (q.type === 'compareGroup') textEl.textContent = '邊邊多？';
+        else if (q.type === 'count10' || q.type === 'count1to3') textEl.textContent = '有幾多？';
+        else textEl.textContent = textTokens.join(' ');
+      }
     } else {
       if (emojiEl) emojiEl.textContent = q.text || '';
       if (textEl) textEl.textContent = '';
@@ -3893,16 +4004,16 @@ const UI = {
       [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
     }
     optsArea.innerHTML = '';
-    shuffled.forEach(opt => {
+    const LETTERS = ['A', 'B', 'C', 'D'];
+    shuffled.forEach((opt, idx) => {
       const b = document.createElement('button');
       b.className = 'sen-opt-btn';
-      if (labels && labels[opt] !== undefined) {
-        b.textContent = labels[opt];
-        b.setAttribute('aria-label', labels[opt]);
-      } else {
-        b.textContent = String(opt);
-        b.setAttribute('aria-label', `答案 ${opt}`);
-      }
+      const letter = LETTERS[idx] || String(idx + 1);
+      const val = (labels && labels[opt] !== undefined) ? String(labels[opt]) : String(opt);
+      b.innerHTML = `<span class="sen-opt-letter" aria-hidden="true">${letter}</span><span class="sen-opt-val"></span>`;
+      b.querySelector('.sen-opt-val').textContent = val;
+      b.setAttribute('aria-label', `${letter}. ${val}`);
+      b.dataset.letter = letter;
       b.onclick = () => {
         Game.handleAnswer('knight', opt, b);
       };
@@ -3916,20 +4027,23 @@ const UI = {
     }
   },
 
-  // Brief green/red feedback overlay
-  _senShowFeedback(correct) {
+  // Brief green/red feedback overlay (+ optional wrong-answer hint)
+  _senShowFeedback(correct, hintText) {
     const fb = $('sen-feedback');
     if (!fb) return;
     // Clear any pending timer so rapid answers don't overlap
     if (fb._clearTimer) clearTimeout(fb._clearTimer);
+    const hintHtml = (!correct && hintText)
+      ? `<div class="sen-hint-line">${escapeHTML(String(hintText))}</div>`
+      : '';
     fb.innerHTML = `<div style="
       position:fixed;inset:0;
       background:${correct ? 'rgba(34,197,94,0.35)' : 'rgba(239,68,68,0.35)'};
-      display:flex;align-items:center;justify-content:center;
+      display:flex;flex-direction:column;align-items:center;justify-content:center;
       z-index:60;pointer-events:none;font-size:8rem;
       animation:sen-fb 0.8s forwards;
-    ">${correct ? '✅' : '❌'}</div>`;
-    fb._clearTimer = setTimeout(() => { if (fb) fb.innerHTML = ''; }, 800);
+    ">${correct ? '✅' : '❌'}${hintHtml}</div>`;
+    fb._clearTimer = setTimeout(() => { if (fb) fb.innerHTML = ''; }, correct ? 700 : 1100);
   },
 
   // Update correct/wrong counters on SEN screen
@@ -3937,8 +4051,10 @@ const UI = {
     const tk = Game.state.teams['knight'] || { correct: 0, wrong: 0 };
     const c = $('sen-correct-badge');
     const w = $('sen-wrong-badge');
+    const who = $('sen-who-badge');
     if (c) c.textContent = `✅ ${tk.correct}`;
     if (w) w.textContent = `❌ ${tk.wrong}`;
+    if (who) who.textContent = Game.settings.playerLabel || '同學';
   },
 };
 
@@ -4026,9 +4142,115 @@ function charAnimate(team, action) {
 const slider = $('hp-slider');
 const display = $('hp-display');
 
+// V3.6-SEN cycle37: hoist out of setupMenu — startGame + Snapshot.resume call this.
+// Nested inside setupMenu → ReferenceError → blank SEN screen (running=true, no Q).
+let _senScreenWired = false;
+function _wireSENScreen() {
+  if (_senScreenWired) return;
+  _senScreenWired = true;
+  const backBtn = $('sen-btn-back');
+  if (backBtn) backBtn.onclick = () => {
+    // V3.6-SEN-FIX: full abandon cleanup — stop loop/BGM/TTS/snapshot, don't unhide combat UI
+    TTS.cancel();
+    Game.state.running = false;
+    Game.state.paused = false;
+    Game.state.ended = false;
+    if (window._mgLoop) { clearInterval(window._mgLoop); window._mgLoop = null; }
+    Audio.stopBGM();
+    Snapshot.clear();
+    const sen = $('screen-game-sen'); if (sen) sen.classList.add('hidden');
+    const game = $('screen-game'); if (game) game.classList.add('hidden');
+    const menu = $('screen-menu'); if (menu) menu.classList.remove('hidden');
+  };
+  const ttsBtn = $('sen-btn-tts');
+  if (ttsBtn) {
+    ttsBtn.onclick = () => {
+      const q = Game.state.current['knight'];
+      if (!q) return;
+      const text = (q.parts ? q.parts.join('') : q.text) || '';
+      if (text) TTS.speak(text, ttsBtn, {});
+    };
+  }
+}
+
 function setupMenu() {
   // P1-C: Boss 選擇列表 — 從 Profile 解鎖狀態渲染
   renderBossSelect();
+
+  // V3.6 cycle42: identity cards (圖選花名，唔強制打字)
+  const IDENTITIES = [
+    { id: 'cat', emoji: '🐱', name: '小貓' },
+    { id: 'dog', emoji: '🐶', name: '小狗' },
+    { id: 'bear', emoji: '🐻', name: '小熊' },
+    { id: 'rabbit', emoji: '🐰', name: '小兔' },
+    { id: 'panda', emoji: '🐼', name: '熊貓' },
+    { id: 'fox', emoji: '🦊', name: '小狐' },
+    { id: 'chick', emoji: '🐥', name: '小雞' },
+    { id: 'star', emoji: '⭐', name: '星星' },
+  ];
+  const renderIdentityPicker = () => {
+    const box = $('identity-picker');
+    if (!box) return;
+    box.innerHTML = '';
+    IDENTITIES.forEach(id => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'id-card';
+      b.dataset.id = id.id;
+      b.setAttribute('role', 'radio');
+      const selected = Game.settings.playerId === id.id;
+      b.setAttribute('aria-checked', selected ? 'true' : 'false');
+      if (selected) b.classList.add('opt-selected');
+      b.innerHTML = `<span class="id-emoji">${id.emoji}</span><span class="id-name">${id.name}</span>`;
+      b.setAttribute('aria-label', id.name);
+      b.onclick = () => {
+        Game.settings.playerId = id.id;
+        Game.settings.playerLabel = `${id.emoji} ${id.name}`;
+        try { localStorage.setItem('mg2.playerId', id.id); } catch (_) {}
+        renderIdentityPicker();
+        const h = $('identity-helper');
+        if (h) h.textContent = `已選：${Game.settings.playerLabel}`;
+      };
+      box.appendChild(b);
+    });
+  };
+  // restore last pick
+  try {
+    const saved = localStorage.getItem('mg2.playerId');
+    const hit = IDENTITIES.find(x => x.id === saved);
+    if (hit) {
+      Game.settings.playerId = hit.id;
+      Game.settings.playerLabel = `${hit.emoji} ${hit.name}`;
+    }
+  } catch (_) {}
+  renderIdentityPicker();
+  if (Game.settings.playerId) {
+    const h = $('identity-helper');
+    if (h) h.textContent = `已選：${Game.settings.playerLabel}`;
+  }
+
+  // V3.6 cycle41: advanced menu collapse — simple path = one-click + difficulty + start
+  let advancedForcedOpen = false;
+  const syncMenuAdvanced = () => {
+    const adv = $('menu-advanced');
+    const tog = $('btn-menu-advanced-toggle');
+    if (!adv) return;
+    const hideForEasy = Game.settings.difficulty === 'easy' && !advancedForcedOpen;
+    adv.classList.toggle('hidden', hideForEasy);
+    if (tog) {
+      tog.setAttribute('aria-expanded', hideForEasy ? 'false' : 'true');
+      tog.textContent = hideForEasy ? '⚙️ 進階設定（老師）' : '⚙️ 收起進階設定';
+    }
+  };
+  const advToggle = $('btn-menu-advanced-toggle');
+  if (advToggle) {
+    advToggle.onclick = () => {
+      advancedForcedOpen = !advancedForcedOpen;
+      if (Game.settings.difficulty !== 'easy') advancedForcedOpen = true;
+      syncMenuAdvanced();
+    };
+  }
+  syncMenuAdvanced();
 
   // 勝利條件
   document.querySelectorAll('.opt-win').forEach(b => {
@@ -4085,9 +4307,19 @@ function setupMenu() {
         kb.classList.toggle('opacity-40', isEasy);
         kb.setAttribute('aria-disabled', String(isEasy));
       });
+      // cycle41: easy collapses advanced combat settings
+      if (isEasy) advancedForcedOpen = false;
+      else advancedForcedOpen = true;
+      syncMenuAdvanced();
+      const dh = $('diff-helper');
+      if (dh) {
+        dh.textContent = isEasy
+          ? '簡單模式：看圖數數（1-5）、淺加法（結果 1-9）、少選項、答 10 題完'
+          : '普通模式：4 選一、可用鍵盤、Boss 戰役';
+      }
     };
   });
-  // V3.6-SEN: 中度 SEN 一鍵開始 preset
+  // V3.6-SEN: 簡單練習一鍵開始 preset
   const easyStartBtn = $('btn-easy-start');
   if (easyStartBtn) easyStartBtn.onclick = () => {
     // 1. Set easy difficulty
@@ -4100,6 +4332,10 @@ function setupMenu() {
         x.setAttribute('aria-pressed', 'true');
       }
     });
+    advancedForcedOpen = false;
+    syncMenuAdvanced();
+    const dh = $('diff-helper');
+    if (dh) dh.textContent = '簡單模式：看圖數數（1-5）、淺加法（結果 1-9）、少選項、答 10 題完';
     // 2. Lock to choice mode
     Game.settings.mode = 'choice';
     document.querySelectorAll('.opt-mode').forEach(x => {
@@ -4132,16 +4368,25 @@ function setupMenu() {
         x.setAttribute('aria-pressed', 'true');
       }
     });
-    // 5. Select only SEN-friendly types
+    // 5. Select only simple practice types
     const senTypes = ['count1to3', 'count10', 'groupAdd', 'compareGroup'];
     Game.settings.types = senTypes;
     renderTypePicker();
     renderRecommendChips();
     updateTypeCount();
-    // 6. Visual feedback + scroll to start button
+    // 6. Easy practice ends by question count (not boss HP)
+    Game.settings.win = 'hp'; // kept for settings shape; startGame forces easyGoalTotal
+    // 7. One-click: preset + start immediately (true one-tap for moderate ID)
     easyStartBtn.style.transform = 'scale(0.97)';
     setTimeout(() => { easyStartBtn.style.transform = ''; }, 200);
-    $('btn-start').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    if (!localStorage.getItem('mg2.onboardingDone')) {
+      showOnboarding(() => {
+        localStorage.setItem('mg2.onboardingDone', '1');
+        startGame();
+      });
+    } else {
+      startGame();
+    }
   };
   // 題型（可多選，至少一個）— v3.1 dynamic picker via delegation
   renderTypePicker();
@@ -4225,37 +4470,8 @@ function setupMenu() {
   }
 };
 
-// V3.6-SEN: wire SEN ultra-simple screen controls (one-time, idempotent)
-let _senScreenWired = false;
-function _wireSENScreen() {
-  if (_senScreenWired) return;
-  _senScreenWired = true;
-  const backBtn = $('sen-btn-back');
-  if (backBtn) backBtn.onclick = () => {
-    // V3.6-SEN-FIX: full abandon cleanup — stop loop/BGM/TTS/snapshot, don't unhide combat UI
-    TTS.cancel();
-    Game.state.running = false;
-    Game.state.paused = false;
-    Game.state.ended = false;
-    if (window._mgLoop) { clearInterval(window._mgLoop); window._mgLoop = null; }
-    Audio.stopBGM();
-    Snapshot.clear();
-    const sen = $('screen-game-sen'); if (sen) sen.classList.add('hidden');
-    const game = $('screen-game'); if (game) game.classList.add('hidden');
-    const menu = $('screen-menu'); if (menu) menu.classList.remove('hidden');
-  };
-  const ttsBtn = $('sen-btn-tts');
-  if (ttsBtn) {
-    ttsBtn.onclick = () => {
-      const q = Game.state.current['knight'];
-      if (!q) return;
-      const text = (q.parts ? q.parts.join('') : q.text) || '';
-      if (text) TTS.speak(text, ttsBtn, {});
-    };
-  }
-}
-
 // V3.3-U1: 3-step onboarding tutorial
+// (note: nested in setupMenu is OK — only btn-start / easy-start call it)
 function showOnboarding(onComplete) {
   const steps = [
     {
@@ -4427,6 +4643,8 @@ function startGame() {
   Game.state._frostTickAt = 0;
     // V3.4-AUDIT2-FIX: hide pause-overlay r
   const _po = $('pause-overlay'); if (_po) _po.classList.add('hidden');
+  // V3.6-SEN: single isEasy binding for whole startGame (EASY-46 lock-in)
+  const isEasy = Game.settings.difficulty === 'easy';
   // P1-C: 套用 Bosses.current 嘅 sprite + name + scene theme
   if (Bosses.current) {
     const use = document.getElementById('boss-svg-use');
@@ -4446,17 +4664,16 @@ function startGame() {
       heroImg.removeAttribute('src');
       heroImg.classList.add('hidden');
     }
-    // P2-3: cinematic intro — 700ms scale + glow 入場
-    showBossIntro(Bosses.current);
+    // P2-3: cinematic intro — skip in easy (distraction-free practice)
+    if (!isEasy) showBossIntro(Bosses.current);
   }
   // V3.6-SEN: easy mode hides boss panel for distraction-free math practice
   const bossPanel = $('boss-panel');
-  if (bossPanel) bossPanel.classList.toggle('hidden', Game.settings.difficulty === 'easy');
+  if (bossPanel) bossPanel.classList.toggle('hidden', isEasy);
   // V3.6-SEN: easy mode hides castle bars
   const castleRow = $('castle-bar-row');
-  if (castleRow) castleRow.classList.toggle('hidden', Game.settings.difficulty === 'easy');
+  if (castleRow) castleRow.classList.toggle('hidden', isEasy);
   // V3.6-SEN: easy mode hides energy rows + ult buttons
-  const isEasy = Game.settings.difficulty === 'easy';
   ['knight', 'mage'].forEach(tm => {
     const er = $(`${tm}-energy-row`);
     if (er) er.classList.toggle('hidden', isEasy);
@@ -4482,6 +4699,9 @@ function startGame() {
   }
   // 重設 adaptive
   Adaptive.reset();
+  // V3.6-SEN cycle37: easy = N-question practice goal (boss HP never drops in easy)
+  Game.state.easyGoalTotal = isEasy ? 10 : 0;
+  Game.state._easyEnding = false;
   if (Game.settings.win === 'time') {
     const m = clamp(parseInt($('time-input').value, 10) || 5, 1, 15);
     Game.settings.minutes = m;
@@ -4607,7 +4827,7 @@ function showInstantHint(team, q) {
     hint = `💡 ${q.parts.join('').replace(/\s*=\s*❓\s*$/, ` = ${q.answer} `)}`;
   } else if (q.type === 'compareGroup') {
     // V3.6-SEN: show direction icon
-    const labels = {1:'⬅️ 左邊多', 2:'➡️ 右邊多', 3:'⚖️ 一樣多'};
+    const labels = {1:'左邊多', 2:'右邊多', 3:'一樣多'};
     hint = `💡 ${labels[q.answer] || `答案係 ${q.answer}`}`;
   } else if (reg && reg.layout === 'parts-emoji') {
     hint = `💡 答案係 ${q.answer}`;
@@ -4747,25 +4967,42 @@ function _recordAnswerStats(team, q, correct) {
 
 // R5: next-question routing (coop round-robin / versus self)
 // V3.5-AUDIT6-F01: re-entrancy null-out
-function _scheduleNextQuestion(team) {
+// delayMs: easy mode uses ~650–1000ms so feedback/hint is readable (cycle41)
+function _scheduleNextQuestion(team, delayMs) {
   Game.state.current[team] = null;
+  const delay = (typeof delayMs === 'number') ? delayMs : 0;
   // V3.6-SEN: no team-switching in ultra-simple mode — only knight exists
   if (Game.settings.difficulty === 'easy') {
     setTimeout(() => {
       if (Game.state.running && !Game.state.ended) nextQuestion('knight');
-    }, 0);
+    }, delay || 700);
     return;
   }
   if (Game.settings.team === 'coop') {
     Game.nextTeamInCoop();
     setTimeout(() => {
       if (Game.state.running && !Game.state.ended) nextQuestion(Game.state.currentTeam);
-    }, 0);
+    }, delay);
   } else {
     setTimeout(() => {
       if (Game.state.running && !Game.state.ended) nextQuestion(team);
-    }, 0);
+    }, delay);
   }
+}
+
+// V3.6 cycle41: short wrong-answer hint for easy ultra-simple screen
+function _easyHintText(q) {
+  if (!q) return '再試一次';
+  if (q.type === 'count1to3' || q.type === 'count10') return `答案係 ${q.answer} 個`;
+  if (q.type === 'groupAdd') return `答案係 ${q.answer}`;
+  if (q.type === 'compareGroup') {
+    const labels = { 1: '左邊多', 2: '右邊多', 3: '一樣多' };
+    return labels[q.answer] || `答案係 ${q.answer}`;
+  }
+  if (q.optionLabels && q.optionLabels[q.answer] !== undefined) {
+    return `答案係 ${q.optionLabels[q.answer]}`;
+  }
+  return `答案係 ${q.answer}`;
 }
 
 function highlightBtn(btn, correct) {
@@ -5040,6 +5277,28 @@ function renderEndBadges(victory) {
 function _endTitleFor(victory) {
   const tk = Game.state.teams.knight, tm = Game.state.teams.mage;
   const star = (v) => v ? '⭐⭐⭐' : '⭐';
+  // V3.6 cycle42: easy practice → 金/銀/銅 by accuracy
+  if (Game.settings.difficulty === 'easy') {
+    const total = tk.total || 0;
+    const acc = total === 0 ? 0 : tk.correct / total;
+    const who = Game.settings.playerLabel || '同學';
+    const pct = Math.round(acc * 100);
+    let medal = '💪', tier = '再接再厲', stars = '';
+    if (victory || total > 0) {
+      if (acc >= 0.9) { medal = '🥇'; tier = '金獎'; stars = '⭐⭐⭐'; }
+      else if (acc >= 0.7) { medal = '🥈'; tier = '銀獎'; stars = '⭐⭐'; }
+      else if (acc >= 0.5) { medal = '🥉'; tier = '銅獎'; stars = '⭐'; }
+      else { medal = '💪'; tier = '繼續加油'; stars = ''; }
+    }
+    return {
+      title: `${medal} ${who} · ${tier} ${stars}`.trim(),
+      msg: `答啱 ${tk.correct} / ${total} 題（${pct}%）· 簡單練習完成！`,
+      icon: medal,
+      medal,
+      tier,
+      easyCert: true,
+    };
+  }
   if (Game.settings.win === 'time') {
     const castleAlive = Game.state.castle.left > 0 && Game.state.castle.right > 0;
     if (castleAlive) {
@@ -5058,13 +5317,26 @@ function _endTitleFor(victory) {
   return { title: `城塔失守 ${star(false)}`, msg: '下次一起更精準作答吧！', icon: '💔' };
 }
 
-// DOM: 設 end-icon — always SVG sprite (AI_ASSETS removed)
-function _renderEndIcon(victory) {
-  // AUDIT-REFACTOR: AI_ASSETS.defeat removed — always show SVG sprite
+// DOM: 設 end-icon — always SVG sprite (AI_ASSETS removed); easy uses 金銀銅 medal
+function _renderEndIcon(victory, endMeta) {
   const portrait = $('end-boss-portrait');
   const iconSvg = $('end-icon-svg');
-  portrait.classList.add('hidden');
-  iconSvg.classList.remove('hidden');
+  const medalEl = $('end-medal');
+  const medalLab = $('end-medal-label');
+  if (portrait) portrait.classList.add('hidden');
+  if (endMeta && endMeta.easyCert && medalEl) {
+    if (iconSvg) iconSvg.classList.add('hidden');
+    medalEl.classList.remove('hidden');
+    medalEl.textContent = endMeta.medal || '🏅';
+    if (medalLab) {
+      medalLab.classList.remove('hidden');
+      medalLab.textContent = endMeta.tier || '';
+    }
+    return;
+  }
+  if (medalEl) medalEl.classList.add('hidden');
+  if (medalLab) medalLab.classList.add('hidden');
+  if (iconSvg) iconSvg.classList.remove('hidden');
 }
 
 // DOM: end-bg URL — AI_ASSETS.endBg removed; bg stays as CSS default
@@ -5072,10 +5344,23 @@ function _renderEndBackground() {
   // AUDIT-REFACTOR: AI_ASSETS.endBg removed — no custom end background
 }
 
-// DOM: 兩個 stat 卡片 (knight + mage)，命中率百分比
+// DOM: 兩個 stat 卡片 (knight + mage)，命中率百分比；easy = 單人
 function _renderEndStats() {
   const tk = Game.state.teams.knight, tm = Game.state.teams.mage;
   const correctRate = (t) => t.total === 0 ? 0 : Math.round(t.correct / t.total * 100);
+  if (Game.settings.difficulty === 'easy') {
+    const who = Game.settings.playerLabel || '同學';
+    $('end-stats').innerHTML = `
+      <div class="bg-amber-500/10 border border-amber-300/30 rounded-xl p-4 text-center">
+        <div class="font-bold text-amber-200 mb-2 text-lg">${who}</div>
+        <div>答對：<b class="text-green-300 text-2xl">${tk.correct}</b></div>
+        <div class="mt-1">再挑戰：<b class="text-red-300">${tk.wrong}</b></div>
+        <div class="mt-1">總題：${tk.total}</div>
+        <div class="mt-2 text-xl font-extrabold text-white">命中率：${correctRate(tk)}%</div>
+      </div>
+    `;
+    return;
+  }
   $('end-stats').innerHTML = `
     <div class="grid grid-cols-2 gap-3 text-sm">
       <div class="bg-blue-500/10 border border-blue-300/30 rounded-xl p-3">
@@ -5133,11 +5418,12 @@ function showEndScreen(victory) {
   $('screen-end').classList.remove('hidden');
 
   // 2. Compute title/msg/icon (pure, no DOM)
-  const { title, msg, icon } = _endTitleFor(victory);
-  void icon;  // icon reserved for future use; end-icon is set via _renderEndIcon below
+  const endMeta = _endTitleFor(victory);
+  const { title, msg, icon } = endMeta;
+  void icon;  // icon reserved; end-icon via _renderEndIcon
 
   // 3. Render DOM (icon / background / badges / title / message / stats)
-  _renderEndIcon(victory);
+  _renderEndIcon(victory, endMeta);
   _renderEndBackground();
   renderEndBadges(victory);   // existing helper (P2-c, kept unchanged)
   $('end-title').textContent = title;
@@ -6107,6 +6393,8 @@ const Snapshot = {
         pendingUltQ: Game.state.pendingUltQ,
         // current question per team — full 重現 (incl mode 等)
         current: JSON.parse(JSON.stringify(Game.state.current)),
+        // V3.6-SEN cycle37: preserve N-question practice goal across resume
+        easyGoalTotal: Game.state.easyGoalTotal || 0,
       },
     };
     if (STORAGE.save(STORAGE.SESSION_KEY, snap)) {
@@ -6175,6 +6463,10 @@ const Snapshot = {
     }
     Game.state.pendingUlt = s.state.pendingUlt;
     Game.state.pendingUltQ = s.state.pendingUltQ;
+    // V3.6-SEN cycle37: restore practice goal (fallback 10 if easy mid-session legacy snap)
+    Game.state.easyGoalTotal = typeof s.state.easyGoalTotal === 'number'
+      ? s.state.easyGoalTotal
+      : (Game.settings.difficulty === 'easy' ? 10 : 0);
     // V3.5-AUDIT6-F04: reset _startAt/_fros
     Game.state._startAt = 0;
     Game.state._frostTickAt = 0;
@@ -6528,6 +6820,8 @@ const Bosses = {
 
 /* ============== [8] 啟動 ============== */
 window.addEventListener('DOMContentLoaded', () => {
+  // V3.6 cycle42: SEN HTML hard rules — no browser context menu / long-press callout
+  document.addEventListener('contextmenu', (e) => e.preventDefault());
   setupMenu();
   setupUltButtons();
   setupTeacher();

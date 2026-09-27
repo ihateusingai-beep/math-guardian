@@ -276,9 +276,10 @@ assert('AUDIT3-C1  dead STORAGE._cap removed',
 
 // =========== T15: V3.4-audit-cycle-4 (a11y / keyboard nav / reduced-motion / screen-reader) ===========
 console.log('\n[T15] V3.4 audit cycle-4 patches');
-// C1 viewport: 移除 user-scalable=no / maximum-scale=1.0 (允許低視力 zoom)
-assert('AUDIT4-H  viewport allows user-scaling',
-  !/maximum-scale\s*=\s*1\.0/.test(src) && !/user-scalable\s*=\s*no/.test(src));
+// C1 viewport: cycle42 SEN hard-lock (iPad classroom) — user-scalable=no
+// (AUDIT4-H originally allowed zoom for low vision; classroom SEN priority = no pinch-zoom mis-tap)
+assert('AUDIT4-H  viewport locks scale for SEN classroom (cycle42)',
+  /maximum-scale\s*=\s*1/.test(src) && /user-scalable\s*=\s*no/.test(src));
 // C2 teacher modal: role=dialog + aria-modal + label bound to title
 assert('AUDIT4-A  teacher modal has role=dialog',
   /id="teacher-modal"[^>]*role="dialog"/.test(src) || /role="dialog"[^>]*id="teacher-modal"/.test(src));
@@ -683,7 +684,7 @@ console.log('\n[T24] V3.5 audit cycle-11 R2 + R3 refactor');
 assert('R3 _endTitleFor pure helper exists',
   /^function _endTitleFor\(victory\) \{[\s\S]{0,1500}return \{ title:/m.test(src));
 assert('R3 _renderEndIcon helper exists',
-  /^function _renderEndIcon\(victory\) \{[\s\S]{0,800}iconSvg\.classList\.remove\('hidden'\)/m.test(src));
+  /function _renderEndIcon\s*\(\s*victory[\s\S]{0,40}\)[\s\S]{0,1200}iconSvg\.classList\.(remove|add)\('hidden'\)/.test(src));
 assert('R3 _renderEndBackground + _renderEndStats helpers exist',
   /^function _renderEndBackground\(\) \{[\s\S]{0,400}function _renderEndStats/m.test(src) ||
   /function _renderEndBackground[\s\S]{0,500}function _renderEndStats/.test(src));
@@ -843,7 +844,7 @@ assert('R5-6  _recordAnswerStats called after correct/wrong effects',
   /_recordAnswerStats\(team, q, correct\);/.test(src));
 // R5-7: next-question routing extracted to _scheduleNextQuestion
 assert('R5-7  _scheduleNextQuestion contains null-out + coop/versus branch',
-  /function _scheduleNextQuestion\(team\) \{[\s\S]{0,500}current\[team\] = null;[\s\S]{0,300}coop/.test(src));
+  /function _scheduleNextQuestion\s*\(\s*team[\s\S]{0,40}\)[\s\S]{0,600}current\[team\] = null[\s\S]{0,400}coop/.test(src));
 // R5-8: ordering ordering compare still in helper
 assert('R5-8  _compareAnswer ordering check uses length+JSON',
   /function _compareAnswer[\s\S]{0,800}type\s*===\s*'ordering'[\s\S]{0,300}actual\.length\s*===\s*expected\.length[\s\S]{0,300}JSON\.stringify/.test(src));
@@ -1057,9 +1058,75 @@ assert('EASY-53 shapeMatch optionLabels is value-map not shapes.map array',
   /type:'shapeMatch'[\s\S]{0,80}optionLabels:\s*labels/.test(src) &&
   !/optionLabels:\s*shapes\.map/.test(src));
 assert('EASY-54 easy handleAnswer records Profile stats via _recordAnswerStats',
-  /difficulty === 'easy'[\s\S]{0,500}_recordAnswerStats/.test(src));
+  /difficulty === 'easy'[\s\S]{0,900}_recordAnswerStats/.test(src));
 assert('EASY-55 easy handleAnswer plays Audio.correct / Audio.wrong',
-  /difficulty === 'easy'[\s\S]{0,400}Audio\.correct[\s\S]{0,200}Audio\.wrong/.test(src));
+  /difficulty === 'easy'[\s\S]{0,700}Audio\.correct[\s\S]{0,200}Audio\.wrong/.test(src));
+
+// V3.6-SEN cycle37: hoist + goal end + one-click start
+console.log('\n[T32] V3.6 audit cycle-37 (wire hoist / easy goal / one-click)');
+assert('EASY-56 _wireSENScreen is module-scope (before setupMenu, not nested)', (() => {
+  const wire = src.indexOf('function _wireSENScreen');
+  const setup = src.indexOf('function setupMenu');
+  if (wire < 0 || setup < 0) return false;
+  // must appear once, and physically before setupMenu
+  if (src.indexOf('function _wireSENScreen', wire + 1) !== -1) return false;
+  if (wire > setup) return false;
+  // setupMenu body must NOT re-declare it
+  const setupBody = src.slice(setup, setup + 25000);
+  return !/function setupMenu[\s\S]{0,20000}function _wireSENScreen/.test(src.slice(setup, wire > setup ? src.length : setup + 1))
+    && !/function setupMenu\(\)[\s\S]*?function _wireSENScreen/.test(
+      // only search until next top-level-ish function startGame
+      src.slice(setup, src.indexOf('function startGame'))
+    );
+})());
+assert('EASY-57 startGame sets easyGoalTotal for easy practice end',
+  /easyGoalTotal\s*=\s*isEasy\s*\?\s*10\s*:\s*0/.test(src));
+assert('EASY-58 easy handleAnswer ends session via endGame(true) on goal',
+  /easyGoalTotal[\s\S]{0,400}endGame\(\s*true\s*\)/.test(src) &&
+  /_easyEnding/.test(src));
+assert('EASY-59 btn-easy-start one-click calls startGame (not scroll-only)', (() => {
+  const i = src.indexOf('easyStartBtn.onclick');
+  if (i < 0) return false;
+  const block = src.slice(i, i + 2800);
+  return /startGame\s*\(/.test(block) && !/scrollIntoView/.test(block);
+})());
+assert('EASY-60 easy mode skips showBossIntro',
+  /if\s*\(\s*!isEasy\s*\)\s*showBossIntro/.test(src));
+assert('EASY-61 startGame still calls _wireSENScreen when easy',
+  /if\s*\(\s*isEasy\s*\)\s*_wireSENScreen\s*\(/.test(src));
+
+// V3.6 cycle41: student labels / A-B-C / menu / hint delay
+console.log('\n[T33] V3.6 audit cycle-41 (no stigma / ABC / menu / hint)');
+assert('EASY-62 student UI has no 中度 SEN stigma label',
+  !/中度 SEN/.test(src) && /簡單練習 · 一鍵開始/.test(src));
+assert('EASY-63 showQuestionSEN renders A/B/C letter badges by render order',
+  /sen-opt-letter/.test(src) && /const LETTERS = \['A', 'B', 'C', 'D'\]/.test(src));
+assert('EASY-64 menu-advanced + teacher toggle exist',
+  /id="menu-advanced"/.test(src) && /id="btn-menu-advanced-toggle"/.test(src) && /syncMenuAdvanced/.test(src));
+assert('EASY-65 easy wrong answers use _easyHintText + delayed next Q',
+  /_easyHintText/.test(src) &&
+  /_scheduleNextQuestion\(\s*team\s*,\s*correct \? 650 : 1000\s*\)/.test(src));
+assert('EASY-66 compareGroup optionLabels are Chinese (not bare emoji)',
+  /optionLabels:\{1:'左邊多',2:'右邊多',3:'一樣多'\}/.test(src));
+assert('EASY-67 easy mode schedule defaults delay (not bare 0)',
+  /function _scheduleNextQuestion[\s\S]{0,350}delay \|\| 700/.test(src));
+
+// V3.6 cycle42: touch hard rules + identity + 金銀銅
+console.log('\n[T34] V3.6 audit cycle-42 (touch / identity / medals)');
+assert('EASY-68 viewport locks scale (user-scalable=no + maximum-scale=1)',
+  /user-scalable=no/.test(src) && /maximum-scale=1/.test(src));
+assert('EASY-69 touch-callout none + contextmenu preventDefault',
+  /-webkit-touch-callout:\s*none/.test(src) &&
+  /contextmenu[\s\S]{0,80}preventDefault/.test(src));
+assert('EASY-70 identity-picker + id-card exist',
+  /id="identity-picker"/.test(src) && /id-card/.test(src) && /mg2\.playerId/.test(src));
+assert('EASY-71 easy end awards 金獎/銀獎/銅獎 by accuracy',
+  /金獎/.test(src) && /銀獎/.test(src) && /銅獎/.test(src) &&
+  /acc >= 0\.9/.test(src) && /acc >= 0\.7/.test(src) && /acc >= 0\.5/.test(src));
+assert('EASY-72 end-medal element + easyCert path',
+  /id="end-medal"/.test(src) && /easyCert/.test(src) && /_renderEndIcon\(victory, endMeta\)/.test(src));
+assert('EASY-73 sen-who-badge shows playerLabel',
+  /id="sen-who-badge"/.test(src) && /playerLabel/.test(src));
 
 // =========== summary ===========
 console.log(`\n========== ${pass} pass / ${fail} fail ==========`);
