@@ -180,10 +180,26 @@
     padding: 0.6rem 0.75rem;
     background: rgba(0,0,0,0.28);
   }
-  .sen-panel .sen-q-emoji { font-size: clamp(2.5rem, 8vw, 5.5rem); line-height: 1.1; text-align: center; }
+  .sen-panel .sen-q-emoji { font-size: clamp(2.5rem, 8vw, 5.5rem); line-height: 1.1; text-align: center; max-width: 100%; }
+  .sen-panel .sen-q-emoji.sen-count-dense { font-size: clamp(1.05rem, 3.2vw, 1.85rem); line-height: 1.25; letter-spacing: 0.02em; word-break: break-word; }
   .sen-panel .sen-q-text { color: #fff; font-size: clamp(1.25rem, 3vw, 2rem); font-weight: 800; text-align: center; }
   .sen-panel .sen-options { width: 100%; max-width: 22rem; display: flex; flex-direction: column; gap: 0.6rem; }
   .sen-board-dual .sen-options { max-width: 100%; }
+  /* V3.6 cycle44: length compare bars */
+  .sen-bars { width: min(100%, 22rem); display: flex; flex-direction: column; gap: 0.85rem; }
+  .sen-bar-row { display: flex; align-items: center; gap: 0.6rem; }
+  .sen-bar-tag { width: 2rem; height: 2rem; border-radius: 999px; background: rgba(255,255,255,0.18); color: #fff; font-weight: 900; display: grid; place-items: center; flex-shrink: 0; }
+  .sen-bar {
+    height: 2.1rem; border-radius: 999px; min-width: 1.5rem;
+    background: linear-gradient(90deg, #fbbf24, #f59e0b);
+    box-shadow: 0 0 0 3px rgba(251,191,36,0.25);
+    transition: width .15s;
+  }
+  .sen-bar.right { background: linear-gradient(90deg, #a78bfa, #7c3aed); box-shadow: 0 0 0 3px rgba(167,139,250,0.28); }
+  .opt-scope.opt-selected {
+    border-color: #fbbf24 !important;
+    background: rgba(251,191,36,0.18) !important;
+  }
   .sen-fb {
     position: absolute; inset: 0;
     pointer-events: none;
@@ -1591,6 +1607,26 @@
         </div>
       </div>
 
+      <!-- V3.6 cycle44: 題目範疇（中度主線） -->
+      <div>
+        <label class="text-sm font-bold text-amber-300 mb-2 block">題目範疇（可多選）</label>
+        <div id="scope-picker" class="grid grid-cols-2 gap-3" role="group" aria-label="題目範疇">
+          <button type="button" class="opt-scope btn btn-ghost opt-selected py-3 text-left" data-scope="count20" aria-pressed="true">
+            🔢 數數 1–20<br><span class="text-xs opacity-70">睇圖數有幾多</span>
+          </button>
+          <button type="button" class="opt-scope btn btn-ghost opt-selected py-3 text-left" data-scope="compareLength" aria-pressed="true">
+            📏 長短比較<br><span class="text-xs opacity-70">邊條長／短</span>
+          </button>
+          <button type="button" class="opt-scope btn btn-ghost opt-selected py-3 text-left" data-scope="orderAsc20" aria-pressed="true">
+            📈 1–20 順序<br><span class="text-xs opacity-70">由細到大</span>
+          </button>
+          <button type="button" class="opt-scope btn btn-ghost opt-selected py-3 text-left" data-scope="orderDesc20" aria-pressed="true">
+            📉 1–20 倒序<br><span class="text-xs opacity-70">由大到細</span>
+          </button>
+        </div>
+        <div id="scope-helper" class="text-xs text-white/60 mt-2">已選 4 個範疇 · 撳掣可開關（最少 1 個）</div>
+      </div>
+
       <!-- V3.6 cycle41: one-click simple practice (no student-facing SEN label) -->
       <button id="btn-easy-start" class="w-full btn text-white text-xl py-4 mt-2 flex items-center justify-center gap-3"
         style="background:linear-gradient(135deg,#a78bfa,#7c3aed);border:2px solid #c4b5fd;"
@@ -1598,7 +1634,7 @@
         <span class="text-3xl">🌼</span>
         <span>
           <span class="block text-xl font-extrabold">簡單練習 · 一鍵開始</span>
-          <span id="easy-start-sub" class="text-xs opacity-80">單人 · 4 種簡單題 · 10 題</span>
+          <span id="easy-start-sub" class="text-xs opacity-80">單人 · 已選範疇 · 10 題</span>
         </span>
       </button>
 
@@ -2652,7 +2688,21 @@ const TYPE_REGISTRY = {
   whatTime: { id:'whatTime', label:'時鐘整點', emoji:'🕐', difficulty:2, category:'math', icon:null, mode:['choice','keypad'], layout:'clock', desc:'看鐘面答時間 (1-12)' },
   shapeMatch: { id:'shapeMatch', label:'形狀辨認', emoji:'🔺', difficulty:1, category:'math', icon:null, mode:['choice','keypad'], layout:'shape', desc:'圖形名 (圓/方/三/星)' },
   ordering: { id:'ordering', label:'由小到大', emoji:'📊', difficulty:2, category:'math', icon:null, mode:['order','keypad'], layout:'order', desc:'三個數排順序 (choice/keypad 兩可)' },
+  // === V3.6 cycle44: 中度主頁範疇 ===
+  count20: { id:'count20', label:'數數 1-20', emoji:'🔢', difficulty:1, category:'math', icon:null, mode:['choice'], layout:'parts-emoji', desc:'睇圖數 1-20' },
+  compareLength: { id:'compareLength', label:'長短比較', emoji:'📏', difficulty:1, category:'math', icon:null, mode:['choice'], layout:'bars', desc:'邊條長／短' },
+  orderAsc20: { id:'orderAsc20', label:'1-20 順序', emoji:'📈', difficulty:1, category:'math', icon:null, mode:['choice'], layout:'seq-choice', desc:'三數由細到大' },
+  orderDesc20: { id:'orderDesc20', label:'1-20 倒序', emoji:'📉', difficulty:1, category:'math', icon:null, mode:['choice'], layout:'seq-choice', desc:'三數由大到細' },
 };
+
+// V3.6 cycle44: home scope catalog (1 scope = 1 type)
+const SCOPE_CATALOG = [
+  { id: 'count20', label: '數數 1–20', emoji: '🔢' },
+  { id: 'compareLength', label: '長短比較', emoji: '📏' },
+  { id: 'orderAsc20', label: '1–20 順序', emoji: '📈' },
+  { id: 'orderDesc20', label: '1–20 倒序', emoji: '📉' },
+];
+const DEFAULT_SCOPES = SCOPE_CATALOG.map(s => s.id);
 
 // === Generator helpers — per type specific math ===
 const Generators = {
@@ -2782,6 +2832,86 @@ const Generators = {
     const sorted = [...nums].sort((x, y) => x - y);
     return { parts: [`排順序：${nums.join(' , ')}`], answer: sorted, type:'ordering', displayNums: nums };
   },
+  // V3.6 cycle44: 數數 1-20
+  count20(mode) {
+    const fruits = ['🍎','🍌','🍇','🍓','🍊','🍉','⭐','🔵'];
+    const f = fruits[randInt(0, fruits.length - 1)];
+    const n = randInt(1, 20);
+    return { parts: [f.repeat(n), '= ?'], answer: n, type:'count20', answerDisplay: String(n) };
+  },
+  // V3.6 cycle44: 長短比較（兩條棒）
+  compareLength() {
+    let left = randInt(2, 10);
+    let right = randInt(2, 10);
+    while (right === left) right = randInt(2, 10);
+    const askLong = Math.random() < 0.5;
+    const answer = askLong
+      ? (left > right ? 1 : 2)
+      : (left < right ? 1 : 2);
+    const prompt = askLong ? '邊條長？' : '邊條短？';
+    return {
+      parts: [prompt],
+      answer,
+      type: 'compareLength',
+      options: [1, 2],
+      optionLabels: { 1: '左邊', 2: '右邊' },
+      extra: { left, right, ask: askLong ? 'long' : 'short', prompt },
+    };
+  },
+  // V3.6 cycle44 helpers: 3 distinct 1-20 + MC sequences
+  _seqThree() {
+    const nums = [];
+    while (nums.length < 3) {
+      const n = randInt(1, 20);
+      if (!nums.includes(n)) nums.push(n);
+    }
+    return nums;
+  },
+  _seqOptions(correctArr, pool) {
+    const fmt = arr => arr.join(' → ');
+    const correct = fmt(correctArr);
+    const opts = new Set([correct]);
+    // wrong: reverse, rotate, random shuffle
+    const rev = [...correctArr].reverse();
+    opts.add(fmt(rev));
+    const rot = [correctArr[1], correctArr[2], correctArr[0]];
+    opts.add(fmt(rot));
+    let guard = 0;
+    while (opts.size < 3 && guard++ < 20) {
+      const sh = shuffle([...pool]);
+      opts.add(fmt(sh));
+    }
+    // pad with near-miss if still short
+    while (opts.size < 3) {
+      const fake = shuffle([...correctArr]);
+      opts.add(fmt(fake));
+    }
+    return { correct, options: shuffle([...opts]).slice(0, 3) };
+  },
+  orderAsc20() {
+    const nums = Generators._seqThree();
+    const sorted = [...nums].sort((a, b) => a - b);
+    const { correct, options } = Generators._seqOptions(sorted, nums);
+    return {
+      parts: [`${nums.join('  ·  ')}`],
+      answer: correct,
+      type: 'orderAsc20',
+      options,
+      displayNums: nums,
+    };
+  },
+  orderDesc20() {
+    const nums = Generators._seqThree();
+    const sorted = [...nums].sort((a, b) => b - a);
+    const { correct, options } = Generators._seqOptions(sorted, nums);
+    return {
+      parts: [`${nums.join('  ·  ')}`],
+      answer: correct,
+      type: 'orderDesc20',
+      options,
+      displayNums: nums,
+    };
+  },
 };
 
 const QuestionGen = (() => {
@@ -2807,6 +2937,7 @@ const QuestionGen = (() => {
       const bankUsable = bankQ && (
         reg.layout === 'parts-emoji' || reg.layout === 'sym-button' ||
         reg.layout === 'clock' || reg.layout === 'order' || reg.layout === 'shape' ||
+        reg.layout === 'bars' || reg.layout === 'seq-choice' ||
         reg.layout === 'numeric'
       );
       if (bankUsable) q = bankQ;
@@ -2819,6 +2950,8 @@ const QuestionGen = (() => {
       else if (reg.layout === 'clock') q = Generators.whatTime();
       else if (reg.layout === 'shape') q = Generators.shapeMatch();
       else if (reg.layout === 'order') q = Generators.ordering();
+      else if (reg.layout === 'bars') q = Generators.compareLength();
+      else if (reg.layout === 'seq-choice') q = Generators[type](mode);
       else q = Generators.numeric(type, mode);
     }
     // legacy compat: 舊 code 讀 q.text
@@ -3424,6 +3557,7 @@ const Game = {
     playerLabel: '同學',        // display name e.g. 🐱 小貓
     playerIdRight: null,        // dual right team
     playerLabelRight: '同學',
+    scopes: ['count20', 'compareLength', 'orderAsc20', 'orderDesc20'], // V3.6 cycle44
   },
 
   state: {
@@ -4091,8 +4225,25 @@ const UI = {
     const { emojiEl, textEl, optsArea, fb, done } = UI._senEls(t);
     if (fb) fb.innerHTML = '';
     if (done) done.classList.add('hidden');
+    if (emojiEl) {
+      emojiEl.classList.remove('sen-count-dense');
+      emojiEl.innerHTML = '';
+      emojiEl.textContent = '';
+    }
 
-    if (q.parts) {
+    // V3.6 cycle44: length bars visual
+    if (q.type === 'compareLength' && q.extra && emojiEl) {
+      const L = Math.max(1, Number(q.extra.left) || 1);
+      const R = Math.max(1, Number(q.extra.right) || 1);
+      const maxU = 10;
+      const wL = Math.round((L / maxU) * 100);
+      const wR = Math.round((R / maxU) * 100);
+      emojiEl.innerHTML = `<div class="sen-bars" aria-hidden="true">
+        <div class="sen-bar-row"><span class="sen-bar-tag">A</span><div class="sen-bar" style="width:${wL}%"></div></div>
+        <div class="sen-bar-row"><span class="sen-bar-tag">B</span><div class="sen-bar right" style="width:${wR}%"></div></div>
+      </div>`;
+      if (textEl) textEl.textContent = (q.extra && q.extra.prompt) || '邊條長？';
+    } else if (q.parts) {
       const chineseMap = {
         '+':'加','-':'減','=':'等於','?':'？','❓':'等於幾多？',
         '◁':'細啲','▷':'大啲','＝':'等於',' ':''
@@ -4130,11 +4281,27 @@ const UI = {
         }
         flush();
       });
-      if (emojiEl) emojiEl.textContent = emojiParts.join(' ');
+      if (emojiEl) {
+        if (q.type === 'orderAsc20' || q.type === 'orderDesc20') {
+          emojiEl.textContent = (q.displayNums && q.displayNums.length)
+            ? q.displayNums.join('  ·  ')
+            : (q.parts && q.parts[0]) || '';
+          emojiEl.classList.add('sen-count-dense');
+        } else {
+          const joined = emojiParts.join(' ');
+          emojiEl.textContent = joined;
+          // dense count for 1-20 (many glyphs)
+          if ((q.type === 'count20' || q.type === 'count10') && joined.length >= 8) {
+            emojiEl.classList.add('sen-count-dense');
+          }
+        }
+      }
       if (textEl) {
         if (q.type === 'groupAdd') textEl.textContent = '加埋有幾多？';
         else if (q.type === 'compareGroup') textEl.textContent = '邊邊多？';
-        else if (q.type === 'count10' || q.type === 'count1to3') textEl.textContent = '有幾多？';
+        else if (q.type === 'count10' || q.type === 'count1to3' || q.type === 'count20') textEl.textContent = '有幾多？';
+        else if (q.type === 'orderAsc20') textEl.textContent = '由細到大？';
+        else if (q.type === 'orderDesc20') textEl.textContent = '由大到細？';
         else textEl.textContent = textTokens.join(' ');
       }
     } else {
@@ -4167,7 +4334,11 @@ const UI = {
 
     // Auto TTS: solo only (dual = manual per-side 🔊 to avoid cross-talk)
     if (Game.settings.ttsEnabled && Game.settings.playLayout !== 'dual') {
-      const text = (q.parts ? q.parts.join('') : q.text) || '';
+      let text = '';
+      if (q.type === 'compareLength') text = (q.extra && q.extra.prompt) || '邊條長？';
+      else if (q.type === 'orderAsc20') text = '由細到大';
+      else if (q.type === 'orderDesc20') text = '由大到細';
+      else text = (q.parts ? q.parts.join('') : q.text) || '';
       if (text) TTS.speak(text, null, {});
     }
   },
@@ -4412,9 +4583,10 @@ function setupMenu() {
     }
     const sub = $('easy-start-sub');
     if (sub) {
+      const n = (Game.settings.scopes && Game.settings.scopes.length) || 4;
       sub.textContent = dual
-        ? '左右雙隊 · 各 10 題 · 電子白板'
-        : '單人 · 4 種簡單題 · 10 題';
+        ? `左右雙隊 · ${n} 個範疇 · 各 10 題`
+        : `單人 · ${n} 個範疇 · 10 題`;
     }
   };
   try {
@@ -4537,6 +4709,56 @@ function setupMenu() {
       }
     };
   });
+  // V3.6 cycle44: 題目範疇 multi-select（最少 1）
+  function syncScopeUI() {
+    const scopes = Array.isArray(Game.settings.scopes) ? Game.settings.scopes.slice() : DEFAULT_SCOPES.slice();
+    const valid = scopes.filter(id => TYPE_REGISTRY[id]);
+    Game.settings.scopes = valid.length ? valid : DEFAULT_SCOPES.slice();
+    document.querySelectorAll('.opt-scope').forEach(btn => {
+      const on = Game.settings.scopes.includes(btn.dataset.scope);
+      btn.classList.toggle('opt-selected', on);
+      btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+    const helper = $('scope-helper');
+    if (helper) helper.textContent = `已選 ${Game.settings.scopes.length} 個範疇 · 撳掣可開關（最少 1 個）`;
+    const sub = $('easy-start-sub');
+    if (sub) {
+      const play = Game.settings.playLayout === 'dual' ? '雙隊' : '單人';
+      sub.textContent = `${play} · ${Game.settings.scopes.length} 個範疇 · 10 題`;
+    }
+  }
+  const scopePicker = $('scope-picker');
+  if (scopePicker) scopePicker.onclick = (e) => {
+    const b = e.target.closest('.opt-scope');
+    if (!b || !b.dataset.scope) return;
+    const id = b.dataset.scope;
+    if (!TYPE_REGISTRY[id]) return;
+    if (!Array.isArray(Game.settings.scopes)) Game.settings.scopes = DEFAULT_SCOPES.slice();
+    const i = Game.settings.scopes.indexOf(id);
+    if (i >= 0) {
+      if (Game.settings.scopes.length <= 1) return; // keep ≥1
+      Game.settings.scopes.splice(i, 1);
+    } else {
+      Game.settings.scopes.push(id);
+    }
+    try { localStorage.setItem('mg2.scopes', JSON.stringify(Game.settings.scopes)); } catch (_) {}
+    syncScopeUI();
+  };
+  // restore scopes
+  try {
+    const raw = localStorage.getItem('mg2.scopes');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length) {
+        Game.settings.scopes = parsed.filter(id => TYPE_REGISTRY[id]);
+      }
+    }
+  } catch (_) {}
+  if (!Game.settings.scopes || !Game.settings.scopes.length) {
+    Game.settings.scopes = DEFAULT_SCOPES.slice();
+  }
+  syncScopeUI();
+
   // V3.6-SEN: 簡單練習一鍵開始 preset
   const easyStartBtn = $('btn-easy-start');
   if (easyStartBtn) easyStartBtn.onclick = () => {
@@ -4553,7 +4775,7 @@ function setupMenu() {
     advancedForcedOpen = false;
     syncMenuAdvanced();
     const dh = $('diff-helper');
-    if (dh) dh.textContent = '簡單模式：看圖數數（1-5）、淺加法（結果 1-9）、少選項、答 10 題完';
+    if (dh) dh.textContent = '簡單模式：跟主頁範疇出題、少選項、答 10 題完';
     // 2. Lock to choice mode
     Game.settings.mode = 'choice';
     document.querySelectorAll('.opt-mode').forEach(x => {
@@ -4586,9 +4808,12 @@ function setupMenu() {
         x.setAttribute('aria-pressed', 'true');
       }
     });
-    // 5. Select only simple practice types
-    const senTypes = ['count1to3', 'count10', 'groupAdd', 'compareGroup'];
-    Game.settings.types = senTypes;
+    // 5. Types = selected home scopes (cycle44)
+    const scopes = (Game.settings.scopes || []).filter(id => TYPE_REGISTRY[id]);
+    const senTypes = scopes.length ? scopes.slice() : DEFAULT_SCOPES.slice();
+    Game.settings.scopes = senTypes;
+    Game.settings.types = senTypes.slice();
+    syncScopeUI();
     renderTypePicker();
     renderRecommendChips();
     updateTypeCount();
@@ -5054,6 +5279,13 @@ function showInstantHint(team, q) {
     // V3.6-SEN: show direction icon
     const labels = {1:'左邊多', 2:'右邊多', 3:'一樣多'};
     hint = `💡 ${labels[q.answer] || `答案係 ${q.answer}`}`;
+  } else if (q.type === 'compareLength') {
+    const labels = {1:'左邊', 2:'右邊'};
+    hint = `💡 ${labels[q.answer] || q.answer}`;
+  } else if (q.type === 'orderAsc20' || q.type === 'orderDesc20') {
+    hint = `💡 正確：${q.answer}`;
+  } else if (q.type === 'count20') {
+    hint = `💡 有 ${q.answer} 個`;
   } else if (reg && reg.layout === 'parts-emoji') {
     hint = `💡 答案係 ${q.answer}`;
   } else if (reg && reg.layout === 'sym-button') {
@@ -5222,11 +5454,18 @@ function _scheduleNextQuestion(team, delayMs) {
 // V3.6 cycle41: short wrong-answer hint for easy ultra-simple screen
 function _easyHintText(q) {
   if (!q) return '再試一次';
-  if (q.type === 'count1to3' || q.type === 'count10') return `答案係 ${q.answer} 個`;
+  if (q.type === 'count1to3' || q.type === 'count10' || q.type === 'count20') return `答案係 ${q.answer} 個`;
   if (q.type === 'groupAdd') return `答案係 ${q.answer}`;
   if (q.type === 'compareGroup') {
     const labels = { 1: '左邊多', 2: '右邊多', 3: '一樣多' };
     return labels[q.answer] || `答案係 ${q.answer}`;
+  }
+  if (q.type === 'compareLength') {
+    const labels = { 1: '左邊', 2: '右邊' };
+    return labels[q.answer] || `答案係 ${q.answer}`;
+  }
+  if (q.type === 'orderAsc20' || q.type === 'orderDesc20') {
+    return `答案係 ${q.answer}`;
   }
   if (q.optionLabels && q.optionLabels[q.answer] !== undefined) {
     return `答案係 ${q.optionLabels[q.answer]}`;

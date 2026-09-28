@@ -38,8 +38,8 @@ const TYPE_REGISTRY_BLOCK = src.match(/const TYPE_REGISTRY\s*=\s*\{[\s\S]*?\n\};
 assert('TYPE_REGISTRY block present', !!TYPE_REGISTRY_BLOCK);
 const registrySrc = TYPE_REGISTRY_BLOCK ? TYPE_REGISTRY_BLOCK[0] : '';
 const typeIds = [...registrySrc.matchAll(/id:'([a-zA-Z0-9]+)'/g)].map(m => m[1]);
-const expectedIds = ['add10','sub10','add20','sub20','add2d','sub2d','count10','count1to3','groupAdd','compareGroup','compare10','double','whatTime','shapeMatch','ordering'];
-eq('15 type entries', typeIds.length, 15);
+const expectedIds = ['add10','sub10','add20','sub20','add2d','sub2d','count10','count1to3','groupAdd','compareGroup','compare10','double','whatTime','shapeMatch','ordering','count20','compareLength','orderAsc20','orderDesc20'];
+eq('19 type entries', typeIds.length, 19);
 for (const id of expectedIds) assert(`  type[${id}] present`, typeIds.includes(id));
 assert('  no duplicate id', new Set(typeIds).size === typeIds.length);
 
@@ -942,8 +942,9 @@ assert('EASY-23 boss panel toggled hidden in easy mode',
   /difficulty === 'easy'.*hidden.*hidden/.test(src) || /toggle\('hidden'/.test(src));
 assert('EASY-24 中度 SEN 一鍵開始 button in menu HTML',
   /id="btn-easy-start"/.test(src));
-assert('EASY-25 一鍵開始 sets 4 SEN-friendly types',
-  /count1to3.*count10.*groupAdd.*compareGroup/.test(src));
+assert('EASY-25 一鍵開始 sets scopes (cycle44 home categories)',
+  /DEFAULT_SCOPES/.test(src) && /selected home scopes/.test(src) &&
+  /count20/.test(src) && /compareLength/.test(src) && /orderAsc20/.test(src) && /orderDesc20/.test(src));
 assert('EASY-26 groupAdd uses ❓ emoji instead of plain ?',
   /' = ❓'/.test(src));
 // V3.6-SEN-FIX: groupAdd same fruit on both sides — one fruit var, both repeats
@@ -1146,6 +1147,32 @@ assert('EASY-78 startGame dual nextQuestion mage',
 assert('EASY-79 dual identity pickers left/right',
   /identity-picker-left/.test(src) && /identity-picker-right/.test(src) &&
   /playerLabelRight/.test(src));
+
+// V3.6 cycle44: home scopes (count20 / length / order asc-desc)
+console.log('\n[T36] V3.6 audit cycle-44 (home scopes)');
+assert('EASY-80 scope-picker + 4 opt-scope buttons',
+  /id="scope-picker"/.test(src) &&
+  /data-scope="count20"/.test(src) &&
+  /data-scope="compareLength"/.test(src) &&
+  /data-scope="orderAsc20"/.test(src) &&
+  /data-scope="orderDesc20"/.test(src));
+assert('EASY-81 TYPE_REGISTRY cycle44 types',
+  /count20:\s*\{/.test(src) && /compareLength:\s*\{/.test(src) &&
+  /orderAsc20:\s*\{/.test(src) && /orderDesc20:\s*\{/.test(src));
+assert('EASY-82 Generators count20 + compareLength + orderAsc/Desc',
+  /count20\s*\(mode\)/.test(src) && /compareLength\s*\(\)/.test(src) &&
+  /orderAsc20\s*\(\)/.test(src) && /orderDesc20\s*\(\)/.test(src));
+assert('EASY-83 layouts bars + seq-choice dispatched',
+  /layout === 'bars'/.test(src) && /layout === 'seq-choice'/.test(src));
+assert('EASY-84 easy-start uses scopes not legacy senTypes only',
+  /Types = selected home scopes/.test(src) &&
+  /Game\.settings\.types = senTypes\.slice\(\)/.test(src) &&
+  /DEFAULT_SCOPES/.test(src));
+assert('EASY-85 SEN bars visual + order prompts',
+  /sen-bars/.test(src) && /由細到大？/.test(src) && /由大到細？/.test(src) &&
+  /sen-count-dense/.test(src));
+assert('EASY-86 scopes setting + mg2.scopes persist',
+  /scopes:\s*\[/.test(src) && /mg2\.scopes/.test(src) && /syncScopeUI/.test(src));
 
 // =========== summary ===========
 console.log(`\n========== ${pass} pass / ${fail} fail ==========`);
