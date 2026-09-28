@@ -1174,6 +1174,19 @@ assert('EASY-85 SEN bars visual + order prompts',
 assert('EASY-86 scopes setting + mg2.scopes persist',
   /scopes:\s*\[/.test(src) && /mg2\.scopes/.test(src) && /syncScopeUI/.test(src));
 
+// V3.6 cycle45: compareLength real visual
+console.log('\n[T37] V3.6 audit cycle-45 (compareLength visual)');
+assert('EASY-87 compareLength min diff 3 + A/B answers',
+  /Math\.abs\(a - b\) < 3/.test(src) &&
+  /options:\s*\['A',\s*'B'\]/.test(src) &&
+  /optionLabels:\s*\{\s*A:\s*'A',\s*B:\s*'B'\s*\}/.test(src));
+assert('EASY-88 bars use rem width + unit blocks + track',
+  /sen-bar-track/.test(src) && /sen-bar-units/.test(src) &&
+  /width:\$\{wA\}rem/.test(src) && /unitsA/.test(src) &&
+  /sen-q-visual/.test(src));
+assert('EASY-89 no left\/right labels for vertical bars',
+  !/optionLabels:\s*\{\s*1:\s*'左邊'/.test(src));
+
 // =========== summary ===========
 console.log(`\n========== ${pass} pass / ${fail} fail ==========`);
 if (fail > 0) {

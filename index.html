@@ -182,20 +182,64 @@
   }
   .sen-panel .sen-q-emoji { font-size: clamp(2.5rem, 8vw, 5.5rem); line-height: 1.1; text-align: center; max-width: 100%; }
   .sen-panel .sen-q-emoji.sen-count-dense { font-size: clamp(1.05rem, 3.2vw, 1.85rem); line-height: 1.25; letter-spacing: 0.02em; word-break: break-word; }
+  .sen-panel .sen-q-emoji.sen-q-visual { font-size: 1rem; line-height: 1.2; width: min(100%, 28rem); }
   .sen-panel .sen-q-text { color: #fff; font-size: clamp(1.25rem, 3vw, 2rem); font-weight: 800; text-align: center; }
   .sen-panel .sen-options { width: 100%; max-width: 22rem; display: flex; flex-direction: column; gap: 0.6rem; }
   .sen-board-dual .sen-options { max-width: 100%; }
-  /* V3.6 cycle44: length compare bars */
-  .sen-bars { width: min(100%, 22rem); display: flex; flex-direction: column; gap: 0.85rem; }
-  .sen-bar-row { display: flex; align-items: center; gap: 0.6rem; }
-  .sen-bar-tag { width: 2rem; height: 2rem; border-radius: 999px; background: rgba(255,255,255,0.18); color: #fff; font-weight: 900; display: grid; place-items: center; flex-shrink: 0; }
-  .sen-bar {
-    height: 2.1rem; border-radius: 999px; min-width: 1.5rem;
-    background: linear-gradient(90deg, #fbbf24, #f59e0b);
-    box-shadow: 0 0 0 3px rgba(251,191,36,0.25);
-    transition: width .15s;
+  /* V3.6 cycle45: length compare — explicit rem bars + unit blocks (no % collapse) */
+  .sen-bars {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 0.5rem 0.25rem;
+    text-align: left;
   }
-  .sen-bar.right { background: linear-gradient(90deg, #a78bfa, #7c3aed); box-shadow: 0 0 0 3px rgba(167,139,250,0.28); }
+  .sen-bar-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    width: 100%;
+  }
+  .sen-bar-tag {
+    width: 2.6rem; height: 2.6rem; border-radius: 999px;
+    background: rgba(255,255,255,0.22); color: #fff;
+    font-weight: 900; font-size: 1.35rem;
+    display: grid; place-items: center; flex-shrink: 0;
+    border: 3px solid rgba(255,255,255,0.35);
+  }
+  .sen-bar-track {
+    flex: 1;
+    min-width: 0;
+    height: 2.6rem;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.12);
+    border: 2px solid rgba(255,255,255,0.18);
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    padding: 0.2rem;
+  }
+  .sen-bar {
+    height: 100%;
+    border-radius: 999px;
+    min-width: 1.2rem;
+    flex-shrink: 0;
+    background: linear-gradient(90deg, #fbbf24, #f59e0b);
+    box-shadow: inset 0 -2px 0 rgba(0,0,0,0.15);
+  }
+  .sen-bar.b { background: linear-gradient(90deg, #c4b5fd, #7c3aed); }
+  .sen-bar-units {
+    margin-top: 0.15rem;
+    font-size: clamp(1.35rem, 4.5vw, 2.1rem);
+    letter-spacing: 0.08em;
+    line-height: 1.15;
+    font-weight: 900;
+    color: #fde68a;
+    white-space: nowrap;
+    overflow: hidden;
+  }
+  .sen-bar-units.b { color: #e9d5ff; }
   .opt-scope.opt-selected {
     border-color: #fbbf24 !important;
     background: rgba(251,191,36,0.18) !important;
@@ -2839,23 +2883,35 @@ const Generators = {
     const n = randInt(1, 20);
     return { parts: [f.repeat(n), '= ?'], answer: n, type:'count20', answerDisplay: String(n) };
   },
-  // V3.6 cycle44: 長短比較（兩條棒）
+  // V3.6 cycle45: 長短比較 — 明顯長度差 + A/B 標（上下棒，唔用左右字）
   compareLength() {
-    let left = randInt(2, 10);
-    let right = randInt(2, 10);
-    while (right === left) right = randInt(2, 10);
+    // units 2–8，最少差 3，中度一眼見到長短
+    let a = randInt(2, 8);
+    let b = randInt(2, 8);
+    let guard = 0;
+    while (Math.abs(a - b) < 3 && guard++ < 40) {
+      a = randInt(2, 8);
+      b = randInt(2, 8);
+    }
+    if (Math.abs(a - b) < 3) { a = 3; b = 7; }
     const askLong = Math.random() < 0.5;
-    const answer = askLong
-      ? (left > right ? 1 : 2)
-      : (left < right ? 1 : 2);
+    const answer = askLong ? (a > b ? 'A' : 'B') : (a < b ? 'A' : 'B');
     const prompt = askLong ? '邊條長？' : '邊條短？';
+    const block = (n, ch) => ch.repeat(n);
     return {
       parts: [prompt],
       answer,
       type: 'compareLength',
-      options: [1, 2],
-      optionLabels: { 1: '左邊', 2: '右邊' },
-      extra: { left, right, ask: askLong ? 'long' : 'short', prompt },
+      options: ['A', 'B'],
+      optionLabels: { A: 'A', B: 'B' },
+      extra: {
+        a, b,
+        left: a, right: b, // legacy keys kept
+        ask: askLong ? 'long' : 'short',
+        prompt,
+        unitsA: block(a, '■'),
+        unitsB: block(b, '■'),
+      },
     };
   },
   // V3.6 cycle44 helpers: 3 distinct 1-20 + MC sequences
@@ -4226,21 +4282,32 @@ const UI = {
     if (fb) fb.innerHTML = '';
     if (done) done.classList.add('hidden');
     if (emojiEl) {
-      emojiEl.classList.remove('sen-count-dense');
+      emojiEl.classList.remove('sen-count-dense', 'sen-q-visual');
       emojiEl.innerHTML = '';
       emojiEl.textContent = '';
     }
 
-    // V3.6 cycle44: length bars visual
+    // V3.6 cycle45: length bars — rem width + unit blocks (always visible)
     if (q.type === 'compareLength' && q.extra && emojiEl) {
-      const L = Math.max(1, Number(q.extra.left) || 1);
-      const R = Math.max(1, Number(q.extra.right) || 1);
-      const maxU = 10;
-      const wL = Math.round((L / maxU) * 100);
-      const wR = Math.round((R / maxU) * 100);
-      emojiEl.innerHTML = `<div class="sen-bars" aria-hidden="true">
-        <div class="sen-bar-row"><span class="sen-bar-tag">A</span><div class="sen-bar" style="width:${wL}%"></div></div>
-        <div class="sen-bar-row"><span class="sen-bar-tag">B</span><div class="sen-bar right" style="width:${wR}%"></div></div>
+      const A = Math.max(1, Number(q.extra.a != null ? q.extra.a : q.extra.left) || 1);
+      const B = Math.max(1, Number(q.extra.b != null ? q.extra.b : q.extra.right) || 1);
+      const unit = 1.35; // rem per length unit
+      const wA = (A * unit).toFixed(2);
+      const wB = (B * unit).toFixed(2);
+      const uA = q.extra.unitsA || '■'.repeat(A);
+      const uB = q.extra.unitsB || '■'.repeat(B);
+      emojiEl.classList.add('sen-q-visual');
+      emojiEl.innerHTML = `<div class="sen-bars" role="img" aria-label="A ${A} 格，B ${B} 格">
+        <div class="sen-bar-row">
+          <span class="sen-bar-tag">A</span>
+          <div class="sen-bar-track"><div class="sen-bar" style="width:${wA}rem"></div></div>
+        </div>
+        <div class="sen-bar-units" aria-hidden="true">${uA}</div>
+        <div class="sen-bar-row">
+          <span class="sen-bar-tag">B</span>
+          <div class="sen-bar-track"><div class="sen-bar b" style="width:${wB}rem"></div></div>
+        </div>
+        <div class="sen-bar-units b" aria-hidden="true">${uB}</div>
       </div>`;
       if (textEl) textEl.textContent = (q.extra && q.extra.prompt) || '邊條長？';
     } else if (q.parts) {
@@ -5280,7 +5347,7 @@ function showInstantHint(team, q) {
     const labels = {1:'左邊多', 2:'右邊多', 3:'一樣多'};
     hint = `💡 ${labels[q.answer] || `答案係 ${q.answer}`}`;
   } else if (q.type === 'compareLength') {
-    const labels = {1:'左邊', 2:'右邊'};
+    const labels = { A: 'A', B: 'B', 1: 'A', 2: 'B' };
     hint = `💡 ${labels[q.answer] || q.answer}`;
   } else if (q.type === 'orderAsc20' || q.type === 'orderDesc20') {
     hint = `💡 正確：${q.answer}`;
@@ -5461,7 +5528,7 @@ function _easyHintText(q) {
     return labels[q.answer] || `答案係 ${q.answer}`;
   }
   if (q.type === 'compareLength') {
-    const labels = { 1: '左邊', 2: '右邊' };
+    const labels = { A: 'A', B: 'B', 1: 'A', 2: 'B' };
     return labels[q.answer] || `答案係 ${q.answer}`;
   }
   if (q.type === 'orderAsc20' || q.type === 'orderDesc20') {
