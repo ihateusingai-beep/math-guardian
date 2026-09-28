@@ -682,7 +682,7 @@ console.log('\n[T24] V3.5 audit cycle-11 R2 + R3 refactor');
 
 // R3 — showEndScreen refactored to orchestrator + 5 module-level helpers
 assert('R3 _endTitleFor pure helper exists',
-  /^function _endTitleFor\(victory\) \{[\s\S]{0,1500}return \{ title:/m.test(src));
+  /function _endTitleFor\(victory\) \{[\s\S]{0,2800}return \{ title:/.test(src));
 assert('R3 _renderEndIcon helper exists',
   /function _renderEndIcon\s*\(\s*victory[\s\S]{0,40}\)[\s\S]{0,1200}iconSvg\.classList\.(remove|add)\('hidden'\)/.test(src));
 assert('R3 _renderEndBackground + _renderEndStats helpers exist',
@@ -844,7 +844,7 @@ assert('R5-6  _recordAnswerStats called after correct/wrong effects',
   /_recordAnswerStats\(team, q, correct\);/.test(src));
 // R5-7: next-question routing extracted to _scheduleNextQuestion
 assert('R5-7  _scheduleNextQuestion contains null-out + coop/versus branch',
-  /function _scheduleNextQuestion\s*\(\s*team[\s\S]{0,40}\)[\s\S]{0,600}current\[team\] = null[\s\S]{0,400}coop/.test(src));
+  /function _scheduleNextQuestion\s*\(\s*team[\s\S]{0,40}\)[\s\S]{0,900}current\[team\] = null[\s\S]{0,700}coop/.test(src));
 // R5-8: ordering ordering compare still in helper
 assert('R5-8  _compareAnswer ordering check uses length+JSON',
   /function _compareAnswer[\s\S]{0,800}type\s*===\s*'ordering'[\s\S]{0,300}actual\.length\s*===\s*expected\.length[\s\S]{0,300}JSON\.stringify/.test(src));
@@ -987,7 +987,7 @@ assert('EASY-32 nextTeamInCoop updates card visibility in easy mode',
   /nextTeamInCoop/.test(src) && /card/.test(src) && /hidden/.test(src));
 // V3.6-SEN P2: TTS + animations + keyboard
 assert('EASY-33 showQuestionSEN calls TTS.speak',
-  /showQuestionSEN\(q\) \{[\s\S]{0,6000}TTS\.speak\(text, null/.test(src));
+  /showQuestionSEN\s*\(\s*q\s*,\s*team\s*\)\s*\{[\s\S]{0,7000}TTS\.speak\(text, null/.test(src));
 assert('EASY-34 keyboard shortcuts blocked in easy mode',
   /no keyboard shortcuts/.test(src));
 assert('EASY-35 flash-correct animation 1.2s (not 0.6s)',
@@ -1006,14 +1006,15 @@ assert('EASY-40 Game.handleAnswer SEN branch shows feedback',
   /_senShowFeedback/.test(src));
 assert('EASY-41 Game.handleAnswer SEN branch calls refreshSENScreen',
   /refreshSENScreen/.test(src));
-assert('EASY-42 _scheduleNextQuestion skips team switch in easy mode',
-  /difficulty === 'easy'[\s\S]{0,100}knight/.test(src));
+assert('EASY-42 _scheduleNextQuestion easy keeps team routing',
+  /difficulty === 'easy'[\s\S]{0,250}nextTeam/.test(src) ||
+  /difficulty === 'easy'[\s\S]{0,250}nextQuestion/.test(src));
 assert('EASY-43 endGame hides SEN screen before showing end screen',
   /screen-game-sen.*classList.*add.*hidden/.test(src));
 assert('EASY-44 _wireSENScreen function exists',
   /function _wireSENScreen/.test(src));
-assert('EASY-45 SEN screen has option area id',
-  /id="sen-options-area"/.test(src));
+assert('EASY-45 SEN screen has per-team option areas',
+  /id="sen-options-knight"/.test(src) && /id="sen-options-mage"/.test(src));
 // V3.6-SEN cycle36: startGame must NOT redeclare const isEasy (TDZ/SyntaxError)
 assert('EASY-46 startGame declares const isEasy exactly once', (() => {
   const m = src.match(/function startGame\s*\([^)]*\)\s*\{[\s\S]*?\n\}/);
@@ -1043,7 +1044,7 @@ assert('EASY-47 main script parses without SyntaxError', (() => {
 })());
 // V3.6-SEN cycle36 batch: emoji / loop / back / shape labels / easy stats
 assert('EASY-48 showQuestionSEN splits emoji via codePointAt (not part[i])',
-  /showQuestionSEN[\s\S]{0,1200}codePointAt/.test(src) &&
+  /showQuestionSEN[\s\S]{0,5500}codePointAt/.test(src) &&
   /isEmojiCP/.test(src) &&
   !/showQuestionSEN[\s\S]{0,800}isEmoji = c =>/.test(src));
 assert('EASY-49 gameLoop early-returns in easy (no castle attack)',
@@ -1082,7 +1083,7 @@ assert('EASY-56 _wireSENScreen is module-scope (before setupMenu, not nested)', 
 assert('EASY-57 startGame sets easyGoalTotal for easy practice end',
   /easyGoalTotal\s*=\s*isEasy\s*\?\s*10\s*:\s*0/.test(src));
 assert('EASY-58 easy handleAnswer ends session via endGame(true) on goal',
-  /easyGoalTotal[\s\S]{0,400}endGame\(\s*true\s*\)/.test(src) &&
+  /easyGoalTotal[\s\S]{0,900}endGame\(\s*true\s*\)/.test(src) &&
   /_easyEnding/.test(src));
 assert('EASY-59 btn-easy-start one-click calls startGame (not scroll-only)', (() => {
   const i = src.indexOf('easyStartBtn.onclick');
@@ -1109,7 +1110,7 @@ assert('EASY-65 easy wrong answers use _easyHintText + delayed next Q',
 assert('EASY-66 compareGroup optionLabels are Chinese (not bare emoji)',
   /optionLabels:\{1:'左邊多',2:'右邊多',3:'一樣多'\}/.test(src));
 assert('EASY-67 easy mode schedule defaults delay (not bare 0)',
-  /function _scheduleNextQuestion[\s\S]{0,350}delay \|\| 700/.test(src));
+  /function _scheduleNextQuestion[\s\S]{0,800}delay \|\| 700/.test(src));
 
 // V3.6 cycle42: touch hard rules + identity + 金銀銅
 console.log('\n[T34] V3.6 audit cycle-42 (touch / identity / medals)');
@@ -1125,8 +1126,26 @@ assert('EASY-71 easy end awards 金獎/銀獎/銅獎 by accuracy',
   /acc >= 0\.9/.test(src) && /acc >= 0\.7/.test(src) && /acc >= 0\.5/.test(src));
 assert('EASY-72 end-medal element + easyCert path',
   /id="end-medal"/.test(src) && /easyCert/.test(src) && /_renderEndIcon\(victory, endMeta\)/.test(src));
-assert('EASY-73 sen-who-badge shows playerLabel',
-  /id="sen-who-badge"/.test(src) && /playerLabel/.test(src));
+assert('EASY-73 sen who badges show playerLabel',
+  /id="sen-who-knight"/.test(src) && /playerLabel/.test(src));
+
+// V3.6 cycle43: solo vs dual touch-board
+console.log('\n[T35] V3.6 audit cycle-43 (solo / dual playLayout)');
+assert('EASY-74 playLayout solo|dual setting + opt-play buttons',
+  /playLayout:\s*'solo'/.test(src) && /data-play="solo"/.test(src) && /data-play="dual"/.test(src));
+assert('EASY-75 sen-board dual/solo CSS classes + panels',
+  /sen-board-dual/.test(src) && /sen-board-solo/.test(src) &&
+  /id="sen-panel-knight"/.test(src) && /id="sen-panel-mage"/.test(src));
+assert('EASY-76 applySENBoardLayout + showQuestionSEN(q, team)',
+  /applySENBoardLayout/.test(src) && /showQuestionSEN\(q, team\)/.test(src));
+assert('EASY-77 dual end waits both teams (_easyTeamDone)',
+  /_easyTeamDone/.test(src) && /markSENTeamDone/.test(src) &&
+  /playLayout === 'dual'/.test(src));
+assert('EASY-78 startGame dual nextQuestion mage',
+  /playLayout === 'dual'[\s\S]{0,80}nextQuestion\('mage'\)/.test(src));
+assert('EASY-79 dual identity pickers left/right',
+  /identity-picker-left/.test(src) && /identity-picker-right/.test(src) &&
+  /playerLabelRight/.test(src));
 
 // =========== summary ===========
 console.log(`\n========== ${pass} pass / ${fail} fail ==========`);
