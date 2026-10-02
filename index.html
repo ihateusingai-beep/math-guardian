@@ -139,6 +139,136 @@
     align-items: stretch;
     justify-content: center;
   }
+  /* V3.6 cycle47: dual arena strip */
+  .sen-arena {
+    flex: 0 0 auto;
+    width: 100%;
+    padding: 0.55rem 0.75rem 0.35rem;
+    background: linear-gradient(180deg, rgba(15,23,42,0.95), rgba(30,27,75,0.85));
+    border-bottom: 3px solid rgba(251,191,36,0.35);
+    z-index: 5;
+  }
+  .sen-arena-mode { display: flex; align-items: center; gap: 0.5rem; width: 100%; }
+  .sen-arena-status {
+    text-align: center;
+    font-weight: 900;
+    font-size: clamp(0.85rem, 2.4vw, 1.1rem);
+    color: #fde68a;
+    margin-top: 0.25rem;
+    min-height: 1.25rem;
+  }
+  .sen-tug-side {
+    font-size: 1.5rem;
+    width: 2.2rem;
+    text-align: center;
+    flex-shrink: 0;
+  }
+  .sen-tug-track {
+    position: relative;
+    flex: 1;
+    height: 2.6rem;
+    border-radius: 999px;
+    background: rgba(0,0,0,0.35);
+    border: 2px solid rgba(255,255,255,0.15);
+    overflow: hidden;
+  }
+  .sen-tug-rope {
+    position: absolute;
+    left: 6%; right: 6%;
+    top: 50%;
+    height: 8px;
+    margin-top: -4px;
+    border-radius: 4px;
+    background: repeating-linear-gradient(90deg, #d6b37a 0 10px, #b8955a 10px 14px);
+    box-shadow: 0 1px 0 rgba(0,0,0,0.35);
+  }
+  .sen-tug-mid {
+    position: absolute;
+    left: 50%; top: 0; bottom: 0;
+    width: 2px;
+    margin-left: -1px;
+    background: rgba(251,191,36,0.55);
+  }
+  .sen-tug-knot {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 2.2rem;
+    height: 2.2rem;
+    margin: -1.1rem 0 0 -1.1rem;
+    display: grid;
+    place-items: center;
+    font-size: 1.35rem;
+    border-radius: 50%;
+    background: rgba(15,23,42,0.9);
+    border: 3px solid #fbbf24;
+    box-shadow: 0 0 12px rgba(251,191,36,0.45);
+    transition: left 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+    z-index: 2;
+  }
+  .sen-tug-knot.pull-l { animation: sen-tug-jolt-l 0.35s ease; }
+  .sen-tug-knot.pull-r { animation: sen-tug-jolt-r 0.35s ease; }
+  @keyframes sen-tug-jolt-l {
+    0%,100% { transform: translateX(0); }
+    40% { transform: translateX(-6px) scale(1.08); }
+  }
+  @keyframes sen-tug-jolt-r {
+    0%,100% { transform: translateX(0); }
+    40% { transform: translateX(6px) scale(1.08); }
+  }
+  .sen-boat-row {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    width: 100%;
+  }
+  .sen-boat-emoji { font-size: 1.4rem; flex-shrink: 0; }
+  .sen-boat-track {
+    position: relative;
+    flex: 1;
+    height: 2.4rem;
+    border-radius: 999px;
+    background: linear-gradient(180deg, #0ea5e9 0%, #0369a1 100%);
+    border: 2px solid rgba(255,255,255,0.2);
+    overflow: hidden;
+  }
+  .sen-boat {
+    position: absolute;
+    top: 50%;
+    left: 4%;
+    margin-top: -0.95rem;
+    font-size: 1.7rem;
+    line-height: 1;
+    transition: left 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+    filter: drop-shadow(0 2px 2px rgba(0,0,0,0.35));
+  }
+  .sen-boat.splash { animation: sen-boat-splash 0.4s ease; }
+  @keyframes sen-boat-splash {
+    0%,100% { transform: translateY(0); }
+    40% { transform: translateY(-5px) rotate(-6deg); }
+  }
+  .sen-boat-bar {
+    margin-top: 0.3rem;
+    height: 0.55rem;
+    border-radius: 999px;
+    background: rgba(0,0,0,0.35);
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.12);
+  }
+  .sen-boat-fill {
+    height: 100%;
+    width: 0%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #34d399, #fbbf24);
+    transition: width 0.45s ease;
+  }
+  .sen-board.has-arena {
+    /* leave room for arena strip */
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .sen-tug-knot, .sen-boat, .sen-boat-fill { transition: none !important; }
+    .sen-tug-knot.pull-l, .sen-tug-knot.pull-r, .sen-boat.splash { animation: none !important; }
+  }
   .sen-board-solo .sen-panel-mage { display: none !important; }
   .sen-board-solo .sen-panel-knight {
     width: 100%;
@@ -264,6 +394,10 @@
   .opt-play.opt-selected {
     border-color: #fbbf24 !important;
     background: rgba(251,191,36,0.18) !important;
+  }
+  .opt-arena.opt-selected {
+    border-color: #34d399 !important;
+    background: rgba(52,211,153,0.16) !important;
   }
   /* V3.6 cycle42: identity cards */
   .id-card {
@@ -439,7 +573,6 @@
   .q-order-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.5rem; }
   .q-order-row .q-order-btn { font-size: 1.6rem; padding: 0.8rem; border-radius: 1rem; background: rgba(255,255,255,0.08); border: 2px solid rgba(255,255,255,0.15); color: #fff; font-weight: 800; cursor: pointer; }
   .q-order-row .q-order-btn.used { opacity: 0.25; pointer-events: none; }
-  }
 
   /* ============== 背景宇宙 / 星空 ============== */
   .bg-arena {
@@ -1630,6 +1763,15 @@
           </button>
         </div>
         <div id="play-helper" class="text-xs text-white/60 mt-2">單人：全屏一題。雙隊：左藍右紫，適合 touch board。</div>
+        <!-- V3.6 cycle47: dual arena mode (對戰扯大欖 / 合作推船) -->
+        <div id="dual-arena-picker" class="hidden grid grid-cols-2 gap-3 mt-3" role="radiogroup" aria-label="雙隊遊戲">
+          <button type="button" class="opt-arena btn btn-ghost py-3 opt-selected" data-arena="versus" aria-pressed="true">
+            🪢 對戰扯大欖<br><span class="text-xs opacity-70">答對就拉 · 邊邊贏</span>
+          </button>
+          <button type="button" class="opt-arena btn btn-ghost py-3" data-arena="coop" aria-pressed="false">
+            🚢 合作推船<br><span class="text-xs opacity-70">一齊前進 · 埋島</span>
+          </button>
+        </div>
       </div>
 
       <!-- V3.6 cycle42/43: 身份卡（中度唔強制打字名） -->
@@ -1952,6 +2094,31 @@
   <!-- ========== V3.6: 超簡遊戲畫面（簡單練習：單人 / 左右雙隊） ========== -->
   <section id="screen-game-sen" class="hidden fixed inset-0 flex flex-col" style="background:#0f172a;z-index:50;">
     <button id="sen-btn-back" class="sen-chrome-back text-white text-xl w-12 h-12 rounded-2xl bg-black/50 border border-white/20 flex items-center justify-center" aria-label="返回主選單">⬅</button>
+    <!-- V3.6 cycle47: dual arena — versus 扯大欖 / coop 推船 -->
+    <div id="sen-arena" class="sen-arena hidden" aria-live="polite" aria-atomic="true">
+      <div id="sen-arena-tug" class="sen-arena-mode hidden">
+        <div class="sen-tug-side l" id="sen-tug-side-l">🔵</div>
+        <div class="sen-tug-track" role="img" aria-label="扯大欖繩">
+          <div class="sen-tug-rope"></div>
+          <div id="sen-tug-knot" class="sen-tug-knot">🪢</div>
+          <div class="sen-tug-mid"></div>
+        </div>
+        <div class="sen-tug-side r" id="sen-tug-side-r">🟣</div>
+      </div>
+      <div id="sen-arena-boat" class="sen-arena-mode hidden">
+        <div class="sen-boat-row">
+          <span class="sen-boat-emoji" aria-hidden="true">🌊</span>
+          <div class="sen-boat-track">
+            <div id="sen-boat" class="sen-boat">🚢</div>
+          </div>
+          <span class="sen-boat-emoji" aria-hidden="true">🏝️</span>
+        </div>
+        <div class="sen-boat-bar" role="progressbar" id="sen-boat-bar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+          <div id="sen-boat-fill" class="sen-boat-fill"></div>
+        </div>
+      </div>
+      <div id="sen-arena-status" class="sen-arena-status">準備…</div>
+    </div>
     <div id="sen-board" class="sen-board sen-board-solo">
       <!-- 左 / 單人 = knight -->
       <div id="sen-panel-knight" class="sen-panel sen-panel-knight" data-team="knight">
@@ -2393,6 +2560,17 @@ const Audio = (() => {
     },
     countdown: () => tone(880, 0.10, 'square', 0.14), // 倒數最後 10 秒
     click: () => tone(660, 0.04, 'sine', 0.08),
+    // V3.6 cycle47 arena SFX
+    tugPull: () => {
+      tone(140, 0.07, 'square', 0.14, 90, 0.07);
+      noise(0.05, 0.08, 500);
+      setTimeout(() => tone(200, 0.06, 'triangle', 0.10), 40);
+    },
+    boatRow: () => {
+      tone(330, 0.09, 'sine', 0.12);
+      setTimeout(() => tone(440, 0.11, 'triangle', 0.10), 50);
+      noise(0.04, 0.05, 1200);
+    },
     // BGM
     startBGM, stopBGM,
     // 控制
@@ -2731,7 +2909,7 @@ const TYPE_REGISTRY = {
   double: { id:'double', label:'雙數倍數', emoji:'✖️', difficulty:1, category:'math', icon:null, mode:['choice','keypad'], layout:'parts-emoji', desc:'2 個相同加起來' },
   whatTime: { id:'whatTime', label:'時鐘整點', emoji:'🕐', difficulty:2, category:'math', icon:null, mode:['choice','keypad'], layout:'clock', desc:'看鐘面答時間 (1-12)' },
   shapeMatch: { id:'shapeMatch', label:'形狀辨認', emoji:'🔺', difficulty:1, category:'math', icon:null, mode:['choice','keypad'], layout:'shape', desc:'圖形名 (圓/方/三/星)' },
-  ordering: { id:'ordering', label:'由小到大', emoji:'📊', difficulty:2, category:'math', icon:null, mode:['order','keypad'], layout:'order', desc:'三個數排順序 (choice/keypad 兩可)' },
+  ordering: { id:'ordering', label:'由小到大', emoji:'📊', difficulty:2, category:'math', icon:null, mode:['choice','order','keypad'], layout:'order', desc:'三個數排順序 (choice MC / 撳掣排 / keypad)' },
   // === V3.6 cycle44: 中度主頁範疇 ===
   count20: { id:'count20', label:'數數 1-20', emoji:'🔢', difficulty:1, category:'math', icon:null, mode:['choice'], layout:'parts-emoji', desc:'睇圖數 1-20' },
   compareLength: { id:'compareLength', label:'長短比較', emoji:'📏', difficulty:1, category:'math', icon:null, mode:['choice'], layout:'bars', desc:'邊條長／短' },
@@ -2828,12 +3006,24 @@ const Generators = {
     else { g2 = g1; ans = 3; }                                              // equal: 25%
     return { parts: [f1.repeat(g1), ' ? ', f2.repeat(g2)], answer: ans, type:'compareGroup', optionLabels:{1:'左邊多',2:'右邊多',3:'一樣多'} };
   },
-  // 大小比較 — answer ∈ '<' | '=' | '>'
+  // 大小比較 — answer ∈ '<' | '=' | '>'；題幹只出兩數 + ?（唔劇透符號）
   compare10() {
-    let a, b;
-    do { a = randInt(1, 99); b = randInt(1, 99); } while (a === b);
-    const sym = a < b ? '<' : a > b ? '>' : '=';
-    return { parts: [`${a}`, sym === '<' ? ' ◁ ' : sym === '>' ? ' ▷ ' : ' ＝ ', `${b}`], answer: sym, type:'compare10' };
+    let a, b, sym;
+    const roll = Math.random();
+    // V3.6 cycle46: ~25% 相等；其餘兩數必唔同
+    if (roll < 0.25) {
+      a = randInt(1, 99); b = a; sym = '=';
+    } else {
+      do { a = randInt(1, 99); b = randInt(1, 99); } while (a === b);
+      sym = a < b ? '<' : '>';
+    }
+    return {
+      parts: [`${a}`, '  ?  ', `${b}`],
+      answer: sym,
+      type: 'compare10',
+      options: ['<', '=', '>'],
+      optionLabels: { '<': '＜ 細', '=': '＝ 等', '>': '＞ 大' },
+    };
   },
   // 雙數 — 出 2 個相同小組，問 total
   double() {
@@ -2844,13 +3034,21 @@ const Generators = {
     const g2 = f.repeat(group);
     return { parts: [g1, ' + ', g2, ' = ?'], answer: group * 2, type:'double' };
   },
-  // 時鐘整點
+  // 時鐘整點 — 題幹唔洩答案；choice 預先生 4 選
   whatTime() {
     const hour = randInt(1, 12);
+    const opts = new Set([hour]);
+    let guard = 0;
+    while (opts.size < 4 && guard++ < 30) opts.add(randInt(1, 12));
+    const options = shuffle([...opts]);
+    const optionLabels = {};
+    options.forEach(h => { optionLabels[h] = `${h} 點`; });
     return {
-      parts: [`時鐘顯示 ${hour} 點`],
+      parts: ['幾點鐘？'],
       answer: hour,
-      type:'whatTime',
+      type: 'whatTime',
+      options,
+      optionLabels,
       extra: { hour },
     };
   },
@@ -2867,14 +3065,27 @@ const Generators = {
     return { parts: [`這是什麼形狀？`], answer: pick, type:'shapeMatch', options, optionLabels: labels };
   },
   // 由小到大排 3 個數 (1-20)
-  ordering() {
-    const nums = [];
-    while (nums.length < 3) {
-      const n = randInt(1, 20);
-      if (!nums.includes(n)) nums.push(n);
-    }
+  // choice / easy → MC 字串答案（同 orderAsc20）；order/keypad → array + 撳掣排
+  ordering(mode) {
+    const nums = Generators._seqThree();
     const sorted = [...nums].sort((x, y) => x - y);
-    return { parts: [`排順序：${nums.join(' , ')}`], answer: sorted, type:'ordering', displayNums: nums };
+    const useChoice = mode === 'choice' || Game.settings.mode === 'choice' || Game.settings.difficulty === 'easy';
+    if (useChoice) {
+      const { correct, options } = Generators._seqOptions(sorted, nums);
+      return {
+        parts: [`${nums.join('  ·  ')}`],
+        answer: correct,
+        type: 'ordering',
+        options,
+        displayNums: nums,
+      };
+    }
+    return {
+      parts: [`排順序：${nums.join(' , ')}`],
+      answer: sorted,
+      type: 'ordering',
+      displayNums: nums,
+    };
   },
   // V3.6 cycle44: 數數 1-20
   count20(mode) {
@@ -2970,6 +3181,77 @@ const Generators = {
   },
 };
 
+// V3.6 cycle46: repair bank fixtures that spoil answers / miss choice options
+function _normalizeBankQuestion(type, mode, q, reg) {
+  if (!q || typeof q !== 'object') return null;
+  q = Object.assign({}, q, { type: q.type || type });
+  if (type === 'compare10') {
+    const parts = (q.parts || []).map(p => String(p).trim()).filter(Boolean);
+    // expect [a, mid?, b] — rebuild stem without spoil symbols
+    let a = parts[0], b = parts[parts.length - 1];
+    if (parts.length === 1 && /\d/.test(parts[0])) {
+      const m = parts[0].match(/(\d+)\D+(\d+)/);
+      if (m) { a = m[1]; b = m[2]; }
+    }
+    if (a == null || b == null || a === '' || b === '') return null;
+    q.parts = [String(a), '  ?  ', String(b)];
+    if (!q.answer || !['<', '=', '>'].includes(String(q.answer))) return null;
+    q.answer = String(q.answer);
+    q.options = ['<', '=', '>'];
+    q.optionLabels = { '<': '＜ 細', '=': '＝ 等', '>': '＞ 大' };
+  } else if (type === 'whatTime') {
+    let hour = (q.extra && q.extra.hour != null) ? Number(q.extra.hour) : Number(q.answer);
+    if (!Number.isFinite(hour)) {
+      const m = String((q.parts || []).join('')).match(/(\d{1,2})/);
+      if (m) hour = Number(m[1]);
+    }
+    if (!Number.isFinite(hour) || hour < 1 || hour > 12) return null;
+    q.extra = { hour };
+    q.answer = hour;
+    q.parts = ['幾點鐘？'];
+    if (!q.options || q.options.length < 2) {
+      const opts = new Set([hour]);
+      let g = 0;
+      while (opts.size < 4 && g++ < 30) opts.add(randInt(1, 12));
+      q.options = shuffle([...opts]);
+    }
+    q.optionLabels = Object.assign({}, q.optionLabels || {});
+    q.options.forEach(h => {
+      if (q.optionLabels[h] === undefined) q.optionLabels[h] = `${h} 點`;
+    });
+  } else if (type === 'ordering') {
+    const useChoice = mode === 'choice' || Game.settings.mode === 'choice' || Game.settings.difficulty === 'easy';
+    let nums = Array.isArray(q.displayNums) ? q.displayNums.slice() : null;
+    let sorted = Array.isArray(q.answer) ? q.answer.slice() : null;
+    if (!nums && sorted) nums = sorted.slice(); // weak fallback
+    if (!nums || nums.length !== 3) return null;
+    if (!sorted) sorted = [...nums].sort((x, y) => x - y);
+    q.displayNums = nums;
+    if (useChoice) {
+      if (typeof q.answer === 'string' && Array.isArray(q.options) && q.options.length >= 2) {
+        // already MC shape
+      } else {
+        const { correct, options } = Generators._seqOptions(sorted, nums);
+        q.answer = correct;
+        q.options = options;
+      }
+      q.parts = [`${nums.join('  ·  ')}`];
+    } else {
+      q.answer = sorted;
+      q.parts = q.parts && q.parts.length ? q.parts : [`排順序：${nums.join(' , ')}`];
+      delete q.options;
+    }
+  } else if (type === 'compareGroup') {
+    if (!q.optionLabels) q.optionLabels = { 1: '左邊多', 2: '右邊多', 3: '一樣多' };
+    if (!q.options || q.options.length < 2) q.options = [1, 2, 3];
+  } else if (type === 'shapeMatch') {
+    if (!q.optionLabels) {
+      q.optionLabels = { circle: '圓形', square: '方形', triangle: '三角形', star: '星形' };
+    }
+  }
+  return q;
+}
+
 const QuestionGen = (() => {
   /**
    * v3.1: registry-driven dispatcher
@@ -2998,6 +3280,8 @@ const QuestionGen = (() => {
       );
       if (bankUsable) q = bankQ;
     }
+    // V3.6 cycle46: bank 舊題可能劇透／缺 options → 正規化後再用
+    if (q) q = _normalizeBankQuestion(type, mode, q, reg);
     // 按 layout dispatch (如果 bank 唔適用)
     if (!q) {
       if (reg.layout === 'numeric') q = Generators.numeric(type, mode);
@@ -3005,7 +3289,7 @@ const QuestionGen = (() => {
       else if (reg.layout === 'sym-button') q = Generators.compare10();
       else if (reg.layout === 'clock') q = Generators.whatTime();
       else if (reg.layout === 'shape') q = Generators.shapeMatch();
-      else if (reg.layout === 'order') q = Generators.ordering();
+      else if (reg.layout === 'order') q = Generators.ordering(mode);
       else if (reg.layout === 'bars') q = Generators.compareLength();
       else if (reg.layout === 'seq-choice') q = Generators[type](mode);
       else q = Generators.numeric(type, mode);
@@ -3173,31 +3457,31 @@ const QuestionBank = (() => {
       { parts:['🌟🌟🌟 + 🌟🌟🌟 = ?'], answer:6 },
       { parts:['🍓 + 🍓 = ?'], answer:2 },
     ],
-    // --- sym-button layout (compare10) ---
+    // --- sym-button layout (compare10) — stem 無劇透符號 ---
     compare10: [
-      { parts:['3', ' ◁ ', '7'], answer:'<' },
-      { parts:['8', ' ▷ ', '5'], answer:'>' },
-      { parts:['2', ' ◁ ', '9'], answer:'<' },
-      { parts:['6', ' ▷ ', '1'], answer:'>' },
-      { parts:['4', ' ◁ ', '8'], answer:'<' },
-      { parts:['7', ' ▷ ', '3'], answer:'>' },
-      { parts:['5', ' ◁ ', '9'], answer:'<' },
-      { parts:['6', ' ▷ ', '4'], answer:'>' },
-      { parts:['1', ' ◁ ', '5'], answer:'<' },
-      { parts:['9', ' ▷ ', '6'], answer:'>' },
+      { parts:['3', '  ?  ', '7'], answer:'<' },
+      { parts:['8', '  ?  ', '5'], answer:'>' },
+      { parts:['2', '  ?  ', '9'], answer:'<' },
+      { parts:['6', '  ?  ', '1'], answer:'>' },
+      { parts:['4', '  ?  ', '8'], answer:'<' },
+      { parts:['7', '  ?  ', '3'], answer:'>' },
+      { parts:['5', '  ?  ', '9'], answer:'<' },
+      { parts:['6', '  ?  ', '4'], answer:'>' },
+      { parts:['1', '  ?  ', '5'], answer:'<' },
+      { parts:['9', '  ?  ', '9'], answer:'=' },
     ],
-    // --- clock layout ---
+    // --- clock layout — 題幹唔洩 hour；extra.hour 係真相 ---
     whatTime: [
-      { parts:['時鐘顯示 3 點'], answer:3 },
-      { parts:['時鐘顯示 6 點'], answer:6 },
-      { parts:['時鐘顯示 9 點'], answer:9 },
-      { parts:['時鐘顯示 12 點'], answer:12 },
-      { parts:['時鐘顯示 1 點'], answer:1 },
-      { parts:['時鐘顯示 4 點'], answer:4 },
-      { parts:['時鐘顯示 7 點'], answer:7 },
-      { parts:['時鐘顯示 10 點'], answer:10 },
-      { parts:['時鐘顯示 2 點'], answer:2 },
-      { parts:['時鐘顯示 8 點'], answer:8 },
+      { parts:['幾點鐘？'], answer:3,  extra:{ hour:3 } },
+      { parts:['幾點鐘？'], answer:6,  extra:{ hour:6 } },
+      { parts:['幾點鐘？'], answer:9,  extra:{ hour:9 } },
+      { parts:['幾點鐘？'], answer:12, extra:{ hour:12 } },
+      { parts:['幾點鐘？'], answer:1,  extra:{ hour:1 } },
+      { parts:['幾點鐘？'], answer:4,  extra:{ hour:4 } },
+      { parts:['幾點鐘？'], answer:7,  extra:{ hour:7 } },
+      { parts:['幾點鐘？'], answer:10, extra:{ hour:10 } },
+      { parts:['幾點鐘？'], answer:2,  extra:{ hour:2 } },
+      { parts:['幾點鐘？'], answer:8,  extra:{ hour:8 } },
     ],
     // --- shape layout (shapeMatch) ---
     // parts text 同 generator 一樣；options 在 QuestionGen.make 內 dispatch 後
@@ -3698,12 +3982,18 @@ const Game = {
       if (correct) {
         Game.state.teams[team].correct++;
         Audio.correct && Audio.correct();
+        // V3.6 cycle47: arena SFX + visual
+        if (Game.settings.playLayout === 'dual') {
+          if (Game.settings.team === 'coop') Audio.boatRow && Audio.boatRow();
+          else Audio.tugPull && Audio.tugPull();
+        }
       } else {
         Game.state.teams[team].wrong++;
         Audio.wrong && Audio.wrong();
       }
       _recordAnswerStats(team, q, correct);
       UI.refreshSENScreen();
+      UI.refreshSENArena(team, correct);
       const goal = Game.state.easyGoalTotal || 0;
       const dual = Game.settings.playLayout === 'dual';
       if (goal > 0 && Game.state.teams[team].total >= goal) {
@@ -3767,7 +4057,11 @@ const QuestionRenderer = {
   },
 
   // --- order: three numbers to arrange smallest→largest ---
+  // (choice MC with string answer is routed to seq-choice in showQuestion)
   'order'(q, team, area) {
+    if (q.options && typeof q.answer === 'string') {
+      return QuestionRenderer['seq-choice'](q, team, area);
+    }
     if (Game.settings.mode === 'keypad') {
       const hint = document.createElement('div');
       hint.className = 'text-center text-amber-200 text-sm mt-2 font-bold';
@@ -3777,7 +4071,7 @@ const QuestionRenderer = {
     const row = document.createElement('div');
     row.className = 'q-order-row';
     const order = [];
-    q.displayNums.forEach(n => {
+    (q.displayNums || []).forEach(n => {
       const b = document.createElement('button');
       b.className = 'q-order-btn';
       b.textContent = n;
@@ -3798,10 +4092,10 @@ const QuestionRenderer = {
   'clock'(q, team, area) {
     const clock = document.createElement('div');
     clock.className = 'q-clock';
-    const hour = q.extra.hour;
-    const deg = hour * 30;
+    const hour = q.extra && q.extra.hour != null ? q.extra.hour : q.answer;
+    const deg = Number(hour) * 30;
     clock.innerHTML = `
-      <svg viewBox="0 0 16 16" role="img" aria-label="時鐘顯示 ${hour} 點" style="width:140px;height:140px;">
+      <svg viewBox="0 0 16 16" role="img" aria-label="時鐘" style="width:140px;height:140px;">
         <use href="#px-clock-base"/>
         <line x1="8" y1="8" x2="8" y2="3" stroke="#dc2626" stroke-width="1.2" transform="rotate(${deg} 8 8)"/>
         <line x1="8" y1="8" x2="11" y2="8" stroke="#1e293b" stroke-width="0.6"/>
@@ -3816,15 +4110,21 @@ const QuestionRenderer = {
     }
     const grid = document.createElement('div');
     grid.className = 'grid grid-cols-2 gap-2 mt-3';
-    const hourOpts = [hour];
-    while (hourOpts.length < 4) {
-      const fake = randInt(1, 12);
-      if (!hourOpts.includes(fake)) hourOpts.push(fake);
-    }
-    shuffle(hourOpts).forEach(h => {
+    let hourOpts = Array.isArray(q.options) && q.options.length >= 2
+      ? q.options.slice()
+      : (() => {
+          const o = [hour];
+          while (o.length < 4) {
+            const fake = randInt(1, 12);
+            if (!o.includes(fake)) o.push(fake);
+          }
+          return shuffle(o);
+        })();
+    const labels = q.optionLabels || null;
+    hourOpts.forEach(h => {
       const b = document.createElement('button');
       b.className = 'option-btn';
-      b.textContent = h + ' 點';
+      b.textContent = (labels && labels[h] !== undefined) ? labels[h] : (h + ' 點');
       b.onclick = () => Game.handleAnswer(team, h, b);
       grid.appendChild(b);
     });
@@ -3888,6 +4188,51 @@ const QuestionRenderer = {
     });
     area.appendChild(grid);
     return true;
+  },
+
+  // parts-emoji → same choice grid (emoji lives in question text)
+  'parts-emoji'(q, team, area) {
+    return QuestionRenderer['numeric'](q, team, area);
+  },
+
+  // V3.6 cycle46: bars layout (compareLength) for normal difficulty
+  'bars'(q, team, area) {
+    const ex = q.extra || {};
+    const A = Math.max(1, Number(ex.a != null ? ex.a : ex.left) || 1);
+    const B = Math.max(1, Number(ex.b != null ? ex.b : ex.right) || 1);
+    const unit = 1.35;
+    const wA = (A * unit).toFixed(2);
+    const wB = (B * unit).toFixed(2);
+    const uA = ex.unitsA || '■'.repeat(A);
+    const uB = ex.unitsB || '■'.repeat(B);
+    const visual = document.createElement('div');
+    visual.className = 'sen-q-visual';
+    visual.innerHTML = `<div class="sen-bars" role="img" aria-label="A ${A} 格，B ${B} 格">
+      <div class="sen-bar-row">
+        <span class="sen-bar-tag">A</span>
+        <div class="sen-bar-track"><div class="sen-bar" style="width:${wA}rem"></div></div>
+      </div>
+      <div class="sen-bar-units" aria-hidden="true">${uA}</div>
+      <div class="sen-bar-row">
+        <span class="sen-bar-tag">B</span>
+        <div class="sen-bar-track"><div class="sen-bar b" style="width:${wB}rem"></div></div>
+      </div>
+      <div class="sen-bar-units b" aria-hidden="true">${uB}</div>
+    </div>`;
+    area.appendChild(visual);
+    return QuestionRenderer['numeric'](q, team, area);
+  },
+
+  // V3.6 cycle46: seq-choice (orderAsc/Desc + ordering MC)
+  'seq-choice'(q, team, area) {
+    if (q.displayNums && q.displayNums.length) {
+      const row = document.createElement('div');
+      row.className = 'text-center text-3xl font-extrabold tracking-widest mb-2';
+      row.textContent = q.displayNums.join('  ·  ');
+      row.setAttribute('aria-label', '數字 ' + q.displayNums.join(' '));
+      area.appendChild(row);
+    }
+    return QuestionRenderer['numeric'](q, team, area);
   },
 
   // --- keypad: generic numeric or sym keypad ---
@@ -4268,10 +4613,113 @@ const UI = {
     const dual = Game.settings.playLayout === 'dual';
     board.classList.toggle('sen-board-solo', !dual);
     board.classList.toggle('sen-board-dual', dual);
+    board.classList.toggle('has-arena', dual);
     ['knight', 'mage'].forEach(tm => {
       const d = $(`sen-done-${tm}`);
       if (d) d.classList.add('hidden');
     });
+    UI.setupSENArena();
+  },
+
+  // V3.6 cycle47: dual arena — versus tug / coop boat
+  setupSENArena() {
+    const arena = $('sen-arena');
+    const tug = $('sen-arena-tug');
+    const boat = $('sen-arena-boat');
+    if (!arena || !tug || !boat) return;
+    const dual = Game.settings.playLayout === 'dual';
+    const isEasy = Game.settings.difficulty === 'easy';
+    const show = dual && isEasy;
+    arena.classList.toggle('hidden', !show);
+    if (!show) {
+      tug.classList.add('hidden');
+      boat.classList.add('hidden');
+      return;
+    }
+    const versus = Game.settings.team !== 'coop';
+    tug.classList.toggle('hidden', !versus);
+    boat.classList.toggle('hidden', versus);
+    // reset visuals
+    const knot = $('sen-tug-knot');
+    if (knot) {
+      knot.style.left = '50%';
+      knot.classList.remove('pull-l', 'pull-r');
+    }
+    const ship = $('sen-boat');
+    if (ship) {
+      ship.style.left = '4%';
+      ship.classList.remove('splash');
+    }
+    const fill = $('sen-boat-fill');
+    if (fill) fill.style.width = '0%';
+    const bar = $('sen-boat-bar');
+    if (bar) bar.setAttribute('aria-valuenow', '0');
+    const st = $('sen-arena-status');
+    if (st) st.textContent = versus ? '🪢 扯大欖 · 答對就拉！' : '🚢 一齊推船 · 答對就前進！';
+    UI.refreshSENArena(null, false);
+  },
+
+  refreshSENArena(pullTeam, didCorrect) {
+    if (Game.settings.playLayout !== 'dual' || Game.settings.difficulty !== 'easy') return;
+    const arena = $('sen-arena');
+    if (!arena || arena.classList.contains('hidden')) return;
+    const tk = Game.state.teams.knight || { correct: 0, total: 0 };
+    const tm = Game.state.teams.mage || { correct: 0, total: 0 };
+    const goal = Game.state.easyGoalTotal || 10;
+    const L = Game.settings.playerLabel || '左隊';
+    const R = Game.settings.playerLabelRight || '右隊';
+    const versus = Game.settings.team !== 'coop';
+    const st = $('sen-arena-status');
+
+    if (versus) {
+      const knot = $('sen-tug-knot');
+      if (knot) {
+        // diff range ~[-goal, +goal] → left 12%..88%
+        const diff = (tk.correct || 0) - (tm.correct || 0);
+        const max = Math.max(goal, 1);
+        const t = Math.max(-1, Math.min(1, diff / max));
+        const pct = 50 + t * 38; // 12–88
+        knot.style.left = pct.toFixed(2) + '%';
+        if (didCorrect && pullTeam) {
+          knot.classList.remove('pull-l', 'pull-r');
+          void knot.offsetWidth;
+          knot.classList.add(pullTeam === 'knight' ? 'pull-l' : 'pull-r');
+          setTimeout(() => knot.classList.remove('pull-l', 'pull-r'), 400);
+        }
+      }
+      if (st) {
+        if (tk.correct === tm.correct) st.textContent = `🪢 平手 ${tk.correct} : ${tm.correct}`;
+        else if (tk.correct > tm.correct) st.textContent = `🪢 ${L} 領先！ ${tk.correct} : ${tm.correct}`;
+        else st.textContent = `🪢 ${R} 領先！ ${tk.correct} : ${tm.correct}`;
+      }
+    } else {
+      const sum = (tk.correct || 0) + (tm.correct || 0);
+      const need = Math.max(goal * 2, 1);
+      const pct = Math.max(0, Math.min(100, Math.round((sum / need) * 100)));
+      const fill = $('sen-boat-fill');
+      if (fill) fill.style.width = pct + '%';
+      const bar = $('sen-boat-bar');
+      if (bar) {
+        bar.setAttribute('aria-valuenow', String(pct));
+        bar.setAttribute('aria-valuetext', `進度 ${pct}%`);
+      }
+      const ship = $('sen-boat');
+      if (ship) {
+        // 4% → 86%
+        const left = 4 + (pct / 100) * 82;
+        ship.style.left = left.toFixed(2) + '%';
+        if (didCorrect) {
+          ship.classList.remove('splash');
+          void ship.offsetWidth;
+          ship.classList.add('splash');
+          setTimeout(() => ship.classList.remove('splash'), 420);
+        }
+      }
+      if (st) {
+        if (pct >= 100) st.textContent = '🏝️ 埋岸啦！';
+        else st.textContent = `🚢 一齊前進 ${sum}/${need}（${pct}%）`;
+      }
+    }
   },
 
   // Render one question in the SEN ultra-simple screen
@@ -4310,6 +4758,23 @@ const UI = {
         <div class="sen-bar-units b" aria-hidden="true">${uB}</div>
       </div>`;
       if (textEl) textEl.textContent = (q.extra && q.extra.prompt) || '邊條長？';
+    } else if (q.type === 'whatTime' && q.extra && emojiEl) {
+      // V3.6 cycle46: SEN clock face (no hour in text)
+      const hour = Number(q.extra.hour != null ? q.extra.hour : q.answer) || 12;
+      const deg = hour * 30;
+      emojiEl.classList.add('sen-q-visual');
+      emojiEl.innerHTML = `<div class="q-clock sen-clock" role="img" aria-label="時鐘">
+        <svg viewBox="0 0 16 16" style="width:min(42vw,180px);height:min(42vw,180px);">
+          <use href="#px-clock-base"/>
+          <line x1="8" y1="8" x2="8" y2="3" stroke="#dc2626" stroke-width="1.2" transform="rotate(${deg} 8 8)"/>
+          <line x1="8" y1="8" x2="11" y2="8" stroke="#1e293b" stroke-width="0.6"/>
+        </svg>
+      </div>`;
+      if (textEl) textEl.textContent = '幾點鐘？';
+    } else if (q.type === 'shapeMatch' && emojiEl) {
+      emojiEl.classList.add('sen-q-visual');
+      emojiEl.innerHTML = `<div class="q-shape"><svg viewBox="0 0 16 16" style="width:min(36vw,140px);height:min(36vw,140px);"><use href="#px-shape-${q.answer}"/></svg></div>`;
+      if (textEl) textEl.textContent = '這是什麼形狀？';
     } else if (q.parts) {
       const chineseMap = {
         '+':'加','-':'減','=':'等於','?':'？','❓':'等於幾多？',
@@ -4349,10 +4814,14 @@ const UI = {
         flush();
       });
       if (emojiEl) {
-        if (q.type === 'orderAsc20' || q.type === 'orderDesc20') {
+        if (q.type === 'orderAsc20' || q.type === 'orderDesc20' || q.type === 'ordering') {
           emojiEl.textContent = (q.displayNums && q.displayNums.length)
             ? q.displayNums.join('  ·  ')
             : (q.parts && q.parts[0]) || '';
+          emojiEl.classList.add('sen-count-dense');
+        } else if (q.type === 'compare10') {
+          // big A ? B stem
+          emojiEl.textContent = (q.parts || []).join('');
           emojiEl.classList.add('sen-count-dense');
         } else {
           const joined = emojiParts.join(' ');
@@ -4367,8 +4836,10 @@ const UI = {
         if (q.type === 'groupAdd') textEl.textContent = '加埋有幾多？';
         else if (q.type === 'compareGroup') textEl.textContent = '邊邊多？';
         else if (q.type === 'count10' || q.type === 'count1to3' || q.type === 'count20') textEl.textContent = '有幾多？';
-        else if (q.type === 'orderAsc20') textEl.textContent = '由細到大？';
+        else if (q.type === 'orderAsc20' || q.type === 'ordering') textEl.textContent = '由細到大？';
         else if (q.type === 'orderDesc20') textEl.textContent = '由大到細？';
+        else if (q.type === 'compare10') textEl.textContent = '邊個大？';
+        else if (q.type === 'whatTime') textEl.textContent = '幾點鐘？';
         else textEl.textContent = textTokens.join(' ');
       }
     } else {
@@ -4403,8 +4874,11 @@ const UI = {
     if (Game.settings.ttsEnabled && Game.settings.playLayout !== 'dual') {
       let text = '';
       if (q.type === 'compareLength') text = (q.extra && q.extra.prompt) || '邊條長？';
-      else if (q.type === 'orderAsc20') text = '由細到大';
+      else if (q.type === 'orderAsc20' || q.type === 'ordering') text = '由細到大';
       else if (q.type === 'orderDesc20') text = '由大到細';
+      else if (q.type === 'whatTime') text = '幾點鐘？';
+      else if (q.type === 'compare10') text = '邊個大？';
+      else if (q.type === 'shapeMatch') text = '這是什麼形狀？';
       else text = (q.parts ? q.parts.join('') : q.text) || '';
       if (text) TTS.speak(text, null, {});
     }
@@ -4642,18 +5116,36 @@ function setupMenu() {
       dualW.classList.toggle('hidden', !dual);
       dualW.classList.toggle('grid', dual);
     }
+    const arenaPick = $('dual-arena-picker');
+    if (arenaPick) {
+      arenaPick.classList.toggle('hidden', !dual);
+      arenaPick.classList.toggle('grid', dual);
+    }
+    // sync arena mode buttons ↔ Game.settings.team
+    const arenaMode = Game.settings.team === 'coop' ? 'coop' : 'versus';
+    document.querySelectorAll('.opt-arena').forEach(x => {
+      const on = x.dataset.arena === arenaMode;
+      x.classList.toggle('opt-selected', on);
+      x.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+    // also keep advanced team buttons in sync
+    document.querySelectorAll('.opt-team').forEach(x => {
+      const on = x.dataset.team === (arenaMode === 'coop' ? 'coop' : 'versus');
+      x.classList.toggle('opt-selected', on);
+      x.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
     const ph = $('play-helper');
     if (ph) {
-      ph.textContent = dual
-        ? '左右雙隊：左藍右紫同時答，適合電子白板 touch board。兩邊各 10 題。'
-        : '單人：全屏一題，專心練習。';
+      if (!dual) ph.textContent = '單人：全屏一題，專心練習。';
+      else if (arenaMode === 'coop') ph.textContent = '合作推船：左藍右紫同時答，答對船前進，兩邊各 10 題一齊埋島。';
+      else ph.textContent = '對戰扯大欖：左藍右紫同時答，答對就拉繩，兩邊各 10 題比邊邊贏。';
     }
     const sub = $('easy-start-sub');
     if (sub) {
       const n = (Game.settings.scopes && Game.settings.scopes.length) || 4;
-      sub.textContent = dual
-        ? `左右雙隊 · ${n} 個範疇 · 各 10 題`
-        : `單人 · ${n} 個範疇 · 10 題`;
+      if (!dual) sub.textContent = `單人 · ${n} 個範疇 · 10 題`;
+      else if (arenaMode === 'coop') sub.textContent = `合作推船 · ${n} 個範疇 · 各 10 題`;
+      else sub.textContent = `對戰扯大欖 · ${n} 個範疇 · 各 10 題`;
     }
   };
   try {
@@ -4681,9 +5173,27 @@ function setupMenu() {
     b.onclick = () => {
       Game.settings.playLayout = b.dataset.play === 'dual' ? 'dual' : 'solo';
       try { localStorage.setItem('mg2.playLayout', Game.settings.playLayout); } catch (_) {}
+      // dual 首次：預設 versus 扯大欖（有存檔跟存檔）
+      if (Game.settings.playLayout === 'dual') {
+        let saved = null;
+        try { saved = localStorage.getItem('mg2.dualArena'); } catch (_) {}
+        if (saved === 'coop' || saved === 'versus') Game.settings.team = saved;
+        else Game.settings.team = 'versus';
+      }
       syncPlayLayoutUI();
     };
   });
+  document.querySelectorAll('.opt-arena').forEach(b => {
+    b.onclick = () => {
+      Game.settings.team = b.dataset.arena === 'coop' ? 'coop' : 'versus';
+      try { localStorage.setItem('mg2.dualArena', Game.settings.team); } catch (_) {}
+      syncPlayLayoutUI();
+    };
+  });
+  try {
+    const savedArena = localStorage.getItem('mg2.dualArena');
+    if (savedArena === 'coop' || savedArena === 'versus') Game.settings.team = savedArena;
+  } catch (_) {}
   syncPlayLayoutUI();
 
   // V3.6 cycle41: advanced menu collapse — simple path = one-click + difficulty + start
@@ -5213,9 +5723,10 @@ function startGame() {
   Game.state.easyGoalTotal = isEasy ? 10 : 0;
   Game.state._easyEnding = false;
   Game.state._easyTeamDone = { knight: false, mage: false };
-  // cycle43: easy dual = versus simultaneous left/right
-  if (isEasy) {
-    Game.settings.team = (Game.settings.playLayout === 'dual') ? 'versus' : 'coop';
+  // V3.6 cycle47: dual keeps user team pick (versus=扯大欖 / coop=推船)
+  // solo practice ignores team combat semantics
+  if (isEasy && Game.settings.playLayout !== 'dual') {
+    Game.settings.team = 'coop';
   }
   if (Game.settings.win === 'time') {
     const m = clamp(parseInt($('time-input').value, 10) || 5, 1, 15);
@@ -5531,8 +6042,13 @@ function _easyHintText(q) {
     const labels = { A: 'A', B: 'B', 1: 'A', 2: 'B' };
     return labels[q.answer] || `答案係 ${q.answer}`;
   }
-  if (q.type === 'orderAsc20' || q.type === 'orderDesc20') {
+  if (q.type === 'orderAsc20' || q.type === 'orderDesc20' || q.type === 'ordering') {
     return `答案係 ${q.answer}`;
+  }
+  if (q.type === 'whatTime') return `答案係 ${q.answer} 點`;
+  if (q.type === 'compare10') {
+    const labels = { '<': '＜ 細', '=': '＝ 等', '>': '＞ 大' };
+    return labels[q.answer] || `答案係 ${q.answer}`;
   }
   if (q.optionLabels && q.optionLabels[q.answer] !== undefined) {
     return `答案係 ${q.optionLabels[q.answer]}`;
@@ -5828,11 +6344,25 @@ function _endTitleFor(victory) {
       const right = medalOf(tm);
       const L = Game.settings.playerLabel || '左隊';
       const R = Game.settings.playerLabelRight || '右隊';
-      let winner = '平手！';
-      if (tk.correct > tm.correct) winner = `⬅ ${L} 勝出！`;
-      else if (tm.correct > tk.correct) winner = `${R} 勝出！ ➡`;
+      const coop = Game.settings.team === 'coop';
+      if (coop) {
+        const sum = (tk.correct || 0) + (tm.correct || 0);
+        return {
+          title: `${left.medal}${right.medal} 🚢 一齊埋岸`,
+          msg: `合作完成！左 ${tk.correct}/${tk.total}（${left.pct}% ${left.tier}）· 右 ${tm.correct}/${tm.total}（${right.pct}% ${right.tier}）· 合計答啱 ${sum}`,
+          icon: '🚢',
+          medal: `${left.medal}${right.medal}`,
+          tier: '一齊埋岸',
+          easyCert: true,
+          dualEnd: true,
+          left, right,
+        };
+      }
+      let winner = '🪢 平手！';
+      if (tk.correct > tm.correct) winner = `🪢 ⬅ ${L} 拉贏！`;
+      else if (tm.correct > tk.correct) winner = `🪢 ${R} 拉贏！ ➡`;
       return {
-        title: `${left.medal}${right.medal} 左右雙隊`,
+        title: `${left.medal}${right.medal} 扯大欖`,
         msg: `${winner}  左 ${tk.correct}/${tk.total}（${left.pct}% ${left.tier}）· 右 ${tm.correct}/${tm.total}（${right.pct}% ${right.tier}）`,
         icon: left.medal,
         medal: `${left.medal}${right.medal}`,
@@ -6810,7 +7340,7 @@ const STORAGE = {
   PROFILE_KEY: 'mg2.profile.v1',     // 持久（解鎖 / badged / stats 跨 session）
   SESSION_KEY: 'mg2.session.v1',     // 進行中 session（reload resume 用）
   HISTORY_KEY: 'mg2.history.v1',     // 過往 session report list（teacher dashboard 用）
-  BANK_KEY: 'mg2.bank.v1',           // V3.5-AUDIT10: curated question bank (12 type × 10 題)
+  BANK_KEY: 'mg2.bank.v2',           // V3.6 cycle46: unspoil compare10/whatTime bank
   PROFILE_CAP: 64 * 1024,
   SESSION_CAP: 256 * 1024,
   HISTORY_CAP: 512 * 1024,

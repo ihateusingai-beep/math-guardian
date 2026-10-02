@@ -49,7 +49,7 @@ const modeMap = {};
 for (const m of modeLists) modeMap[m[1]] = m[2];
 eq('add10 mode', modeMap['add10'], "'choice','keypad'");
 eq('compare10 mode', modeMap['compare10'], "'choice','keypad'");
-eq('ordering mode', modeMap['ordering'], "'order','keypad'");
+eq('ordering mode', modeMap['ordering'], "'choice','order','keypad'");
 
 // layouts
 const layoutList = [...registrySrc.matchAll(/id:'([a-zA-Z0-9]+)',[\s\S]*?layout:'([a-zA-Z0-9-]+)'/g)];
@@ -161,7 +161,7 @@ assert('shape num → shape lookup', /q\._shapeToNum\[num\]/.test(src));
 
 // =========== T9: ordering keypad mode ===========
 console.log('\n[T9] ordering keypad');
-assert('ordering mode = order + keypad', modeMap['ordering'] === "'order','keypad'");
+assert('ordering mode = choice + order + keypad', modeMap['ordering'] === "'choice','order','keypad'");
 assert('ordering keypad hint',          src.includes('keypad：按正確順序'));
 
 // =========== T10: v3.6 version consistency ===========
@@ -319,7 +319,7 @@ assert('AUDIT4-G  keypad keys have aria-label', !!keypadGenMatch);
 assert('AUDIT4-G  sym-button row has aria-label',
   /row\.setAttribute\('aria-label',\s*'大小比較'\)/.test(src));
 assert('AUDIT4-G  clock SVG has aria-label',
-  /aria-label="時鐘顯示 \$\{hour\} 點"/.test(src));
+  /aria-label=\"時鐘\"/.test(src));
 // C8 reduced-motion blanket rule
 assert('AUDIT4-J  reduced-motion uses blanket rule',
   /@media \(prefers-reduced-motion: reduce\)[\s\S]{0,800}\*,\s*\*::before,\s*\*::after/.test(src));
@@ -617,7 +617,7 @@ console.log('\n[T22] V3.5 audit cycle-9 Question Bank lite');
 
 // F-13 — STORAGE.BANK_KEY + BANK_CAP
 assert('F-13 STORAGE.BANK_KEY constant',
-  /BANK_KEY:\s*'mg2\.bank\.v1'/.test(src));
+  /BANK_KEY:\s*'mg2\.bank\.v2'/.test(src));
 assert('F-13 STORAGE.BANK_CAP constant',
   /BANK_CAP:\s*64\s*\*\s*1024/.test(src));
 assert('F-13 STORAGE.save cap switch includes BANK_KEY',
@@ -641,7 +641,7 @@ assert('F-15 shouldUseBank 70/30 split (weak vs non-weak)',
 assert('F-16 QuestionGen.make consults QuestionBank.shouldUseBank',
   /QuestionBank\.shouldUseBank\(type\)[\s\S]{0,400}QuestionBank\.pickFromBank\(type\)/.test(src));
 assert('F-16 bankUsable guard for numeric layout',
-  /bankUsable = bankQ && \([\s\S]{0,400}reg\.layout === 'numeric'\)/.test(src));
+  /bankUsable = bankQ && \([\s\S]{0,800}reg\.layout === 'numeric'\)/.test(src));
 
 // F-17 — teacher modal reset button
 assert('F-17 teacher modal reset button',
@@ -988,7 +988,7 @@ assert('EASY-32 nextTeamInCoop updates card visibility in easy mode',
   /nextTeamInCoop/.test(src) && /card/.test(src) && /hidden/.test(src));
 // V3.6-SEN P2: TTS + animations + keyboard
 assert('EASY-33 showQuestionSEN calls TTS.speak',
-  /showQuestionSEN\s*\(\s*q\s*,\s*team\s*\)\s*\{[\s\S]{0,7000}TTS\.speak\(text, null/.test(src));
+  /showQuestionSEN\s*\(\s*q\s*,\s*team\s*\)\s*\{[\s\S]{0,14000}TTS\.speak\(text, null/.test(src));
 assert('EASY-34 keyboard shortcuts blocked in easy mode',
   /no keyboard shortcuts/.test(src));
 assert('EASY-35 flash-correct animation 1.2s (not 0.6s)',
@@ -1062,7 +1062,7 @@ assert('EASY-53 shapeMatch optionLabels is value-map not shapes.map array',
 assert('EASY-54 easy handleAnswer records Profile stats via _recordAnswerStats',
   /difficulty === 'easy'[\s\S]{0,900}_recordAnswerStats/.test(src));
 assert('EASY-55 easy handleAnswer plays Audio.correct / Audio.wrong',
-  /difficulty === 'easy'[\s\S]{0,700}Audio\.correct[\s\S]{0,200}Audio\.wrong/.test(src));
+  /difficulty === 'easy'[\s\S]{0,1200}Audio\.correct[\s\S]{0,400}Audio\.wrong/.test(src));
 
 // V3.6-SEN cycle37: hoist + goal end + one-click start
 console.log('\n[T32] V3.6 audit cycle-37 (wire hoist / easy goal / one-click)');
@@ -1186,6 +1186,53 @@ assert('EASY-88 bars use rem width + unit blocks + track',
   /sen-q-visual/.test(src));
 assert('EASY-89 no left\/right labels for vertical bars',
   !/optionLabels:\s*\{\s*1:\s*'左邊'/.test(src));
+
+// V3.6 cycle46: complete incomplete question types (compare10/whatTime/ordering/renderers)
+console.log('\n[T38] V3.6 audit cycle-46 (complete Q types)');
+assert('EASY-90 compare10 stem uses ? not spoil symbols',
+  /parts:\s*\[`\$\{a\}`,\s*'  \?  ',\s*`\$\{b\}`\]/.test(src) &&
+  /optionLabels:\s*\{\s*'<':\s*'＜ 細'/.test(src) &&
+  /roll < 0\.25/.test(src));
+assert('EASY-91 whatTime no spoil hour in parts + options',
+  /parts:\s*\['幾點鐘\？'\]/.test(src) &&
+  /optionLabels\[h\] = `\$\{h\} 點`/.test(src) &&
+  !/parts:\s*\[`時鐘顯示 \$\{hour\} 點`\]/.test(src));
+assert('EASY-92 ordering supports choice MC via _seqOptions',
+  /ordering\(mode\)/.test(src) &&
+  /useChoice/.test(src) &&
+  /mode:\['choice','order','keypad'\]/.test(src));
+assert('EASY-93 QuestionRenderer has bars + seq-choice + parts-emoji',
+  /'bars'\(q, team, area\)/.test(src) &&
+  /'seq-choice'\(q, team, area\)/.test(src) &&
+  /'parts-emoji'\(q, team, area\)/.test(src));
+assert('EASY-94 SEN clock + shape + compare10 prompts',
+  /q\.type === 'whatTime'/.test(src) &&
+  /sen-clock/.test(src) &&
+  /邊個大？/.test(src) &&
+  /q\.type === 'shapeMatch'/.test(src));
+assert('EASY-95 bank normalize + bank v2 key',
+  /_normalizeBankQuestion/.test(src) &&
+  /mg2\.bank\.v2/.test(src));
+
+// V3.6 cycle47: dual arena game feel (tug / boat)
+console.log('\n[T39] V3.6 audit cycle-47 (dual arena tug/boat)');
+assert('ARENA-01 sen-arena DOM present',
+  /id="sen-arena"/.test(src) && /id="sen-tug-knot"/.test(src) && /id="sen-boat"/.test(src));
+assert('ARENA-02 dual-arena-picker menu',
+  /id="dual-arena-picker"/.test(src) && /data-arena="versus"/.test(src) && /data-arena="coop"/.test(src));
+assert('ARENA-03 setupSENArena + refreshSENArena',
+  /setupSENArena\s*\(/.test(src) && /refreshSENArena\s*\(/.test(src));
+assert('ARENA-04 tugPull + boatRow SFX',
+  /tugPull\s*:\s*\(/.test(src) && /boatRow\s*:\s*\(/.test(src));
+assert('ARENA-05 dual keeps team pick (no force versus)',
+  /dual keeps user team pick/.test(src) &&
+  !/playLayout === 'dual'\) \? 'versus' : 'coop'/.test(src));
+assert('ARENA-06 end titles tug/boat',
+  /扯大欖/.test(src) && /一齊埋岸/.test(src));
+assert('ARENA-07 reduced-motion for arena',
+  /prefers-reduced-motion: reduce[\s\S]{0,200}sen-tug-knot/.test(src));
+assert('ARENA-08 handleAnswer calls refreshSENArena',
+  /UI\.refreshSENArena\(team, correct\)/.test(src));
 
 // =========== summary ===========
 console.log(`\n========== ${pass} pass / ${fail} fail ==========`);
