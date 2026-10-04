@@ -385,6 +385,21 @@
   .sen-panel .sen-q-emoji { font-size: clamp(2.5rem, 8vw, 5.5rem); line-height: 1.1; text-align: center; max-width: 100%; }
   .sen-panel .sen-q-emoji.sen-count-dense { font-size: clamp(1.05rem, 3.2vw, 1.85rem); line-height: 1.25; letter-spacing: 0.02em; word-break: break-word; }
   .sen-panel .sen-q-emoji.sen-q-visual { font-size: 1rem; line-height: 1.2; width: min(100%, 28rem); }
+  /* V3.6 cycle50: countable emoji grid (never blank for count types) */
+  .sen-count-grid {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 0.2rem 0.35rem;
+    max-width: min(100%, 22rem);
+    margin: 0 auto;
+  }
+  .sen-count-item {
+    font-size: clamp(1.45rem, 5.2vw, 2.55rem);
+    line-height: 1;
+    display: inline-block;
+  }
   .sen-panel .sen-q-text { color: #fff; font-size: clamp(1.25rem, 3vw, 2rem); font-weight: 800; text-align: center; }
   .sen-panel .sen-options { width: 100%; max-width: 22rem; display: flex; flex-direction: column; gap: 0.6rem; }
   .sen-board-dual .sen-options { max-width: 100%; }
@@ -1870,7 +1885,7 @@
         <label class="text-sm font-bold text-amber-300 mb-2 block">題目範疇（可多選）</label>
         <div id="scope-picker" class="grid grid-cols-2 gap-3" role="group" aria-label="題目範疇">
           <button type="button" class="opt-scope btn btn-ghost opt-selected py-3 text-left" data-scope="count20" aria-pressed="true">
-            🔢 數數 1–20<br><span class="text-xs opacity-70">睇圖數有幾多</span>
+            🔢 數數 1–10<br><span class="text-xs opacity-70">睇圖數有幾多</span>
           </button>
           <button type="button" class="opt-scope btn btn-ghost opt-selected py-3 text-left" data-scope="compareLength" aria-pressed="true">
             📏 長短比較<br><span class="text-xs opacity-70">邊條長／短</span>
@@ -2500,6 +2515,90 @@ function _pulseEl(el, cls, ms) {
   setTimeout(() => el.classList.remove(cls), ms || 420);
 }
 
+/** Broad emoji codepoint check (incl. ⭐ 0x2B50 etc.) */
+function _isEmojiCP(cp) {
+  if (cp == null) return false;
+  return (
+    (cp >= 0x1F300 && cp <= 0x1FAFF) ||
+    (cp >= 0x1F600 && cp <= 0x1F64F) ||
+    (cp >= 0x1F900 && cp <= 0x1F9FF) ||
+    (cp >= 0x1F1E0 && cp <= 0x1F1FF) ||
+    (cp >= 0x2600 && cp <= 0x27BF) ||
+    (cp >= 0x2300 && cp <= 0x23FF) ||
+    (cp >= 0x2B00 && cp <= 0x2BFF) ||
+    cp === 0xFE0F || cp === 0x200D
+  );
+}
+
+function _isEmojiChar(ch) {
+  if (!ch) return false;
+  const cp = ch.codePointAt(0);
+  return _isEmojiCP(cp) && cp !== 0xFE0F && cp !== 0x200D;
+}
+
+/** First countable emoji glyph in string (skip VS16/ZWJ) */
+function _firstEmojiIn(str) {
+  for (const ch of String(str || '')) {
+    if (_isEmojiChar(ch)) return ch;
+  }
+  return '🍎';
+}
+
+/**
+ * Split mixed parts (e.g. bank "🍎🍎🍎= ?") into emoji clusters + text tokens.
+ * Returns { emojiParts: string[], textTokens: string[] }
+ */
+function _splitPartsEmojiText(parts) {
+  const emojiParts = [];
+  const textTokens = [];
+  const chineseMap = {
+    '+': '加', '-': '減', '=': '等於', '?': '？', '❓': '等於幾多？',
+    '◁': '細啲', '▷': '大啲', '＝': '等於', ' ': '',
+  };
+  (parts || []).forEach(part => {
+    let bufE = '', bufT = '';
+    const flush = () => {
+      if (bufE) { emojiParts.push(bufE); bufE = ''; }
+      if (bufT) {
+        let mapped = '';
+        for (const ch of bufT.replace(/\s+/g, ' ').trim()) {
+          if (Object.prototype.hasOwnProperty.call(chineseMap, ch)) mapped += chineseMap[ch];
+          else mapped += ch === '?' ? '？' : ch;
+        }
+        if (mapped) textTokens.push(mapped);
+        bufT = '';
+      }
+    };
+    for (const ch of String(part)) {
+      const cp = ch.codePointAt(0);
+      if (_isEmojiCP(cp)) {
+        if (bufT) flush();
+        // keep VS16/ZWJ attached to emoji buffer
+        bufE += ch;
+      } else {
+        if (bufE) flush();
+        bufT += ch;
+      }
+    }
+    flush();
+  });
+  return { emojiParts, textTokens };
+}
+
+/** Rebuild count visual from answer (never blank even if parts broken) */
+function _countVisualHTML(q) {
+  const n = Math.max(1, Math.min(10, Number(q.answer) || 1));
+  const fruit = _firstEmojiIn((q.parts || []).join(''));
+  const items = [];
+  for (let i = 0; i < n; i++) {
+    items.push(`<span class="sen-count-item" aria-hidden="true">${fruit}</span>`);
+  }
+  return {
+    fruit, n,
+    html: `<div class="sen-count-grid" role="img" aria-label="${n} 個">${items.join('')}</div>`,
+  };
+}
+
 /** Shared length-bars markup for SEN + normal bars layout */
 function _lengthBarsHTML(ex) {
   const A = Math.max(1, Number(ex.a != null ? ex.a : ex.left) || 1);
@@ -3065,7 +3164,7 @@ const TYPE_REGISTRY = {
   shapeMatch: { id:'shapeMatch', label:'形狀辨認', emoji:'🔺', difficulty:1, category:'math', icon:null, mode:['choice','keypad'], layout:'shape', desc:'圖形名 (圓/方/三/星)' },
   ordering: { id:'ordering', label:'由小到大', emoji:'📊', difficulty:2, category:'math', icon:null, mode:['choice','order','keypad'], layout:'order', desc:'三個數排順序 (choice MC / 撳掣排 / keypad)' },
   // === V3.6 cycle44: 中度主頁範疇 ===
-  count20: { id:'count20', label:'數數 1-20', emoji:'🔢', difficulty:1, category:'math', icon:null, mode:['choice'], layout:'parts-emoji', desc:'睇圖數 1-20' },
+  count20: { id:'count20', label:'數數 1-10', emoji:'🔢', difficulty:1, category:'math', icon:null, mode:['choice'], layout:'parts-emoji', desc:'睇圖數 1-10' },
   compareLength: { id:'compareLength', label:'長短比較', emoji:'📏', difficulty:1, category:'math', icon:null, mode:['choice'], layout:'bars', desc:'邊條長／短' },
   orderAsc20: { id:'orderAsc20', label:'1-20 順序', emoji:'📈', difficulty:1, category:'math', icon:null, mode:['choice'], layout:'seq-choice', desc:'三數由細到大' },
   orderDesc20: { id:'orderDesc20', label:'1-20 倒序', emoji:'📉', difficulty:1, category:'math', icon:null, mode:['choice'], layout:'seq-choice', desc:'三數由大到細' },
@@ -3073,7 +3172,7 @@ const TYPE_REGISTRY = {
 
 // V3.6 cycle44: home scope catalog (1 scope = 1 type)
 const SCOPE_CATALOG = [
-  { id: 'count20', label: '數數 1–20', emoji: '🔢' },
+  { id: 'count20', label: '數數 1–10', emoji: '🔢' },
   { id: 'compareLength', label: '長短比較', emoji: '📏' },
   { id: 'orderAsc20', label: '1–20 順序', emoji: '📈' },
   { id: 'orderDesc20', label: '1–20 倒序', emoji: '📉' },
@@ -3241,11 +3340,12 @@ const Generators = {
       displayNums: nums,
     };
   },
-  // V3.6 cycle44: 數數 1-20
+  // V3.6 cycle44/51: 數數 1-10（中度唔好超過 10 個難數）
   count20(mode) {
-    const fruits = ['🍎','🍌','🍇','🍓','🍊','🍉','⭐','🔵'];
+    // avoid ⭐ (edge glyph) — keep high-visibility fruit/ball set
+    const fruits = ['🍎','🍌','🍇','🍓','🍊','🍉','🌟','🔵'];
     const f = fruits[randInt(0, fruits.length - 1)];
-    const n = randInt(1, 20);
+    const n = randInt(1, 10);
     return { parts: [f.repeat(n), '= ?'], answer: n, type:'count20', answerDisplay: String(n) };
   },
   // V3.6 cycle45: 長短比較 — 明顯長度差 + A/B 標（上下棒，唔用左右字）
@@ -3402,6 +3502,20 @@ function _normalizeBankQuestion(type, mode, q, reg) {
     if (!q.optionLabels) {
       q.optionLabels = { circle: '圓形', square: '方形', triangle: '三角形', star: '星形' };
     }
+  } else if (type === 'count10' || type === 'count20' || type === 'count1to3') {
+    // bank often packs "🍎🍎🍎= ?" in one part → split + rebuild visual stem
+    const n = Number(q.answer);
+    if (!Number.isFinite(n) || n < 1 || n > 10) return null;
+    const fruit = _firstEmojiIn((q.parts || []).join(''));
+    q.parts = (type === 'count1to3')
+      ? [fruit.repeat(n)]
+      : [fruit.repeat(n), '= ?'];
+    q.answer = n;
+  } else if (type === 'groupAdd' || type === 'double' || type === 'compareGroup') {
+    if (!(q.parts || []).length) return null;
+    const blob = (q.parts || []).join('');
+    const hasEmoji = [...blob].some(ch => _isEmojiChar(ch));
+    if (!hasEmoji) return null;
   }
   return q;
 }
@@ -4550,13 +4664,34 @@ const UI = {
   renderQuestionTextFor(team, q) {
     const el = $(`${team}-question-text`);
     if (!el) return;
-    const parts = q.parts || [q.text];
+    let parts = q.parts || [q.text];
+    // V3.6 cycle50: expand mixed bank parts ("🍎🍎= ?") so emoji get .q-fruit
+    if (q.type === 'count10' || q.type === 'count20' || q.type === 'count1to3') {
+      const n = Number(q.answer);
+      if (Number.isFinite(n) && n >= 1) {
+        const fruit = _firstEmojiIn((q.parts || []).join(''));
+        parts = (q.type === 'count1to3') ? [fruit.repeat(n)] : [fruit.repeat(n), ' = ?'];
+      }
+    } else {
+      const expanded = [];
+      (parts || []).forEach(p => {
+        const { emojiParts, textTokens } = _splitPartsEmojiText([p]);
+        if (emojiParts.length && textTokens.length) {
+          emojiParts.forEach(e => expanded.push(e));
+          textTokens.forEach(t => expanded.push(t));
+        } else {
+          expanded.push(p);
+        }
+      });
+      if (expanded.length) parts = expanded;
+    }
     const karaoke = Game.settings.ttsKaraoke !== false;
     const html = parts.map(p => {
-      // 純 emoji (檢測大部分 emoji 字符) — emoji cluster stays as one .q-fruit
-      // wrapper; its inner content (the emoji glyphs) gets one .tts-tok span so
-      // the onBoundary highlight can light up the whole cluster at once.
-      if (/^[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]{1,30}$/u.test(p)) {
+      // pure emoji cluster (expanded ranges incl. ⭐)
+      if (typeof p === 'string' && p.length && [...p].every(ch => {
+        const cp = ch.codePointAt(0);
+        return _isEmojiCP(cp);
+      })) {
         const inner = karaoke ? UI._ttsKaraokeWrapEmoji(p) : escapeHTML(p);
         return `<span class="q-fruit">${inner}</span>`;
       }
@@ -4891,7 +5026,7 @@ const UI = {
       emojiEl.textContent = '';
     }
 
-    // V3.6 cycle45: length bars — rem width + unit blocks (always visible)
+    // V3.6 cycle45/50: visual dispatch (bars / clock / shape / COUNT GRID / parts)
     if (q.type === 'compareLength' && q.extra && emojiEl) {
       emojiEl.classList.add('sen-q-visual');
       emojiEl.innerHTML = _lengthBarsHTML(q.extra).html;
@@ -4913,44 +5048,13 @@ const UI = {
       emojiEl.classList.add('sen-q-visual');
       emojiEl.innerHTML = `<div class="q-shape"><svg viewBox="0 0 16 16" style="width:min(36vw,140px);height:min(36vw,140px);"><use href="#px-shape-${q.answer}"/></svg></div>`;
       if (textEl) textEl.textContent = _senCopyText(q) || '這是什麼形狀？';
+    } else if ((q.type === 'count10' || q.type === 'count20' || q.type === 'count1to3') && emojiEl) {
+      // V3.6 cycle50: ALWAYS rebuild countable emoji grid from answer (never blank)
+      emojiEl.classList.add('sen-q-visual');
+      emojiEl.innerHTML = _countVisualHTML(q).html;
+      if (textEl) textEl.textContent = _senCopyText(q) || '有幾多？';
     } else if (q.parts) {
-      const chineseMap = {
-        '+':'加','-':'減','=':'等於','?':'？','❓':'等於幾多？',
-        '◁':'細啲','▷':'大啲','＝':'等於',' ':''
-      };
-      const isEmojiCP = (cp) =>
-        (cp >= 0x1F300 && cp <= 0x1FAFF) ||
-        (cp >= 0x2600 && cp <= 0x27BF) ||
-        (cp >= 0x1F600 && cp <= 0x1F64F) ||
-        (cp >= 0x1F900 && cp <= 0x1F9FF);
-      const emojiParts = [];
-      const textTokens = [];
-      q.parts.forEach(part => {
-        let bufE = '', bufT = '';
-        const flush = () => {
-          if (bufE) { emojiParts.push(bufE); bufE = ''; }
-          if (bufT) {
-            let mapped = '';
-            for (const ch of bufT.replace(/\s+/g, ' ').trim()) {
-              if (Object.prototype.hasOwnProperty.call(chineseMap, ch)) mapped += chineseMap[ch];
-              else mapped += ch === '?' ? '？' : ch;
-            }
-            if (mapped) textTokens.push(mapped);
-            bufT = '';
-          }
-        };
-        for (const ch of part) {
-          const cp = ch.codePointAt(0);
-          if (isEmojiCP(cp)) {
-            if (bufT) flush();
-            bufE += ch;
-          } else {
-            if (bufE) flush();
-            bufT += ch;
-          }
-        }
-        flush();
-      });
+      const { emojiParts, textTokens } = _splitPartsEmojiText(q.parts);
       if (emojiEl) {
         if (q.type === 'orderAsc20' || q.type === 'orderDesc20' || q.type === 'ordering') {
           emojiEl.textContent = (q.displayNums && q.displayNums.length)
@@ -4958,16 +5062,28 @@ const UI = {
             : (q.parts && q.parts[0]) || '';
           emojiEl.classList.add('sen-count-dense');
         } else if (q.type === 'compare10') {
-          // big A ? B stem
           emojiEl.textContent = (q.parts || []).join('');
           emojiEl.classList.add('sen-count-dense');
+        } else if (q.type === 'groupAdd' || q.type === 'double') {
+          emojiEl.classList.add('sen-q-visual');
+          const runs = emojiParts.map(run => [...run].filter(_isEmojiChar));
+          const left = (runs[0] || []).map(ch => `<span class="sen-count-item">${ch}</span>`).join('');
+          const right = (runs[1] || []).map(ch => `<span class="sen-count-item">${ch}</span>`).join('');
+          if (left || right) {
+            emojiEl.innerHTML = `<div class="sen-count-grid" role="img" aria-label="兩組">${left}<span class="sen-count-item" style="opacity:.9">➕</span>${right}</div>`;
+          } else {
+            emojiEl.innerHTML = _countVisualHTML({ parts: q.parts, answer: q.answer }).html;
+          }
+        } else if (q.type === 'compareGroup') {
+          emojiEl.classList.add('sen-q-visual');
+          const runs = emojiParts.map(run => [...run].filter(_isEmojiChar));
+          const left = (runs[0] || []).map(ch => `<span class="sen-count-item">${ch}</span>`).join('');
+          const right = (runs[1] || []).map(ch => `<span class="sen-count-item">${ch}</span>`).join('');
+          emojiEl.innerHTML = `<div class="sen-count-grid" role="img" aria-label="比較">${left}<span class="sen-count-item" style="opacity:.75">❓</span>${right}</div>`;
         } else {
           const joined = emojiParts.join(' ');
           emojiEl.textContent = joined;
-          // dense count for 1-20 (many glyphs)
-          if ((q.type === 'count20' || q.type === 'count10') && joined.length >= 8) {
-            emojiEl.classList.add('sen-count-dense');
-          }
+          if (joined.length >= 8) emojiEl.classList.add('sen-count-dense');
         }
       }
       if (textEl) {

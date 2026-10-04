@@ -1045,8 +1045,8 @@ assert('EASY-47 main script parses without SyntaxError', (() => {
 })());
 // V3.6-SEN cycle36 batch: emoji / loop / back / shape labels / easy stats
 assert('EASY-48 showQuestionSEN splits emoji via codePointAt (not part[i])',
-  /showQuestionSEN[\s\S]{0,5500}codePointAt/.test(src) &&
-  /isEmojiCP/.test(src) &&
+  (/showQuestionSEN[\s\S]{0,8000}codePointAt/.test(src) || /function _splitPartsEmojiText/.test(src)) &&
+  (/isEmojiCP/.test(src) || /function _isEmojiCP/.test(src)) &&
   !/showQuestionSEN[\s\S]{0,800}isEmoji = c =>/.test(src));
 assert('EASY-49 gameLoop early-returns in easy (no castle attack)',
   /function gameLoop[\s\S]{0,500}difficulty === 'easy'[\s\S]{0,500}return;/.test(src));
@@ -1259,6 +1259,25 @@ assert('POLISH-04 SEN_COPY map + helpers',
   /function _senCopyTTS/.test(src));
 assert('POLISH-05 TTS uses _senCopyTTS',
   /_senCopyTTS\(q\)/.test(src));
+
+// V3.6 cycle50: count visuals never blank
+console.log('\n[T42] V3.6 audit cycle-50 (count visuals)');
+assert('COUNT-01 _countVisualHTML + sen-count-grid',
+  /function _countVisualHTML/.test(src) && /sen-count-grid/.test(src) && /sen-count-item/.test(src));
+assert('COUNT-02 count types force grid in SEN',
+  /count10' \|\| q\.type === 'count20' \|\| q\.type === 'count1to3'/.test(src) &&
+  /_countVisualHTML\(q\)/.test(src));
+assert('COUNT-03 bank count normalize rebuilds parts',
+  /type === 'count10' \|\| type === 'count20' \|\| type === 'count1to3'/.test(src) &&
+  /fruit\.repeat\(n\)/.test(src));
+assert('COUNT-04 emoji ranges include 2Bxx (star)',
+  /0x2B00/.test(src) && /function _isEmojiCP/.test(src));
+assert('COUNT-05 normal render expands count parts',
+  /renderQuestionTextFor[\s\S]{0,1200}fruit\.repeat\(n\)/.test(src));
+assert('COUNT-06 count20 range is 1-10 (not 20)',
+  /count20\(mode\)[\s\S]{0,250}randInt\(1,\s*10\)/.test(src) &&
+  /數數 1–10/.test(src) &&
+  !/count20\(mode\)[\s\S]{0,250}randInt\(1,\s*20\)/.test(src));
 
 // =========== summary ===========
 console.log(`\n========== ${pass} pass / ${fail} fail ==========`);
