@@ -1089,7 +1089,7 @@ assert('EASY-58 easy handleAnswer ends session via endGame(true) on goal',
 assert('EASY-59 btn-easy-start one-click calls startGame (not scroll-only)', (() => {
   const i = src.indexOf('easyStartBtn.onclick');
   if (i < 0) return false;
-  const block = src.slice(i, i + 2800);
+  const block = src.slice(i, i + 4500);
   return /startGame\s*\(/.test(block) && !/scrollIntoView/.test(block);
 })());
 assert('EASY-60 easy mode skips showBossIntro',
@@ -1278,6 +1278,27 @@ assert('COUNT-06 count20 range is 1-10 (not 20)',
   /count20\(mode\)[\s\S]{0,250}randInt\(1,\s*10\)/.test(src) &&
   /數數 1–10/.test(src) &&
   !/count20\(mode\)[\s\S]{0,250}randInt\(1,\s*20\)/.test(src));
+
+// V3.6 cycle52: dual versus not overwritten by easy-start
+console.log('\n[T43] V3.6 audit cycle-52 (dual versus stick)');
+assert('ARENA-FIX-01 easy-start dual keeps versus/coop pick', (() => {
+  const i = src.indexOf('easyStartBtn.onclick');
+  if (i < 0) return false;
+  const block = src.slice(i, i + 4500);
+  // must NOT unconditionally force coop before start
+  const forced = /\/\/ 4\.\s*Coop team mode\s*\n\s*Game\.settings\.team = 'coop'/.test(block);
+  const dualKeep = /playLayout === 'dual'[\s\S]{0,400}versus/.test(block) &&
+    /arena === 'coop'/.test(block);
+  return !forced && dualKeep;
+})());
+assert('ARENA-FIX-02 no bare force coop on dual easy-start', (() => {
+  const i = src.indexOf('easyStartBtn.onclick');
+  if (i < 0) return false;
+  const block = src.slice(i, i + 4500);
+  // solo may still set coop; dual branch must exist first
+  return /if \(Game\.settings\.playLayout === 'dual'\)/.test(block) &&
+    /Game\.settings\.team = \(arena === 'coop'\) \? 'coop' : 'versus'/.test(block);
+})());
 
 // =========== summary ===========
 console.log(`\n========== ${pass} pass / ${fail} fail ==========`);

@@ -5535,10 +5535,14 @@ function setupMenu() {
     });
     const helper = $('scope-helper');
     if (helper) helper.textContent = `已選 ${Game.settings.scopes.length} 個範疇 · 撳掣可開關（最少 1 個）`;
-    const sub = $('easy-start-sub');
-    if (sub) {
-      const play = Game.settings.playLayout === 'dual' ? '雙隊' : '單人';
-      sub.textContent = `${play} · ${Game.settings.scopes.length} 個範疇 · 10 題`;
+    // keep dual arena subtitle (對戰/合作) — don't flatten to bare「雙隊」
+    if (typeof syncPlayLayoutUI === 'function') syncPlayLayoutUI();
+    else {
+      const sub = $('easy-start-sub');
+      if (sub) {
+        const play = Game.settings.playLayout === 'dual' ? '雙隊' : '單人';
+        sub.textContent = `${play} · ${Game.settings.scopes.length} 個範疇 · 10 題`;
+      }
     }
   }
   const scopePicker = $('scope-picker');
@@ -5612,15 +5616,27 @@ function setupMenu() {
     display.textContent = '60';
     slider.setAttribute('aria-valuenow', '60');
     slider.setAttribute('aria-valuetext', 'Boss 初始生命值 60，範圍 60 至 500');
-    // 4. Coop team mode
-    Game.settings.team = 'coop';
-    document.querySelectorAll('.opt-team').forEach(x => {
-      x.classList.remove('opt-selected');
-      x.setAttribute('aria-pressed', 'false');
-      if (x.dataset.team === 'coop') {
-        x.classList.add('opt-selected');
-        x.setAttribute('aria-pressed', 'true');
+    // 4. Team / arena mode
+    // dual: keep user pick (versus=扯大欖 / coop=推船)；solo: coop 無對戰意義
+    if (Game.settings.playLayout === 'dual') {
+      let arena = Game.settings.team;
+      if (arena !== 'versus' && arena !== 'coop') {
+        try { arena = localStorage.getItem('mg2.dualArena'); } catch (_) { arena = null; }
       }
+      Game.settings.team = (arena === 'coop') ? 'coop' : 'versus';
+      try { localStorage.setItem('mg2.dualArena', Game.settings.team); } catch (_) {}
+    } else {
+      Game.settings.team = 'coop';
+    }
+    document.querySelectorAll('.opt-team').forEach(x => {
+      const on = x.dataset.team === Game.settings.team;
+      x.classList.toggle('opt-selected', on);
+      x.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+    document.querySelectorAll('.opt-arena').forEach(x => {
+      const on = x.dataset.arena === Game.settings.team;
+      x.classList.toggle('opt-selected', on);
+      x.setAttribute('aria-pressed', on ? 'true' : 'false');
     });
     // 5. Types = selected home scopes (cycle44)
     const scopes = (Game.settings.scopes || []).filter(id => TYPE_REGISTRY[id]);
@@ -5695,6 +5711,11 @@ function setupMenu() {
       b.classList.add('opt-selected');
       b.setAttribute('aria-pressed', 'true');
       Game.settings.team = b.dataset.team;
+      // dual arena picker stays in sync + persist
+      if (Game.settings.playLayout === 'dual' && (b.dataset.team === 'coop' || b.dataset.team === 'versus')) {
+        try { localStorage.setItem('mg2.dualArena', b.dataset.team); } catch (_) {}
+      }
+      if (typeof syncPlayLayoutUI === 'function') syncPlayLayoutUI();
     };
   });
   // HP slider (V3.4-AUDIT-FIX: slider/display 已 hoisted 到 module scope)
