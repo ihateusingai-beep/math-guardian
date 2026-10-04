@@ -1234,6 +1234,32 @@ assert('ARENA-07 reduced-motion for arena',
 assert('ARENA-08 handleAnswer calls refreshSENArena',
   /UI\.refreshSENArena\(team, correct\)/.test(src));
 
+// V3.6 cycle48: quality helpers (no behavior change)
+console.log('\n[T40] V3.6 audit cycle-48 (quality helpers)');
+assert('QA-01 _lengthBarsHTML shared helper',
+  /function _lengthBarsHTML/.test(src) && /_lengthBarsHTML\(q\.extra/.test(src));
+assert('QA-02 _appendChoiceGrid shared helper',
+  /function _appendChoiceGrid/.test(src) && /return _appendChoiceGrid\(area, q, team\)/.test(src));
+assert('QA-03 mode helpers',
+  /function _isEasyMode/.test(src) && /function _isDualPlay/.test(src) && /function _isCoopTeam/.test(src));
+assert('QA-04 SEN options use shuffle()',
+  /const shuffled = shuffle\(opts\)/.test(src));
+
+// V3.6 cycle49: arena polish + SEN_COPY
+console.log('\n[T41] V3.6 audit cycle-49 (arena polish + SEN_COPY)');
+assert('POLISH-01 arena skins tug/boat',
+  /skin-tug/.test(src) && /skin-boat/.test(src));
+assert('POLISH-02 identity avatars + boat crew',
+  /id="sen-avatar-l"/.test(src) && /id="sen-boat-crew-l"/.test(src) &&
+  /function _teamEmoji/.test(src));
+assert('POLISH-03 avatar bounce + pulse helper',
+  /sen-avatar-bounce/.test(src) && /function _pulseEl/.test(src));
+assert('POLISH-04 SEN_COPY map + helpers',
+  /const SEN_COPY = \{/.test(src) && /function _senCopyText/.test(src) &&
+  /function _senCopyTTS/.test(src));
+assert('POLISH-05 TTS uses _senCopyTTS',
+  /_senCopyTTS\(q\)/.test(src));
+
 // =========== summary ===========
 console.log(`\n========== ${pass} pass / ${fail} fail ==========`);
 if (fail > 0) {

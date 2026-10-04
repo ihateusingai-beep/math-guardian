@@ -139,16 +139,42 @@
     align-items: stretch;
     justify-content: center;
   }
-  /* V3.6 cycle47: dual arena strip */
+  /* V3.6 cycle47/49: dual arena strip + scene skins */
   .sen-arena {
     flex: 0 0 auto;
     width: 100%;
-    padding: 0.55rem 0.75rem 0.35rem;
+    padding: 0.55rem 0.75rem 0.4rem;
     background: linear-gradient(180deg, rgba(15,23,42,0.95), rgba(30,27,75,0.85));
     border-bottom: 3px solid rgba(251,191,36,0.35);
     z-index: 5;
+    position: relative;
+    overflow: hidden;
   }
-  .sen-arena-mode { display: flex; align-items: center; gap: 0.5rem; width: 100%; }
+  .sen-arena.skin-tug {
+    background:
+      linear-gradient(180deg, rgba(56,189,248,0.35) 0%, rgba(56,189,248,0.08) 38%, transparent 38%),
+      linear-gradient(180deg, #4d7c0f 38%, #3f6212 55%, #1e293b 100%);
+    border-bottom-color: rgba(134,239,172,0.45);
+  }
+  .sen-arena.skin-boat {
+    background:
+      linear-gradient(180deg, #7dd3fc 0%, #38bdf8 28%, #0284c7 55%, #0c4a6e 100%);
+    border-bottom-color: rgba(125,211,252,0.55);
+  }
+  .sen-arena.skin-tug::before,
+  .sen-arena.skin-boat::before {
+    content: '';
+    position: absolute; inset: 0;
+    pointer-events: none;
+    opacity: 0.35;
+  }
+  .sen-arena.skin-tug::before {
+    background: repeating-linear-gradient(90deg, transparent 0 18px, rgba(255,255,255,0.06) 18px 20px);
+  }
+  .sen-arena.skin-boat::before {
+    background: repeating-linear-gradient(0deg, transparent 0 10px, rgba(255,255,255,0.08) 10px 12px);
+  }
+  .sen-arena-mode { display: flex; align-items: center; gap: 0.5rem; width: 100%; position: relative; z-index: 1; }
   .sen-arena-status {
     text-align: center;
     font-weight: 900;
@@ -156,65 +182,94 @@
     color: #fde68a;
     margin-top: 0.25rem;
     min-height: 1.25rem;
+    position: relative;
+    z-index: 1;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.45);
   }
   .sen-tug-side {
-    font-size: 1.5rem;
-    width: 2.2rem;
+    width: 3.1rem;
     text-align: center;
     flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.1rem;
+  }
+  .sen-avatar {
+    width: 2.6rem;
+    height: 2.6rem;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    font-size: 1.55rem;
+    line-height: 1;
+    background: rgba(15,23,42,0.75);
+    border: 3px solid rgba(255,255,255,0.35);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.35);
+  }
+  .sen-avatar.l { border-color: #60a5fa; background: rgba(30,58,138,0.85); }
+  .sen-avatar.r { border-color: #c084fc; background: rgba(88,28,135,0.85); }
+  .sen-avatar.bounce { animation: sen-avatar-bounce 0.42s ease; }
+  @keyframes sen-avatar-bounce {
+    0%,100% { transform: translateY(0) scale(1); }
+    35% { transform: translateY(-8px) scale(1.12); }
+    70% { transform: translateY(2px) scale(0.96); }
   }
   .sen-tug-track {
     position: relative;
     flex: 1;
-    height: 2.6rem;
+    height: 2.85rem;
     border-radius: 999px;
-    background: rgba(0,0,0,0.35);
-    border: 2px solid rgba(255,255,255,0.15);
+    background: rgba(0,0,0,0.28);
+    border: 2px solid rgba(255,255,255,0.22);
     overflow: hidden;
+    box-shadow: inset 0 2px 6px rgba(0,0,0,0.25);
   }
   .sen-tug-rope {
     position: absolute;
     left: 6%; right: 6%;
     top: 50%;
-    height: 8px;
-    margin-top: -4px;
+    height: 10px;
+    margin-top: -5px;
     border-radius: 4px;
-    background: repeating-linear-gradient(90deg, #d6b37a 0 10px, #b8955a 10px 14px);
-    box-shadow: 0 1px 0 rgba(0,0,0,0.35);
+    background: repeating-linear-gradient(90deg, #e8c48a 0 10px, #c4a06a 10px 14px);
+    box-shadow: 0 1px 0 rgba(0,0,0,0.35), 0 0 8px rgba(251,191,36,0.25);
   }
   .sen-tug-mid {
     position: absolute;
     left: 50%; top: 0; bottom: 0;
     width: 2px;
     margin-left: -1px;
-    background: rgba(251,191,36,0.55);
+    background: rgba(251,191,36,0.65);
   }
   .sen-tug-knot {
     position: absolute;
     top: 50%;
     left: 50%;
-    width: 2.2rem;
-    height: 2.2rem;
-    margin: -1.1rem 0 0 -1.1rem;
+    width: 2.35rem;
+    height: 2.35rem;
+    margin: -1.175rem 0 0 -1.175rem;
     display: grid;
     place-items: center;
-    font-size: 1.35rem;
+    font-size: 1.4rem;
     border-radius: 50%;
-    background: rgba(15,23,42,0.9);
+    background: rgba(15,23,42,0.92);
     border: 3px solid #fbbf24;
-    box-shadow: 0 0 12px rgba(251,191,36,0.45);
+    box-shadow: 0 0 14px rgba(251,191,36,0.55);
     transition: left 0.45s cubic-bezier(0.22, 1, 0.36, 1);
     z-index: 2;
   }
-  .sen-tug-knot.pull-l { animation: sen-tug-jolt-l 0.35s ease; }
-  .sen-tug-knot.pull-r { animation: sen-tug-jolt-r 0.35s ease; }
+  .sen-tug-knot.pull-l { animation: sen-tug-jolt-l 0.4s ease; }
+  .sen-tug-knot.pull-r { animation: sen-tug-jolt-r 0.4s ease; }
   @keyframes sen-tug-jolt-l {
-    0%,100% { transform: translateX(0); }
-    40% { transform: translateX(-6px) scale(1.08); }
+    0%,100% { transform: translateX(0) rotate(0); }
+    30% { transform: translateX(-10px) rotate(-12deg) scale(1.12); }
+    60% { transform: translateX(-4px) rotate(6deg); }
   }
   @keyframes sen-tug-jolt-r {
-    0%,100% { transform: translateX(0); }
-    40% { transform: translateX(6px) scale(1.08); }
+    0%,100% { transform: translateX(0) rotate(0); }
+    30% { transform: translateX(10px) rotate(12deg) scale(1.12); }
+    60% { transform: translateX(4px) rotate(-6deg); }
   }
   .sen-boat-row {
     display: flex;
@@ -222,52 +277,69 @@
     gap: 0.35rem;
     width: 100%;
   }
-  .sen-boat-emoji { font-size: 1.4rem; flex-shrink: 0; }
+  .sen-boat-emoji { font-size: 1.55rem; flex-shrink: 0; filter: drop-shadow(0 1px 1px rgba(0,0,0,0.3)); }
   .sen-boat-track {
     position: relative;
     flex: 1;
-    height: 2.4rem;
+    height: 2.7rem;
     border-radius: 999px;
-    background: linear-gradient(180deg, #0ea5e9 0%, #0369a1 100%);
-    border: 2px solid rgba(255,255,255,0.2);
+    background:
+      linear-gradient(180deg, rgba(255,255,255,0.25) 0%, transparent 35%),
+      linear-gradient(180deg, #38bdf8 0%, #0369a1 100%);
+    border: 2px solid rgba(255,255,255,0.28);
     overflow: hidden;
+    box-shadow: inset 0 -4px 0 rgba(7,89,133,0.35);
   }
   .sen-boat {
     position: absolute;
     top: 50%;
     left: 4%;
-    margin-top: -0.95rem;
-    font-size: 1.7rem;
+    margin-top: -1.15rem;
+    display: flex;
+    align-items: flex-end;
+    gap: 0.05rem;
     line-height: 1;
     transition: left 0.5s cubic-bezier(0.22, 1, 0.36, 1);
     filter: drop-shadow(0 2px 2px rgba(0,0,0,0.35));
+    z-index: 2;
   }
-  .sen-boat.splash { animation: sen-boat-splash 0.4s ease; }
+  .sen-boat .sen-crew {
+    font-size: 1.05rem;
+    display: inline-block;
+  }
+  .sen-boat .sen-boat-hull { font-size: 1.75rem; }
+  .sen-boat.splash { animation: sen-boat-splash 0.45s ease; }
+  .sen-boat.splash .sen-crew { animation: sen-avatar-bounce 0.45s ease; }
   @keyframes sen-boat-splash {
-    0%,100% { transform: translateY(0); }
-    40% { transform: translateY(-5px) rotate(-6deg); }
+    0%,100% { transform: translateY(0) rotate(0); }
+    30% { transform: translateY(-8px) rotate(-8deg); }
+    55% { transform: translateY(2px) rotate(4deg); }
   }
   .sen-boat-bar {
     margin-top: 0.3rem;
-    height: 0.55rem;
+    height: 0.6rem;
     border-radius: 999px;
     background: rgba(0,0,0,0.35);
     overflow: hidden;
-    border: 1px solid rgba(255,255,255,0.12);
+    border: 1px solid rgba(255,255,255,0.18);
+    position: relative;
+    z-index: 1;
   }
   .sen-boat-fill {
     height: 100%;
     width: 0%;
     border-radius: 999px;
-    background: linear-gradient(90deg, #34d399, #fbbf24);
+    background: linear-gradient(90deg, #34d399, #fbbf24 70%, #fef08a);
     transition: width 0.45s ease;
+    box-shadow: 0 0 8px rgba(52,211,153,0.45);
   }
   .sen-board.has-arena {
     /* leave room for arena strip */
   }
   @media (prefers-reduced-motion: reduce) {
     .sen-tug-knot, .sen-boat, .sen-boat-fill { transition: none !important; }
-    .sen-tug-knot.pull-l, .sen-tug-knot.pull-r, .sen-boat.splash { animation: none !important; }
+    .sen-tug-knot.pull-l, .sen-tug-knot.pull-r, .sen-boat.splash,
+    .sen-avatar.bounce, .sen-boat.splash .sen-crew { animation: none !important; }
   }
   .sen-board-solo .sen-panel-mage { display: none !important; }
   .sen-board-solo .sen-panel-knight {
@@ -2094,22 +2166,30 @@
   <!-- ========== V3.6: 超簡遊戲畫面（簡單練習：單人 / 左右雙隊） ========== -->
   <section id="screen-game-sen" class="hidden fixed inset-0 flex flex-col" style="background:#0f172a;z-index:50;">
     <button id="sen-btn-back" class="sen-chrome-back text-white text-xl w-12 h-12 rounded-2xl bg-black/50 border border-white/20 flex items-center justify-center" aria-label="返回主選單">⬅</button>
-    <!-- V3.6 cycle47: dual arena — versus 扯大欖 / coop 推船 -->
+    <!-- V3.6 cycle47/49: dual arena — versus 扯大欖 / coop 推船 + identity/scene -->
     <div id="sen-arena" class="sen-arena hidden" aria-live="polite" aria-atomic="true">
       <div id="sen-arena-tug" class="sen-arena-mode hidden">
-        <div class="sen-tug-side l" id="sen-tug-side-l">🔵</div>
+        <div class="sen-tug-side l" id="sen-tug-side-l">
+          <div class="sen-avatar l" id="sen-avatar-l" aria-hidden="true">🔵</div>
+        </div>
         <div class="sen-tug-track" role="img" aria-label="扯大欖繩">
           <div class="sen-tug-rope"></div>
           <div id="sen-tug-knot" class="sen-tug-knot">🪢</div>
           <div class="sen-tug-mid"></div>
         </div>
-        <div class="sen-tug-side r" id="sen-tug-side-r">🟣</div>
+        <div class="sen-tug-side r" id="sen-tug-side-r">
+          <div class="sen-avatar r" id="sen-avatar-r" aria-hidden="true">🟣</div>
+        </div>
       </div>
       <div id="sen-arena-boat" class="sen-arena-mode hidden">
         <div class="sen-boat-row">
           <span class="sen-boat-emoji" aria-hidden="true">🌊</span>
           <div class="sen-boat-track">
-            <div id="sen-boat" class="sen-boat">🚢</div>
+            <div id="sen-boat" class="sen-boat">
+              <span class="sen-crew" id="sen-boat-crew-l" aria-hidden="true">🔵</span>
+              <span class="sen-boat-hull" aria-hidden="true">🚢</span>
+              <span class="sen-crew" id="sen-boat-crew-r" aria-hidden="true">🟣</span>
+            </div>
           </div>
           <span class="sen-boat-emoji" aria-hidden="true">🏝️</span>
         </div>
@@ -2396,6 +2476,80 @@ function shuffle(arr) {
   return a;
 }
 function clamp(n, lo, hi) { return Math.max(lo, Math.min(hi, n)); }
+
+/* ---- tiny mode/query helpers (cycle48 quality; no behavior change) ---- */
+function _isEasyMode() { return Game.settings.difficulty === 'easy'; }
+function _isDualPlay() { return Game.settings.playLayout === 'dual'; }
+function _isCoopTeam() { return Game.settings.team === 'coop'; }
+
+/** First glyph of identity label (e.g. "🐱 小貓" → 🐱) */
+function _teamEmoji(team) {
+  const label = team === 'mage'
+    ? (Game.settings.playerLabelRight || Game.settings.playerLabel || '')
+    : (Game.settings.playerLabel || '');
+  const m = String(label).trim().match(/^(\S+)/);
+  if (m && m[1] && m[1] !== '同學') return m[1];
+  return team === 'mage' ? '🟣' : '🔵';
+}
+
+function _pulseEl(el, cls, ms) {
+  if (!el) return;
+  el.classList.remove(cls);
+  void el.offsetWidth;
+  el.classList.add(cls);
+  setTimeout(() => el.classList.remove(cls), ms || 420);
+}
+
+/** Shared length-bars markup for SEN + normal bars layout */
+function _lengthBarsHTML(ex) {
+  const A = Math.max(1, Number(ex.a != null ? ex.a : ex.left) || 1);
+  const B = Math.max(1, Number(ex.b != null ? ex.b : ex.right) || 1);
+  const unit = 1.35; // rem per length unit
+  const wA = (A * unit).toFixed(2);
+  const wB = (B * unit).toFixed(2);
+  const uA = ex.unitsA || '■'.repeat(A);
+  const uB = ex.unitsB || '■'.repeat(B);
+  return {
+    A, B,
+    html: `<div class="sen-bars" role="img" aria-label="A ${A} 格，B ${B} 格">
+      <div class="sen-bar-row">
+        <span class="sen-bar-tag">A</span>
+        <div class="sen-bar-track"><div class="sen-bar" style="width:${wA}rem"></div></div>
+      </div>
+      <div class="sen-bar-units" aria-hidden="true">${uA}</div>
+      <div class="sen-bar-row">
+        <span class="sen-bar-tag">B</span>
+        <div class="sen-bar-track"><div class="sen-bar b" style="width:${wB}rem"></div></div>
+      </div>
+      <div class="sen-bar-units b" aria-hidden="true">${uB}</div>
+    </div>`,
+  };
+}
+
+/** Shared MC choice grid (normal difficulty option-btn path) */
+function _appendChoiceGrid(area, q, team, gridClass) {
+  const opts = q.options || [q.answer];
+  const grid = document.createElement('div');
+  grid.className = gridClass || 'grid grid-cols-2 gap-2';
+  grid.setAttribute('role', 'group');
+  grid.setAttribute('aria-label', '答案選項');
+  const optLabels = q.optionLabels || null;
+  opts.forEach(opt => {
+    const b = document.createElement('button');
+    b.className = 'option-btn';
+    if (optLabels && optLabels[opt] !== undefined) {
+      b.textContent = optLabels[opt];
+      b.setAttribute('aria-label', optLabels[opt]);
+    } else {
+      b.textContent = String(opt);
+      b.setAttribute('aria-label', `答案 ${opt}`);
+    }
+    b.onclick = () => Game.handleAnswer(team, opt, b);
+    grid.appendChild(b);
+  });
+  area.appendChild(grid);
+  return true;
+}
 
 /* ============== [2] 音訊 (Web Audio beeps) ============== */
 const Audio = (() => {
@@ -3284,6 +3438,7 @@ const QuestionGen = (() => {
     if (q) q = _normalizeBankQuestion(type, mode, q, reg);
     // 按 layout dispatch (如果 bank 唔適用)
     if (!q) {
+      // layout → generator (keep strings for regression locks)
       if (reg.layout === 'numeric') q = Generators.numeric(type, mode);
       else if (reg.layout === 'parts-emoji') q = Generators[type](mode);
       else if (reg.layout === 'sym-button') q = Generators.compare10();
@@ -3983,8 +4138,8 @@ const Game = {
         Game.state.teams[team].correct++;
         Audio.correct && Audio.correct();
         // V3.6 cycle47: arena SFX + visual
-        if (Game.settings.playLayout === 'dual') {
-          if (Game.settings.team === 'coop') Audio.boatRow && Audio.boatRow();
+        if (_isDualPlay()) {
+          if (_isCoopTeam()) Audio.boatRow && Audio.boatRow();
           else Audio.tugPull && Audio.tugPull();
         }
       } else {
@@ -4034,6 +4189,39 @@ const Game = {
  * Pure rendering — no state mutation, no Audio/TTS calls.
  * New layouts: add a function here + one line in the QuestionRenderer dispatch map.
  */
+/** V3.6 cycle49: SEN prompt/TTS copy map (single source) */
+const SEN_COPY = {
+  compareLength: { text: '邊條長？', ttsFrom: 'extra.prompt' },
+  whatTime:      { text: '幾點鐘？', tts: '幾點鐘？' },
+  shapeMatch:    { text: '這是什麼形狀？', tts: '這是什麼形狀？' },
+  groupAdd:      { text: '加埋有幾多？', tts: null },
+  compareGroup:  { text: '邊邊多？', tts: null },
+  count10:       { text: '有幾多？', tts: null },
+  count1to3:     { text: '有幾多？', tts: null },
+  count20:       { text: '有幾多？', tts: null },
+  orderAsc20:    { text: '由細到大？', tts: '由細到大' },
+  ordering:      { text: '由細到大？', tts: '由細到大' },
+  orderDesc20:   { text: '由大到細？', tts: '由大到細' },
+  compare10:     { text: '邊個大？', tts: '邊個大？' },
+};
+
+function _senCopyText(q) {
+  if (!q) return '';
+  const c = SEN_COPY[q.type];
+  if (!c) return '';
+  if (c.ttsFrom === 'extra.prompt') return (q.extra && q.extra.prompt) || c.text;
+  return c.text;
+}
+
+function _senCopyTTS(q) {
+  if (!q) return '';
+  const c = SEN_COPY[q.type];
+  if (!c) return (q.parts ? q.parts.join('') : q.text) || '';
+  if (c.tts) return c.tts;
+  if (c.ttsFrom === 'extra.prompt') return (q.extra && q.extra.prompt) || c.text;
+  return c.text || ((q.parts ? q.parts.join('') : q.text) || '');
+}
+
 const QuestionRenderer = {
   // --- sym-button: compare10 three symbol buttons ---
   'sym-button'(q, team, area) {
@@ -4167,27 +4355,7 @@ const QuestionRenderer = {
   // --- numeric / parts-emoji: choice grid or numeric keypad ---
   'numeric'(q, team, area) {
     if (Game.settings.mode === 'keypad') return false; // fall through to keypad
-    const opts = q.options || [q.answer];
-    const grid = document.createElement('div');
-    grid.className = 'grid grid-cols-2 gap-2';
-    grid.setAttribute('role', 'group');
-    grid.setAttribute('aria-label', '答案選項');
-    const optLabels = q.optionLabels || null;
-    opts.forEach(opt => {
-      const b = document.createElement('button');
-      b.className = 'option-btn';
-      if (optLabels && optLabels[opt] !== undefined) {
-        b.textContent = optLabels[opt];
-        b.setAttribute('aria-label', optLabels[opt]);
-      } else {
-        b.textContent = String(opt);
-        b.setAttribute('aria-label', `答案 ${opt}`);
-      }
-      b.onclick = () => Game.handleAnswer(team, opt, b);
-      grid.appendChild(b);
-    });
-    area.appendChild(grid);
-    return true;
+    return _appendChoiceGrid(area, q, team);
   },
 
   // parts-emoji → same choice grid (emoji lives in question text)
@@ -4197,28 +4365,9 @@ const QuestionRenderer = {
 
   // V3.6 cycle46: bars layout (compareLength) for normal difficulty
   'bars'(q, team, area) {
-    const ex = q.extra || {};
-    const A = Math.max(1, Number(ex.a != null ? ex.a : ex.left) || 1);
-    const B = Math.max(1, Number(ex.b != null ? ex.b : ex.right) || 1);
-    const unit = 1.35;
-    const wA = (A * unit).toFixed(2);
-    const wB = (B * unit).toFixed(2);
-    const uA = ex.unitsA || '■'.repeat(A);
-    const uB = ex.unitsB || '■'.repeat(B);
     const visual = document.createElement('div');
     visual.className = 'sen-q-visual';
-    visual.innerHTML = `<div class="sen-bars" role="img" aria-label="A ${A} 格，B ${B} 格">
-      <div class="sen-bar-row">
-        <span class="sen-bar-tag">A</span>
-        <div class="sen-bar-track"><div class="sen-bar" style="width:${wA}rem"></div></div>
-      </div>
-      <div class="sen-bar-units" aria-hidden="true">${uA}</div>
-      <div class="sen-bar-row">
-        <span class="sen-bar-tag">B</span>
-        <div class="sen-bar-track"><div class="sen-bar b" style="width:${wB}rem"></div></div>
-      </div>
-      <div class="sen-bar-units b" aria-hidden="true">${uB}</div>
-    </div>`;
+    visual.innerHTML = _lengthBarsHTML(q.extra || {}).html;
     area.appendChild(visual);
     return QuestionRenderer['numeric'](q, team, area);
   },
@@ -4621,24 +4770,38 @@ const UI = {
     UI.setupSENArena();
   },
 
-  // V3.6 cycle47: dual arena — versus tug / coop boat
+  // V3.6 cycle47/49: dual arena — versus tug / coop boat + identity/scene
   setupSENArena() {
     const arena = $('sen-arena');
     const tug = $('sen-arena-tug');
     const boat = $('sen-arena-boat');
     if (!arena || !tug || !boat) return;
-    const dual = Game.settings.playLayout === 'dual';
-    const isEasy = Game.settings.difficulty === 'easy';
+    const dual = _isDualPlay();
+    const isEasy = _isEasyMode();
     const show = dual && isEasy;
     arena.classList.toggle('hidden', !show);
     if (!show) {
       tug.classList.add('hidden');
       boat.classList.add('hidden');
+      arena.classList.remove('skin-tug', 'skin-boat');
       return;
     }
-    const versus = Game.settings.team !== 'coop';
+    const versus = !_isCoopTeam();
     tug.classList.toggle('hidden', !versus);
     boat.classList.toggle('hidden', versus);
+    arena.classList.toggle('skin-tug', versus);
+    arena.classList.toggle('skin-boat', !versus);
+    // identity avatars on rope / boat
+    const eL = _teamEmoji('knight');
+    const eR = _teamEmoji('mage');
+    const avL = $('sen-avatar-l');
+    const avR = $('sen-avatar-r');
+    if (avL) avL.textContent = eL;
+    if (avR) avR.textContent = eR;
+    const cL = $('sen-boat-crew-l');
+    const cR = $('sen-boat-crew-r');
+    if (cL) cL.textContent = eL;
+    if (cR) cR.textContent = eR;
     // reset visuals
     const knot = $('sen-tug-knot');
     if (knot) {
@@ -4660,7 +4823,7 @@ const UI = {
   },
 
   refreshSENArena(pullTeam, didCorrect) {
-    if (Game.settings.playLayout !== 'dual' || Game.settings.difficulty !== 'easy') return;
+    if (!_isDualPlay() || !_isEasyMode()) return;
     const arena = $('sen-arena');
     if (!arena || arena.classList.contains('hidden')) return;
     const tk = Game.state.teams.knight || { correct: 0, total: 0 };
@@ -4668,7 +4831,7 @@ const UI = {
     const goal = Game.state.easyGoalTotal || 10;
     const L = Game.settings.playerLabel || '左隊';
     const R = Game.settings.playerLabelRight || '右隊';
-    const versus = Game.settings.team !== 'coop';
+    const versus = !_isCoopTeam();
     const st = $('sen-arena-status');
 
     if (versus) {
@@ -4681,10 +4844,8 @@ const UI = {
         const pct = 50 + t * 38; // 12–88
         knot.style.left = pct.toFixed(2) + '%';
         if (didCorrect && pullTeam) {
-          knot.classList.remove('pull-l', 'pull-r');
-          void knot.offsetWidth;
-          knot.classList.add(pullTeam === 'knight' ? 'pull-l' : 'pull-r');
-          setTimeout(() => knot.classList.remove('pull-l', 'pull-r'), 400);
+          _pulseEl(knot, pullTeam === 'knight' ? 'pull-l' : 'pull-r', 420);
+          _pulseEl($(pullTeam === 'knight' ? 'sen-avatar-l' : 'sen-avatar-r'), 'bounce', 420);
         }
       }
       if (st) {
@@ -4708,12 +4869,7 @@ const UI = {
         // 4% → 86%
         const left = 4 + (pct / 100) * 82;
         ship.style.left = left.toFixed(2) + '%';
-        if (didCorrect) {
-          ship.classList.remove('splash');
-          void ship.offsetWidth;
-          ship.classList.add('splash');
-          setTimeout(() => ship.classList.remove('splash'), 420);
-        }
+        if (didCorrect) _pulseEl(ship, 'splash', 450);
       }
       if (st) {
         if (pct >= 100) st.textContent = '🏝️ 埋岸啦！';
@@ -4737,27 +4893,9 @@ const UI = {
 
     // V3.6 cycle45: length bars — rem width + unit blocks (always visible)
     if (q.type === 'compareLength' && q.extra && emojiEl) {
-      const A = Math.max(1, Number(q.extra.a != null ? q.extra.a : q.extra.left) || 1);
-      const B = Math.max(1, Number(q.extra.b != null ? q.extra.b : q.extra.right) || 1);
-      const unit = 1.35; // rem per length unit
-      const wA = (A * unit).toFixed(2);
-      const wB = (B * unit).toFixed(2);
-      const uA = q.extra.unitsA || '■'.repeat(A);
-      const uB = q.extra.unitsB || '■'.repeat(B);
       emojiEl.classList.add('sen-q-visual');
-      emojiEl.innerHTML = `<div class="sen-bars" role="img" aria-label="A ${A} 格，B ${B} 格">
-        <div class="sen-bar-row">
-          <span class="sen-bar-tag">A</span>
-          <div class="sen-bar-track"><div class="sen-bar" style="width:${wA}rem"></div></div>
-        </div>
-        <div class="sen-bar-units" aria-hidden="true">${uA}</div>
-        <div class="sen-bar-row">
-          <span class="sen-bar-tag">B</span>
-          <div class="sen-bar-track"><div class="sen-bar b" style="width:${wB}rem"></div></div>
-        </div>
-        <div class="sen-bar-units b" aria-hidden="true">${uB}</div>
-      </div>`;
-      if (textEl) textEl.textContent = (q.extra && q.extra.prompt) || '邊條長？';
+      emojiEl.innerHTML = _lengthBarsHTML(q.extra).html;
+      if (textEl) textEl.textContent = _senCopyText(q) || '邊條長？';
     } else if (q.type === 'whatTime' && q.extra && emojiEl) {
       // V3.6 cycle46: SEN clock face (no hour in text)
       const hour = Number(q.extra.hour != null ? q.extra.hour : q.answer) || 12;
@@ -4770,11 +4908,11 @@ const UI = {
           <line x1="8" y1="8" x2="11" y2="8" stroke="#1e293b" stroke-width="0.6"/>
         </svg>
       </div>`;
-      if (textEl) textEl.textContent = '幾點鐘？';
+      if (textEl) textEl.textContent = _senCopyText(q) || '幾點鐘？';
     } else if (q.type === 'shapeMatch' && emojiEl) {
       emojiEl.classList.add('sen-q-visual');
       emojiEl.innerHTML = `<div class="q-shape"><svg viewBox="0 0 16 16" style="width:min(36vw,140px);height:min(36vw,140px);"><use href="#px-shape-${q.answer}"/></svg></div>`;
-      if (textEl) textEl.textContent = '這是什麼形狀？';
+      if (textEl) textEl.textContent = _senCopyText(q) || '這是什麼形狀？';
     } else if (q.parts) {
       const chineseMap = {
         '+':'加','-':'減','=':'等於','?':'？','❓':'等於幾多？',
@@ -4833,14 +4971,8 @@ const UI = {
         }
       }
       if (textEl) {
-        if (q.type === 'groupAdd') textEl.textContent = '加埋有幾多？';
-        else if (q.type === 'compareGroup') textEl.textContent = '邊邊多？';
-        else if (q.type === 'count10' || q.type === 'count1to3' || q.type === 'count20') textEl.textContent = '有幾多？';
-        else if (q.type === 'orderAsc20' || q.type === 'ordering') textEl.textContent = '由細到大？';
-        else if (q.type === 'orderDesc20') textEl.textContent = '由大到細？';
-        else if (q.type === 'compare10') textEl.textContent = '邊個大？';
-        else if (q.type === 'whatTime') textEl.textContent = '幾點鐘？';
-        else textEl.textContent = textTokens.join(' ');
+        const mapped = _senCopyText(q);
+        textEl.textContent = mapped || textTokens.join(' ');
       }
     } else {
       if (emojiEl) emojiEl.textContent = q.text || '';
@@ -4849,11 +4981,7 @@ const UI = {
 
     const opts = q.options || [q.answer];
     const labels = q.optionLabels;
-    const shuffled = opts.slice();
-    for (let i = shuffled.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-    }
+    const shuffled = shuffle(opts);
     if (!optsArea) return;
     optsArea.innerHTML = '';
     const LETTERS = ['A', 'B', 'C', 'D'];
@@ -4872,14 +5000,7 @@ const UI = {
 
     // Auto TTS: solo only (dual = manual per-side 🔊 to avoid cross-talk)
     if (Game.settings.ttsEnabled && Game.settings.playLayout !== 'dual') {
-      let text = '';
-      if (q.type === 'compareLength') text = (q.extra && q.extra.prompt) || '邊條長？';
-      else if (q.type === 'orderAsc20' || q.type === 'ordering') text = '由細到大';
-      else if (q.type === 'orderDesc20') text = '由大到細';
-      else if (q.type === 'whatTime') text = '幾點鐘？';
-      else if (q.type === 'compare10') text = '邊個大？';
-      else if (q.type === 'shapeMatch') text = '這是什麼形狀？';
-      else text = (q.parts ? q.parts.join('') : q.text) || '';
+      const text = _senCopyTTS(q);
       if (text) TTS.speak(text, null, {});
     }
   },
