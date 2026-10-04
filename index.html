@@ -388,18 +388,29 @@
   /* V3.6 cycle50: countable emoji grid (never blank for count types) */
   .sen-count-grid {
     display: flex;
-    flex-wrap: wrap;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    justify-content: center;
+    align-items: center;
+    gap: 0.35rem;
+    max-width: min(100%, 22rem);
+    margin: 0 auto;
+  }
+  .sen-count-row {
+    display: flex;
+    flex-wrap: nowrap;
     justify-content: center;
     align-items: center;
     gap: 0.2rem 0.35rem;
-    max-width: min(100%, 22rem);
-    margin: 0 auto;
   }
   .sen-count-item {
     font-size: clamp(1.45rem, 5.2vw, 2.55rem);
     line-height: 1;
     display: inline-block;
   }
+  /* dual length: hide unit blocks to reduce clutter */
+  .sen-board-dual .sen-bar-units { display: none; }
+  .sen-board-dual .sen-bars { gap: 0.65rem; }
   .sen-panel .sen-q-text { color: #fff; font-size: clamp(1.25rem, 3vw, 2rem); font-weight: 800; text-align: center; }
   .sen-panel .sen-options { width: 100%; max-width: 22rem; display: flex; flex-direction: column; gap: 0.6rem; }
   .sen-board-dual .sen-options { max-width: 100%; }
@@ -421,10 +432,12 @@
   .sen-bar-tag {
     width: 2.6rem; height: 2.6rem; border-radius: 999px;
     background: rgba(255,255,255,0.22); color: #fff;
-    font-weight: 900; font-size: 1.35rem;
+    font-weight: 900; font-size: 1.1rem;
     display: grid; place-items: center; flex-shrink: 0;
     border: 3px solid rgba(255,255,255,0.35);
   }
+  .sen-bar-tag.y { background: rgba(251,191,36,0.35); border-color: #fbbf24; color: #fef3c7; }
+  .sen-bar-tag.p { background: rgba(167,139,250,0.35); border-color: #a78bfa; color: #ede9fe; }
   .sen-bar-track {
     flex: 1;
     min-width: 0;
@@ -1891,10 +1904,10 @@
             📏 長短比較<br><span class="text-xs opacity-70">邊條長／短</span>
           </button>
           <button type="button" class="opt-scope btn btn-ghost opt-selected py-3 text-left" data-scope="orderAsc20" aria-pressed="true">
-            📈 1–20 順序<br><span class="text-xs opacity-70">由細到大</span>
+            📈 順序·跟住<br><span class="text-xs opacity-70">邊個跟住</span>
           </button>
           <button type="button" class="opt-scope btn btn-ghost opt-selected py-3 text-left" data-scope="orderDesc20" aria-pressed="true">
-            📉 1–20 倒序<br><span class="text-xs opacity-70">由大到細</span>
+            📉 倒序·跟住<br><span class="text-xs opacity-70">邊個跟住</span>
           </button>
         </div>
         <div id="scope-helper" class="text-xs text-white/60 mt-2">已選 4 個範疇 · 撳掣可開關（最少 1 個）</div>
@@ -1923,13 +1936,13 @@
           </button>
         </div>
         <div id="diff-helper" class="text-xs text-white/60 mt-2 leading-relaxed">
-          簡單模式：看圖數數（1-5）、淺加法（結果 1-9）、少選項、答 10 題完
+          簡單模式：跟題目範疇 · 10 題 · 大掣 A/B/C
         </div>
       </div>
 
       <button type="button" id="btn-menu-advanced-toggle" class="w-full btn btn-ghost text-sm py-2 border border-white/15"
         aria-expanded="false" aria-controls="menu-advanced">
-        ⚙️ 進階設定（老師）
+        ⚙️ 進階設定（老師覆寫 · 一鍵仍跟範疇）
       </button>
 
       <!-- Advanced combat settings — collapsed when simple mode -->
@@ -2587,20 +2600,26 @@ function _splitPartsEmojiText(parts) {
 
 /** Rebuild count visual from answer (never blank even if parts broken) */
 function _countVisualHTML(q) {
+  // V3.6 cycle54: group by 5 per row so 6–10 可一眼數
   const n = Math.max(1, Math.min(10, Number(q.answer) || 1));
   const fruit = _firstEmojiIn((q.parts || []).join(''));
-  const items = [];
-  for (let i = 0; i < n; i++) {
-    items.push(`<span class="sen-count-item" aria-hidden="true">${fruit}</span>`);
+  const rows = [];
+  for (let i = 0; i < n; i += 5) {
+    const chunk = [];
+    for (let j = i; j < Math.min(n, i + 5); j++) {
+      chunk.push(`<span class="sen-count-item" aria-hidden="true">${fruit}</span>`);
+    }
+    rows.push(`<div class="sen-count-row" data-row="${Math.floor(i / 5)}">${chunk.join('')}</div>`);
   }
   return {
     fruit, n,
-    html: `<div class="sen-count-grid" role="img" aria-label="${n} 個">${items.join('')}</div>`,
+    html: `<div class="sen-count-grid" role="img" aria-label="${n} 個">${rows.join('')}</div>`,
   };
 }
 
 /** Shared length-bars markup for SEN + normal bars layout */
 function _lengthBarsHTML(ex) {
+  // V3.6 cycle53: tags 黃/紫 — 唔用 A/B，避免同手勢字母撞車
   const A = Math.max(1, Number(ex.a != null ? ex.a : ex.left) || 1);
   const B = Math.max(1, Number(ex.b != null ? ex.b : ex.right) || 1);
   const unit = 1.35; // rem per length unit
@@ -2610,14 +2629,14 @@ function _lengthBarsHTML(ex) {
   const uB = ex.unitsB || '■'.repeat(B);
   return {
     A, B,
-    html: `<div class="sen-bars" role="img" aria-label="A ${A} 格，B ${B} 格">
+    html: `<div class="sen-bars" role="img" aria-label="黃條 ${A} 格，紫條 ${B} 格">
       <div class="sen-bar-row">
-        <span class="sen-bar-tag">A</span>
+        <span class="sen-bar-tag y">黃</span>
         <div class="sen-bar-track"><div class="sen-bar" style="width:${wA}rem"></div></div>
       </div>
       <div class="sen-bar-units" aria-hidden="true">${uA}</div>
       <div class="sen-bar-row">
-        <span class="sen-bar-tag">B</span>
+        <span class="sen-bar-tag p">紫</span>
         <div class="sen-bar-track"><div class="sen-bar b" style="width:${wB}rem"></div></div>
       </div>
       <div class="sen-bar-units b" aria-hidden="true">${uB}</div>
@@ -3166,16 +3185,16 @@ const TYPE_REGISTRY = {
   // === V3.6 cycle44: 中度主頁範疇 ===
   count20: { id:'count20', label:'數數 1-10', emoji:'🔢', difficulty:1, category:'math', icon:null, mode:['choice'], layout:'parts-emoji', desc:'睇圖數 1-10' },
   compareLength: { id:'compareLength', label:'長短比較', emoji:'📏', difficulty:1, category:'math', icon:null, mode:['choice'], layout:'bars', desc:'邊條長／短' },
-  orderAsc20: { id:'orderAsc20', label:'1-20 順序', emoji:'📈', difficulty:1, category:'math', icon:null, mode:['choice'], layout:'seq-choice', desc:'三數由細到大' },
-  orderDesc20: { id:'orderDesc20', label:'1-20 倒序', emoji:'📉', difficulty:1, category:'math', icon:null, mode:['choice'], layout:'seq-choice', desc:'三數由大到細' },
+  orderAsc20: { id:'orderAsc20', label:'1-20 順序', emoji:'📈', difficulty:1, category:'math', icon:null, mode:['choice'], layout:'seq-choice', desc:'兩數後邊個跟住（細→大）' },
+  orderDesc20: { id:'orderDesc20', label:'1-20 倒序', emoji:'📉', difficulty:1, category:'math', icon:null, mode:['choice'], layout:'seq-choice', desc:'兩數後邊個跟住（大→細）' },
 };
 
 // V3.6 cycle44: home scope catalog (1 scope = 1 type)
 const SCOPE_CATALOG = [
   { id: 'count20', label: '數數 1–10', emoji: '🔢' },
   { id: 'compareLength', label: '長短比較', emoji: '📏' },
-  { id: 'orderAsc20', label: '1–20 順序', emoji: '📈' },
-  { id: 'orderDesc20', label: '1–20 倒序', emoji: '📉' },
+  { id: 'orderAsc20', label: '順序·跟住', emoji: '📈' },
+  { id: 'orderDesc20', label: '倒序·跟住', emoji: '📉' },
 ];
 const DEFAULT_SCOPES = SCOPE_CATALOG.map(s => s.id);
 
@@ -3348,7 +3367,7 @@ const Generators = {
     const n = randInt(1, 10);
     return { parts: [f.repeat(n), '= ?'], answer: n, type:'count20', answerDisplay: String(n) };
   },
-  // V3.6 cycle45: 長短比較 — 明顯長度差 + A/B 標（上下棒，唔用左右字）
+  // V3.6 cycle45/53: 長短比較 — 明顯長度差；答案=黃條/紫條（唔用 A/B 撞手勢）
   compareLength() {
     // units 2–8，最少差 3，中度一眼見到長短
     let a = randInt(2, 8);
@@ -3360,15 +3379,16 @@ const Generators = {
     }
     if (Math.abs(a - b) < 3) { a = 3; b = 7; }
     const askLong = Math.random() < 0.5;
-    const answer = askLong ? (a > b ? 'A' : 'B') : (a < b ? 'A' : 'B');
+    // '1'=黃條(上) '2'=紫條(下)
+    const answer = askLong ? (a > b ? '1' : '2') : (a < b ? '1' : '2');
     const prompt = askLong ? '邊條長？' : '邊條短？';
     const block = (n, ch) => ch.repeat(n);
     return {
       parts: [prompt],
       answer,
       type: 'compareLength',
-      options: ['A', 'B'],
-      optionLabels: { A: 'A', B: 'B' },
+      options: ['1', '2'],
+      optionLabels: { '1': '黃條', '2': '紫條' },
       extra: {
         a, b,
         left: a, right: b, // legacy keys kept
@@ -3409,28 +3429,47 @@ const Generators = {
     }
     return { correct, options: shuffle([...opts]).slice(0, 3) };
   },
-  orderAsc20() {
+  // V3.6 cycle55: 順序 = 睇兩數 → 揀「下一個」（負荷↓）
+  _nextInSeq(dir) {
+    // dir 'asc' | 'desc'
     const nums = Generators._seqThree();
-    const sorted = [...nums].sort((a, b) => a - b);
-    const { correct, options } = Generators._seqOptions(sorted, nums);
+    const sorted = dir === 'asc'
+      ? [...nums].sort((a, b) => a - b)
+      : [...nums].sort((a, b) => b - a);
+    const stem = [sorted[0], sorted[1]];
+    const answer = sorted[2];
+    const opts = new Set([answer]);
+    let g = 0;
+    while (opts.size < 3 && g++ < 40) {
+      const d = randInt(1, 20);
+      if (!stem.includes(d) && d !== answer) opts.add(d);
+    }
+    while (opts.size < 3) opts.add(answer + opts.size); // pad safe
     return {
-      parts: [`${nums.join('  ·  ')}`],
-      answer: correct,
+      stem,
+      answer: String(answer),
+      options: shuffle([...opts]).map(String).slice(0, 3),
+      displayNums: stem,
+    };
+  },
+  orderAsc20() {
+    const { stem, answer, options, displayNums } = Generators._nextInSeq('asc');
+    return {
+      parts: [`${stem.join('  ·  ')}  ·  ？`],
+      answer,
       type: 'orderAsc20',
       options,
-      displayNums: nums,
+      displayNums,
     };
   },
   orderDesc20() {
-    const nums = Generators._seqThree();
-    const sorted = [...nums].sort((a, b) => b - a);
-    const { correct, options } = Generators._seqOptions(sorted, nums);
+    const { stem, answer, options, displayNums } = Generators._nextInSeq('desc');
     return {
-      parts: [`${nums.join('  ·  ')}`],
-      answer: correct,
+      parts: [`${stem.join('  ·  ')}  ·  ？`],
+      answer,
       type: 'orderDesc20',
       options,
-      displayNums: nums,
+      displayNums,
     };
   },
 };
@@ -3501,6 +3540,51 @@ function _normalizeBankQuestion(type, mode, q, reg) {
   } else if (type === 'shapeMatch') {
     if (!q.optionLabels) {
       q.optionLabels = { circle: '圓形', square: '方形', triangle: '三角形', star: '星形' };
+    }
+  } else if (type === 'compareLength') {
+    // V3.6 cycle53/57: force 黃/紫 labels；legacy A/B → 1/2
+    let ans = String(q.answer);
+    if (ans === 'A') ans = '1';
+    if (ans === 'B') ans = '2';
+    if (ans !== '1' && ans !== '2') return null;
+    q.answer = ans;
+    q.options = ['1', '2'];
+    q.optionLabels = { '1': '黃條', '2': '紫條' };
+    const ex = q.extra || {};
+    const a = Number(ex.a != null ? ex.a : ex.left);
+    const b = Number(ex.b != null ? ex.b : ex.right);
+    if (!Number.isFinite(a) || !Number.isFinite(b)) return null;
+    q.extra = Object.assign({}, ex, {
+      a, b, left: a, right: b,
+      prompt: ex.prompt || (ex.ask === 'short' ? '邊條短？' : '邊條長？'),
+      unitsA: ex.unitsA || '■'.repeat(Math.max(1, a)),
+      unitsB: ex.unitsB || '■'.repeat(Math.max(1, b)),
+    });
+    q.parts = [q.extra.prompt];
+  } else if (type === 'orderAsc20' || type === 'orderDesc20') {
+    // cycle55 next-number MC
+    let stem = Array.isArray(q.displayNums) ? q.displayNums.map(Number) : null;
+    if ((!stem || stem.length < 2) && Array.isArray(q.parts)) {
+      const nums = String(q.parts[0] || '').match(/\d+/g);
+      if (nums && nums.length >= 2) stem = nums.slice(0, 2).map(Number);
+    }
+    if (!stem || stem.length < 2) return null;
+    stem = stem.slice(0, 2);
+    const ans = String(q.answer);
+    if (!/^\d+$/.test(ans)) return null;
+    q.displayNums = stem;
+    q.answer = ans;
+    q.parts = [`${stem.join('  ·  ')}  ·  ？`];
+    if (!q.options || q.options.length < 2) {
+      const opts = new Set([Number(ans)]);
+      let g = 0;
+      while (opts.size < 3 && g++ < 30) {
+        const d = randInt(1, 20);
+        if (!stem.includes(d)) opts.add(d);
+      }
+      q.options = shuffle([...opts]).map(String);
+    } else {
+      q.options = q.options.map(String);
     }
   } else if (type === 'count10' || type === 'count20' || type === 'count1to3') {
     // bank often packs "🍎🍎🍎= ?" in one part → split + rebuild visual stem
@@ -3779,6 +3863,41 @@ const QuestionBank = (() => {
       { parts:['排順序：8 , 5 , 1'], answer:[1,5,8],   displayNums:[8,5,1] },
       { parts:['排順序：4 , 9 , 2'], answer:[2,4,9],   displayNums:[4,9,2] },
       { parts:['排順序：7 , 3 , 5'], answer:[3,5,7],   displayNums:[7,3,5] },
+    ],
+    // V3.6 cycle57: scope types bank seed
+    count20: [
+      { parts:['🍎🍎🍎= ?'], answer:3 },
+      { parts:['🍌🍌🍌🍌🍌= ?'], answer:5 },
+      { parts:['🍇🍇= ?'], answer:2 },
+      { parts:['🍓🍓🍓🍓= ?'], answer:4 },
+      { parts:['🍊= ?'], answer:1 },
+      { parts:['🍉🍉🍉🍉🍉🍉= ?'], answer:6 },
+      { parts:['🌟🌟🌟🌟🌟🌟🌟= ?'], answer:7 },
+      { parts:['🔵🔵🔵🔵🔵🔵🔵🔵= ?'], answer:8 },
+    ],
+    compareLength: [
+      { parts:['邊條長？'], answer:'1', options:['1','2'], optionLabels:{'1':'黃條','2':'紫條'}, extra:{a:6,b:3,left:6,right:3,ask:'long',prompt:'邊條長？',unitsA:'■■■■■■',unitsB:'■■■'} },
+      { parts:['邊條短？'], answer:'2', options:['1','2'], optionLabels:{'1':'黃條','2':'紫條'}, extra:{a:3,b:7,left:3,right:7,ask:'short',prompt:'邊條短？',unitsA:'■■■',unitsB:'■■■■■■■'} },
+      { parts:['邊條長？'], answer:'2', options:['1','2'], optionLabels:{'1':'黃條','2':'紫條'}, extra:{a:2,b:6,left:2,right:6,ask:'long',prompt:'邊條長？',unitsA:'■■',unitsB:'■■■■■■'} },
+      { parts:['邊條短？'], answer:'1', options:['1','2'], optionLabels:{'1':'黃條','2':'紫條'}, extra:{a:4,b:8,left:4,right:8,ask:'short',prompt:'邊條短？',unitsA:'■■■■',unitsB:'■■■■■■■■'} },
+      { parts:['邊條長？'], answer:'1', options:['1','2'], optionLabels:{'1':'黃條','2':'紫條'}, extra:{a:8,b:4,left:8,right:4,ask:'long',prompt:'邊條長？',unitsA:'■■■■■■■■',unitsB:'■■■■'} },
+      { parts:['邊條短？'], answer:'2', options:['1','2'], optionLabels:{'1':'黃條','2':'紫條'}, extra:{a:5,b:8,left:5,right:8,ask:'short',prompt:'邊條短？',unitsA:'■■■■■',unitsB:'■■■■■■■■'} },
+    ],
+    orderAsc20: [
+      { parts:['3  ·  7  ·  ？'], answer:'12', options:['12','5','9'], displayNums:[3,7] },
+      { parts:['1  ·  4  ·  ？'], answer:'9', options:['9','2','6'], displayNums:[1,4] },
+      { parts:['2  ·  8  ·  ？'], answer:'15', options:['15','5','10'], displayNums:[2,8] },
+      { parts:['5  ·  10  ·  ？'], answer:'16', options:['16','7','12'], displayNums:[5,10] },
+      { parts:['4  ·  6  ·  ？'], answer:'11', options:['11','3','8'], displayNums:[4,6] },
+      { parts:['6  ·  9  ·  ？'], answer:'14', options:['14','2','10'], displayNums:[6,9] },
+    ],
+    orderDesc20: [
+      { parts:['15  ·  10  ·  ？'], answer:'4', options:['4','12','8'], displayNums:[15,10] },
+      { parts:['18  ·  12  ·  ？'], answer:'5', options:['5','9','14'], displayNums:[18,12] },
+      { parts:['20  ·  11  ·  ？'], answer:'3', options:['3','7','16'], displayNums:[20,11] },
+      { parts:['14  ·  9  ·  ？'], answer:'2', options:['2','6','11'], displayNums:[14,9] },
+      { parts:['16  ·  8  ·  ？'], answer:'1', options:['1','5','12'], displayNums:[16,8] },
+      { parts:['19  ·  13  ·  ？'], answer:'6', options:['6','10','15'], displayNums:[19,13] },
     ],
   };
 
@@ -4313,9 +4432,9 @@ const SEN_COPY = {
   count10:       { text: '有幾多？', tts: null },
   count1to3:     { text: '有幾多？', tts: null },
   count20:       { text: '有幾多？', tts: null },
-  orderAsc20:    { text: '由細到大？', tts: '由細到大' },
+  orderAsc20:    { text: '邊個跟住？', tts: '邊個跟住' },
   ordering:      { text: '由細到大？', tts: '由細到大' },
-  orderDesc20:   { text: '由大到細？', tts: '由大到細' },
+  orderDesc20:   { text: '邊個跟住？', tts: '邊個跟住' },
   compare10:     { text: '邊個大？', tts: '邊個大？' },
 };
 
@@ -5518,7 +5637,7 @@ function setupMenu() {
       const dh = $('diff-helper');
       if (dh) {
         dh.textContent = isEasy
-          ? '簡單模式：看圖數數（1-5）、淺加法（結果 1-9）、少選項、答 10 題完'
+          ? '簡單模式：跟題目範疇 · 10 題 · 大掣 A/B/C'
           : '普通模式：4 選一、可用鍵盤、Boss 戰役';
       }
     };
@@ -5751,23 +5870,22 @@ function setupMenu() {
 // V3.3-U1: 3-step onboarding tutorial
 // (note: nested in setupMenu is OK — only btn-start / easy-start call it)
 function showOnboarding(onComplete) {
+  // V3.6 cycle59: easy 主路徑 3 步（睇圖→撳 A/B/C→完成）
   const steps = [
     {
-      title: '🛡️ 歡迎來到數學守護者！',
-      body: '你將帶領「騎士隊」和「法師隊」合作擊敗森林巨魔。' +
-            '\n答啱題目會攻擊 Boss，答錯會入「重練區」等你再挑戰。'
+      title: '👀 第一步：睇圖',
+      body: '畫面會有圖或者棒棒。' +
+            '\n慢慢睇清楚，唔使急。'
     },
     {
-      title: '⚔️ 答題示範',
-      body: '每題用四選一按鈕揀答案，或者用數字鍵盤輸入。' +
-            '\n大小比較題用「< = >」三按鈕。' +
-            '\n由小到大題按正確順序撳 3 個按鍵。'
+      title: '👆 第二步：撳 A／B／C',
+      body: '每個答案有大圓字母。' +
+            '\n可以用手指指字母，或者自己撳掣。'
     },
     {
-      title: '🎮 開始守護戰役！',
-      body: 'Boss 會每 8 秒攻擊你嘅城堡 — 答啱題反擊！' +
-            '\n合作模式：兩隊一齊打 Boss。' +
-            '\n巔峰對戰：兩隊比拚答題總得分。'
+      title: '⭐ 第三步：完成 10 題',
+      body: '答啱會有獎勵。' +
+            '\n完成 10 題就有金銀銅獎！'
     }
   ];
   let i = 0;
@@ -6116,7 +6234,7 @@ function showInstantHint(team, q) {
     const labels = {1:'左邊多', 2:'右邊多', 3:'一樣多'};
     hint = `💡 ${labels[q.answer] || `答案係 ${q.answer}`}`;
   } else if (q.type === 'compareLength') {
-    const labels = { A: 'A', B: 'B', 1: 'A', 2: 'B' };
+    const labels = { '1': '黃條', '2': '紫條', A: '黃條', B: '紫條' };
     hint = `💡 ${labels[q.answer] || q.answer}`;
   } else if (q.type === 'orderAsc20' || q.type === 'orderDesc20') {
     hint = `💡 正確：${q.answer}`;
@@ -6297,7 +6415,7 @@ function _easyHintText(q) {
     return labels[q.answer] || `答案係 ${q.answer}`;
   }
   if (q.type === 'compareLength') {
-    const labels = { A: 'A', B: 'B', 1: 'A', 2: 'B' };
+    const labels = { '1': '黃條', '2': '紫條', A: '黃條', B: '紫條' };
     return labels[q.answer] || `答案係 ${q.answer}`;
   }
   if (q.type === 'orderAsc20' || q.type === 'orderDesc20' || q.type === 'ordering') {
@@ -7598,7 +7716,7 @@ const STORAGE = {
   PROFILE_KEY: 'mg2.profile.v1',     // 持久（解鎖 / badged / stats 跨 session）
   SESSION_KEY: 'mg2.session.v1',     // 進行中 session（reload resume 用）
   HISTORY_KEY: 'mg2.history.v1',     // 過往 session report list（teacher dashboard 用）
-  BANK_KEY: 'mg2.bank.v2',           // V3.6 cycle46: unspoil compare10/whatTime bank
+  BANK_KEY: 'mg2.bank.v3',           // V3.6 cycle57: scope type seeds + length labels
   PROFILE_CAP: 64 * 1024,
   SESSION_CAP: 256 * 1024,
   HISTORY_CAP: 512 * 1024,

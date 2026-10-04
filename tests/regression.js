@@ -617,7 +617,7 @@ console.log('\n[T22] V3.5 audit cycle-9 Question Bank lite');
 
 // F-13 — STORAGE.BANK_KEY + BANK_CAP
 assert('F-13 STORAGE.BANK_KEY constant',
-  /BANK_KEY:\s*'mg2\.bank\.v2'/.test(src));
+  /BANK_KEY:\s*'mg2\.bank\.v3'/.test(src));
 assert('F-13 STORAGE.BANK_CAP constant',
   /BANK_CAP:\s*64\s*\*\s*1024/.test(src));
 assert('F-13 STORAGE.save cap switch includes BANK_KEY',
@@ -729,7 +729,7 @@ assert('F-17 teacher modal bank type picker radiogroup',
 assert('F-17 teacher modal bank add form + button + status live region',
   /id="td-bank-add-form"[\s\S]{0,5000}id="td-bank-add-btn"[\s\S]{0,500}id="td-bank-status"[\s\S]{0,200}aria-live="polite"/.test(src));
 assert('F-17 teacher modal bank inventory section + count display',
-  /id="td-bank-inventory"[\s\S]{0,200000}QuestionBank\.PER_TYPE_CAP/.test(src));
+  /id="td-bank-inventory"[\s\S]{0,250000}QuestionBank\.PER_TYPE_CAP/.test(src));
 
 // =========== T26: V3.5 audit cycle-13 Mastered promote (adaptive state 整合) ===========
 console.log('\n[T26] V3.5 audit cycle-13 Mastered promote');
@@ -1169,17 +1169,17 @@ assert('EASY-84 easy-start uses scopes not legacy senTypes only',
   /Game\.settings\.types = senTypes\.slice\(\)/.test(src) &&
   /DEFAULT_SCOPES/.test(src));
 assert('EASY-85 SEN bars visual + order prompts',
-  /sen-bars/.test(src) && /由細到大？/.test(src) && /由大到細？/.test(src) &&
-  /sen-count-dense/.test(src));
+  /sen-bars/.test(src) && /邊個跟住？/.test(src) &&
+  /_lengthBarsHTML/.test(src));
 assert('EASY-86 scopes setting + mg2.scopes persist',
   /scopes:\s*\[/.test(src) && /mg2\.scopes/.test(src) && /syncScopeUI/.test(src));
 
 // V3.6 cycle45: compareLength real visual
 console.log('\n[T37] V3.6 audit cycle-45 (compareLength visual)');
-assert('EASY-87 compareLength min diff 3 + A/B answers',
+assert('EASY-87 compareLength min diff 3 + 黃/紫 answers',
   /Math\.abs\(a - b\) < 3/.test(src) &&
-  /options:\s*\['A',\s*'B'\]/.test(src) &&
-  /optionLabels:\s*\{\s*A:\s*'A',\s*B:\s*'B'\s*\}/.test(src));
+  /options:\s*\['1',\s*'2'\]/.test(src) &&
+  /optionLabels:\s*\{\s*'1':\s*'黃條',\s*'2':\s*'紫條'\s*\}/.test(src));
 assert('EASY-88 bars use rem width + unit blocks + track',
   /sen-bar-track/.test(src) && /sen-bar-units/.test(src) &&
   /width:\$\{wA\}rem/.test(src) && /unitsA/.test(src) &&
@@ -1210,9 +1210,9 @@ assert('EASY-94 SEN clock + shape + compare10 prompts',
   /sen-clock/.test(src) &&
   /邊個大？/.test(src) &&
   /q\.type === 'shapeMatch'/.test(src));
-assert('EASY-95 bank normalize + bank v2 key',
+assert('EASY-95 bank normalize + bank v3 key',
   /_normalizeBankQuestion/.test(src) &&
-  /mg2\.bank\.v2/.test(src));
+  /mg2\.bank\.v3/.test(src));
 
 // V3.6 cycle47: dual arena game feel (tug / boat)
 console.log('\n[T39] V3.6 audit cycle-47 (dual arena tug/boat)');
@@ -1299,6 +1299,33 @@ assert('ARENA-FIX-02 no bare force coop on dual easy-start', (() => {
   return /if \(Game\.settings\.playLayout === 'dual'\)/.test(block) &&
     /Game\.settings\.team = \(arena === 'coop'\) \? 'coop' : 'versus'/.test(block);
 })());
+
+// V3.6 cycle53–59: TODO plan batch
+console.log('\n[T44] V3.6 audit cycle-53–59 (TODO plan batch)');
+assert('PLAN-01 length labels 黃/紫 not bare A/B options',
+  /optionLabels:\s*\{\s*'1':\s*'黃條'/.test(src) &&
+  /sen-bar-tag y/.test(src) && /sen-bar-tag p/.test(src) &&
+  !/options:\s*\['A',\s*'B'\]/.test(src));
+assert('PLAN-02 count grid rows of 5',
+  /sen-count-row/.test(src) && /i \+= 5/.test(src) &&
+  /Math\.min\(n, i \+ 5\)/.test(src));
+assert('PLAN-03 order next-number path',
+  /_nextInSeq\(dir\)/.test(src) &&
+  /邊個跟住？/.test(src) &&
+  /\$\{stem\.join\('  ·  '\)\}  ·  ？/.test(src));
+assert('PLAN-04 diff-helper scopes copy',
+  /跟題目範疇 · 10 題/.test(src));
+assert('PLAN-05 advanced teacher override label',
+  /老師覆寫 · 一鍵仍跟範疇/.test(src));
+assert('PLAN-06 bank v3 + scope seeds',
+  /mg2\.bank\.v3/.test(src) &&
+  /count20:\s*\[/.test(src) && /compareLength:\s*\[/.test(src) &&
+  /orderAsc20:\s*\[/.test(src) && /orderDesc20:\s*\[/.test(src));
+assert('PLAN-07 dual hide length units',
+  /sen-board-dual \.sen-bar-units/.test(src));
+assert('PLAN-08 onboarding 3-step easy path',
+  /第一步：睇圖/.test(src) && /第二步：撳 A／B／C/.test(src) &&
+  /第三步：完成 10 題/.test(src));
 
 // =========== summary ===========
 console.log(`\n========== ${pass} pass / ${fail} fail ==========`);
