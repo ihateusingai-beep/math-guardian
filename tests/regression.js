@@ -1327,6 +1327,15 @@ assert('PLAN-08 onboarding 3-step easy path',
   /第一步：睇圖/.test(src) && /第二步：撳 A／B／C/.test(src) &&
   /第三步：完成 10 題/.test(src));
 
+// V3.6 cycle60: tug pulls toward self (not opponent)
+console.log('\n[T45] V3.6 audit cycle-60 (tug pull toward self)');
+assert('TUG-01 knot formula pulls toward scorer',
+  /pct = 50 - t \* 38/.test(src) &&
+  /lead = \(tk\.correct \|\| 0\) - \(tm\.correct \|\| 0\)/.test(src) &&
+  !/pct = 50 \+ t \* 38/.test(src));
+assert('TUG-02 jolt direction matches side',
+  /pullTeam === 'knight' \? 'pull-l' : 'pull-r'/.test(src));
+
 // =========== summary ===========
 console.log(`\n========== ${pass} pass / ${fail} fail ==========`);
 if (fail > 0) {

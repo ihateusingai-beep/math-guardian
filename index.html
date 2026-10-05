@@ -5091,11 +5091,12 @@ const UI = {
     if (versus) {
       const knot = $('sen-tug-knot');
       if (knot) {
-        // diff range ~[-goal, +goal] → left 12%..88%
-        const diff = (tk.correct || 0) - (tm.correct || 0);
+        // V3.6 cycle60: 答對 → 結扯向自己（左=knight 向左；右=mage 向右）
+        // lead>0 左領先 → left% 變細；lead<0 右領先 → left% 變大
+        const lead = (tk.correct || 0) - (tm.correct || 0);
         const max = Math.max(goal, 1);
-        const t = Math.max(-1, Math.min(1, diff / max));
-        const pct = 50 + t * 38; // 12–88
+        const t = Math.max(-1, Math.min(1, lead / max));
+        const pct = 50 - t * 38; // 12–88；左贏→左、右贏→右
         knot.style.left = pct.toFixed(2) + '%';
         if (didCorrect && pullTeam) {
           _pulseEl(knot, pullTeam === 'knight' ? 'pull-l' : 'pull-r', 420);
