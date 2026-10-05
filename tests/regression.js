@@ -617,7 +617,7 @@ console.log('\n[T22] V3.5 audit cycle-9 Question Bank lite');
 
 // F-13 — STORAGE.BANK_KEY + BANK_CAP
 assert('F-13 STORAGE.BANK_KEY constant',
-  /BANK_KEY:\s*'mg2\.bank\.v3'/.test(src));
+  /BANK_KEY:\s*'mg2\.bank\.v4'/.test(src));
 assert('F-13 STORAGE.BANK_CAP constant',
   /BANK_CAP:\s*64\s*\*\s*1024/.test(src));
 assert('F-13 STORAGE.save cap switch includes BANK_KEY',
@@ -1182,7 +1182,7 @@ assert('EASY-87 compareLength min diff 3 + 黃/紫 answers',
   /optionLabels:\s*\{\s*'1':\s*'黃條',\s*'2':\s*'紫條'\s*\}/.test(src));
 assert('EASY-88 bars use rem width + unit blocks + track',
   /sen-bar-track/.test(src) && /sen-bar-units/.test(src) &&
-  /width:\$\{wA\}rem/.test(src) && /unitsA/.test(src) &&
+  (/width:\$\{wA\}rem/.test(src) || /width:\$\{w\}rem/.test(src)) && /unitsA/.test(src) &&
   /sen-q-visual/.test(src));
 assert('EASY-89 no left\/right labels for vertical bars',
   !/optionLabels:\s*\{\s*1:\s*'左邊'/.test(src));
@@ -1212,7 +1212,7 @@ assert('EASY-94 SEN clock + shape + compare10 prompts',
   /q\.type === 'shapeMatch'/.test(src));
 assert('EASY-95 bank normalize + bank v3 key',
   /_normalizeBankQuestion/.test(src) &&
-  /mg2\.bank\.v3/.test(src));
+  /mg2\.bank\.v4/.test(src));
 
 // V3.6 cycle47: dual arena game feel (tug / boat)
 console.log('\n[T39] V3.6 audit cycle-47 (dual arena tug/boat)');
@@ -1303,8 +1303,9 @@ assert('ARENA-FIX-02 no bare force coop on dual easy-start', (() => {
 // V3.6 cycle53–59: TODO plan batch
 console.log('\n[T44] V3.6 audit cycle-53–59 (TODO plan batch)');
 assert('PLAN-01 length labels 黃/紫 not bare A/B options',
-  /optionLabels:\s*\{\s*'1':\s*'黃條'/.test(src) &&
-  /sen-bar-tag y/.test(src) && /sen-bar-tag p/.test(src) &&
+  (/'1':\s*'黃條'/.test(src) || /labels:\s*\{\s*'1':\s*'黃條'/.test(src)) &&
+  (/sen-bar-tag y/.test(src) || /sen-bar-tag \$\{tone\}/.test(src)) &&
+  /\.sen-bar-tag\.y/.test(src) &&
   !/options:\s*\['A',\s*'B'\]/.test(src));
 assert('PLAN-02 count grid rows of 5',
   /sen-count-row/.test(src) && /i \+= 5/.test(src) &&
@@ -1318,7 +1319,7 @@ assert('PLAN-04 diff-helper scopes copy',
 assert('PLAN-05 advanced teacher override label',
   /老師覆寫 · 一鍵仍跟範疇/.test(src));
 assert('PLAN-06 bank v3 + scope seeds',
-  /mg2\.bank\.v3/.test(src) &&
+  /mg2\.bank\.v[34]/.test(src) &&
   /count20:\s*\[/.test(src) && /compareLength:\s*\[/.test(src) &&
   /orderAsc20:\s*\[/.test(src) && /orderDesc20:\s*\[/.test(src));
 assert('PLAN-07 dual hide length units',
@@ -1335,6 +1336,20 @@ assert('TUG-01 knot formula pulls toward scorer',
   !/pct = 50 \+ t \* 38/.test(src));
 assert('TUG-02 jolt direction matches side',
   /pullTeam === 'knight' \? 'pull-l' : 'pull-r'/.test(src));
+
+// V3.6 cycle61: length object skins (pencil/snake/train/fish)
+console.log('\n[T46] V3.6 audit cycle-61 (length skins)');
+assert('LEN-01 LENGTH_SKINS has 5 skins',
+  /LENGTH_SKINS\s*=\s*\{/.test(src) &&
+  /pencil:/.test(src) && /snake:/.test(src) && /train:/.test(src) && /fish:/.test(src) && /bars:/.test(src));
+assert('LEN-02 generator picks skin',
+  /const skin = LENGTH_SKIN_IDS\[randInt/.test(src) && /extra:[\s\S]{0,200}skin,/.test(src));
+assert('LEN-03 skin CSS objects',
+  /sen-pencil/.test(src) && /sen-snake/.test(src) && /sen-train/.test(src) && /sen-fish/.test(src));
+assert('LEN-04 bank v4 + skin seeds',
+  /mg2\.bank\.v4/.test(src) && /skin:'pencil'/.test(src) && /skin:'train'/.test(src));
+assert('LEN-05 labels 黃筆/黃車 present',
+  /'1': '黃筆'/.test(src) && /'1': '黃車'/.test(src) && /'1': '黃魚'/.test(src));
 
 // =========== summary ===========
 console.log(`\n========== ${pass} pass / ${fail} fail ==========`);

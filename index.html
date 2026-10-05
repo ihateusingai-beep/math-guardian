@@ -458,7 +458,95 @@
     background: linear-gradient(90deg, #fbbf24, #f59e0b);
     box-shadow: inset 0 -2px 0 rgba(0,0,0,0.15);
   }
-  .sen-bar.b { background: linear-gradient(90deg, #c4b5fd, #7c3aed); }
+  .sen-bar.b { background: linear-gradient(90deg, #a78bfa, #7c3aed); }
+  /* V3.6 cycle61: length object skins */
+  .sen-obj-track {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    height: 2.6rem;
+  }
+  .sen-pencil {
+    position: relative;
+    height: 1.55rem;
+    min-width: 1.4rem;
+    display: flex;
+    align-items: stretch;
+    border-radius: 0.2rem 0 0 0.2rem;
+    flex-shrink: 0;
+  }
+  .sen-pencil-body {
+    flex: 1;
+    border-radius: 0.25rem 0 0 0.25rem;
+    background: repeating-linear-gradient(90deg, #fbbf24 0 8px, #f59e0b 8px 12px);
+    border: 2px solid rgba(0,0,0,0.2);
+    box-shadow: inset 0 -2px 0 rgba(0,0,0,0.12);
+  }
+  .sen-pencil.p .sen-pencil-body {
+    background: repeating-linear-gradient(90deg, #c4b5fd 0 8px, #8b5cf6 8px 12px);
+  }
+  .sen-pencil-tip {
+    width: 0; height: 0;
+    border-top: 0.72rem solid transparent;
+    border-bottom: 0.72rem solid transparent;
+    border-left: 0.9rem solid #fcd34d;
+    align-self: center;
+  }
+  .sen-pencil.p .sen-pencil-tip { border-left-color: #ddd6fe; }
+  .sen-snake {
+    position: relative;
+    height: 1.7rem;
+    min-width: 1.5rem;
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+  }
+  .sen-snake-body {
+    flex: 1;
+    height: 0.95rem;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #fbbf24, #f59e0b);
+    border: 2px solid rgba(0,0,0,0.15);
+  }
+  .sen-snake.p .sen-snake-body { background: linear-gradient(90deg, #c4b5fd, #7c3aed); }
+  .sen-snake-head { font-size: 1.35rem; line-height: 1; margin-left: -0.25rem; }
+  .sen-fish {
+    position: relative;
+    height: 1.9rem;
+    min-width: 1.6rem;
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+  }
+  .sen-fish-body {
+    flex: 1;
+    height: 1.15rem;
+    border-radius: 999px 0.4rem 0.4rem 999px;
+    background: linear-gradient(90deg, #fde68a, #f59e0b);
+    border: 2px solid rgba(0,0,0,0.12);
+  }
+  .sen-fish.p .sen-fish-body { background: linear-gradient(90deg, #ddd6fe, #7c3aed); }
+  .sen-fish-icon { font-size: 1.35rem; line-height: 1; margin-left: -0.15rem; }
+  .sen-train {
+    display: flex;
+    align-items: center;
+    gap: 0.1rem;
+    flex-wrap: nowrap;
+    font-size: clamp(1.15rem, 3.5vw, 1.55rem);
+    line-height: 1;
+    padding: 0.15rem 0.25rem;
+    border-radius: 0.5rem;
+    background: rgba(251,191,36,0.18);
+    border: 2px solid rgba(251,191,36,0.45);
+    max-width: 100%;
+    overflow: hidden;
+  }
+  .sen-train.p {
+    background: rgba(167,139,250,0.2);
+    border-color: rgba(167,139,250,0.5);
+  }
+  .sen-train-engine, .sen-train-car { flex-shrink: 0; }
   .sen-bar-units {
     margin-top: 0.15rem;
     font-size: clamp(1.35rem, 4.5vw, 2.1rem);
@@ -1901,7 +1989,7 @@
             🔢 數數 1–10<br><span class="text-xs opacity-70">睇圖數有幾多</span>
           </button>
           <button type="button" class="opt-scope btn btn-ghost opt-selected py-3 text-left" data-scope="compareLength" aria-pressed="true">
-            📏 長短比較<br><span class="text-xs opacity-70">邊條長／短</span>
+            📏 長短比較<br><span class="text-xs opacity-70">筆／蟲／車／魚／條</span>
           </button>
           <button type="button" class="opt-scope btn btn-ghost opt-selected py-3 text-left" data-scope="orderAsc20" aria-pressed="true">
             📈 順序·跟住<br><span class="text-xs opacity-70">邊個跟住</span>
@@ -2617,9 +2705,54 @@ function _countVisualHTML(q) {
   };
 }
 
-/** Shared length-bars markup for SEN + normal bars layout */
+/** Shared length-compare markup (bars + object skins) — SEN + normal */
+const LENGTH_SKINS = {
+  bars: {
+    id: 'bars',
+    labels: { '1': '黃條', '2': '紫條' },
+    tag1: '黃', tag2: '紫',
+    promptLong: '邊條長？', promptShort: '邊條短？',
+    aria: (a, b) => `黃條 ${a} 格，紫條 ${b} 格`,
+  },
+  pencil: {
+    id: 'pencil',
+    labels: { '1': '黃筆', '2': '紫筆' },
+    tag1: '✏️', tag2: '✏️',
+    promptLong: '邊枝長？', promptShort: '邊枝短？',
+    aria: (a, b) => `黃筆 ${a}，紫筆 ${b}`,
+  },
+  snake: {
+    id: 'snake',
+    labels: { '1': '黃蟲', '2': '紫蟲' },
+    tag1: '🐛', tag2: '🐛',
+    promptLong: '邊條長？', promptShort: '邊條短？',
+    aria: (a, b) => `黃蟲 ${a}，紫蟲 ${b}`,
+  },
+  train: {
+    id: 'train',
+    labels: { '1': '黃車', '2': '紫車' },
+    tag1: '🚂', tag2: '🚂',
+    promptLong: '邊架長？', promptShort: '邊架短？',
+    aria: (a, b) => `黃車 ${a} 卡，紫車 ${b} 卡`,
+  },
+  fish: {
+    id: 'fish',
+    labels: { '1': '黃魚', '2': '紫魚' },
+    tag1: '🐟', tag2: '🐟',
+    promptLong: '邊條長？', promptShort: '邊條短？',
+    aria: (a, b) => `黃魚 ${a}，紫魚 ${b}`,
+  },
+};
+const LENGTH_SKIN_IDS = Object.keys(LENGTH_SKINS);
+
+function _lengthSkinMeta(skinId) {
+  return LENGTH_SKINS[skinId] || LENGTH_SKINS.bars;
+}
+
 function _lengthBarsHTML(ex) {
-  // V3.6 cycle53: tags 黃/紫 — 唔用 A/B，避免同手勢字母撞車
+  // V3.6 cycle61: skin = bars | pencil | snake | train | fish
+  const skinId = (ex && ex.skin) || 'bars';
+  const meta = _lengthSkinMeta(skinId);
   const A = Math.max(1, Number(ex.a != null ? ex.a : ex.left) || 1);
   const B = Math.max(1, Number(ex.b != null ? ex.b : ex.right) || 1);
   const unit = 1.35; // rem per length unit
@@ -2627,19 +2760,73 @@ function _lengthBarsHTML(ex) {
   const wB = (B * unit).toFixed(2);
   const uA = ex.unitsA || '■'.repeat(A);
   const uB = ex.unitsB || '■'.repeat(B);
+  const aria = meta.aria(A, B);
+
+  const row = (side, w, units) => {
+    const is1 = side === '1';
+    const tag = is1 ? meta.tag1 : meta.tag2;
+    const tone = is1 ? 'y' : 'p';
+    if (skinId === 'train') {
+      const n = is1 ? A : B;
+      const cars = [];
+      cars.push('<span class="sen-train-engine" aria-hidden="true">🚂</span>');
+      for (let i = 1; i < n; i++) cars.push('<span class="sen-train-car" aria-hidden="true">🚃</span>');
+      if (n < 1) cars.push('<span class="sen-train-engine" aria-hidden="true">🚂</span>');
+      return `<div class="sen-bar-row sen-len-row skin-train">
+        <span class="sen-bar-tag ${tone}">${is1 ? '黃' : '紫'}</span>
+        <div class="sen-train ${tone}" aria-hidden="true">${cars.join('')}</div>
+      </div>
+      <div class="sen-bar-units ${is1 ? '' : 'b'}" aria-hidden="true">${'■'.repeat(Math.max(1, n))}</div>`;
+    }
+    if (skinId === 'pencil') {
+      return `<div class="sen-bar-row sen-len-row skin-pencil">
+        <span class="sen-bar-tag ${tone}">${tag}</span>
+        <div class="sen-obj-track">
+          <div class="sen-pencil ${tone}" style="width:${w}rem">
+            <span class="sen-pencil-body"></span>
+            <span class="sen-pencil-tip" aria-hidden="true"></span>
+          </div>
+        </div>
+      </div>
+      <div class="sen-bar-units ${is1 ? '' : 'b'}" aria-hidden="true">${units}</div>`;
+    }
+    if (skinId === 'snake') {
+      return `<div class="sen-bar-row sen-len-row skin-snake">
+        <span class="sen-bar-tag ${tone}">${tag}</span>
+        <div class="sen-obj-track">
+          <div class="sen-snake ${tone}" style="width:${w}rem">
+            <span class="sen-snake-body"></span>
+            <span class="sen-snake-head" aria-hidden="true">🐍</span>
+          </div>
+        </div>
+      </div>
+      <div class="sen-bar-units ${is1 ? '' : 'b'}" aria-hidden="true">${units}</div>`;
+    }
+    if (skinId === 'fish') {
+      return `<div class="sen-bar-row sen-len-row skin-fish">
+        <span class="sen-bar-tag ${tone}">${tag}</span>
+        <div class="sen-obj-track">
+          <div class="sen-fish ${tone}" style="width:${w}rem">
+            <span class="sen-fish-body"></span>
+            <span class="sen-fish-icon" aria-hidden="true">🐟</span>
+          </div>
+        </div>
+      </div>
+      <div class="sen-bar-units ${is1 ? '' : 'b'}" aria-hidden="true">${units}</div>`;
+    }
+    // default bars
+    return `<div class="sen-bar-row">
+      <span class="sen-bar-tag ${tone}">${tag}</span>
+      <div class="sen-bar-track"><div class="sen-bar ${is1 ? '' : 'b'}" style="width:${w}rem"></div></div>
+    </div>
+    <div class="sen-bar-units ${is1 ? '' : 'b'}" aria-hidden="true">${units}</div>`;
+  };
+
   return {
-    A, B,
-    html: `<div class="sen-bars" role="img" aria-label="黃條 ${A} 格，紫條 ${B} 格">
-      <div class="sen-bar-row">
-        <span class="sen-bar-tag y">黃</span>
-        <div class="sen-bar-track"><div class="sen-bar" style="width:${wA}rem"></div></div>
-      </div>
-      <div class="sen-bar-units" aria-hidden="true">${uA}</div>
-      <div class="sen-bar-row">
-        <span class="sen-bar-tag p">紫</span>
-        <div class="sen-bar-track"><div class="sen-bar b" style="width:${wB}rem"></div></div>
-      </div>
-      <div class="sen-bar-units b" aria-hidden="true">${uB}</div>
+    A, B, skin: skinId, meta,
+    html: `<div class="sen-bars sen-len skin-${skinId}" role="img" aria-label="${aria}">
+      ${row('1', wA, uA)}
+      ${row('2', wB, uB)}
     </div>`,
   };
 }
@@ -3367,7 +3554,7 @@ const Generators = {
     const n = randInt(1, 10);
     return { parts: [f.repeat(n), '= ?'], answer: n, type:'count20', answerDisplay: String(n) };
   },
-  // V3.6 cycle45/53: 長短比較 — 明顯長度差；答案=黃條/紫條（唔用 A/B 撞手勢）
+  // V3.6 cycle45/53/61: 長短比較 — object skins + 黃/紫（唔用 A/B 撞手勢）
   compareLength() {
     // units 2–8，最少差 3，中度一眼見到長短
     let a = randInt(2, 8);
@@ -3379,21 +3566,24 @@ const Generators = {
     }
     if (Math.abs(a - b) < 3) { a = 3; b = 7; }
     const askLong = Math.random() < 0.5;
-    // '1'=黃條(上) '2'=紫條(下)
+    // '1'=上(黃) '2'=下(紫)
     const answer = askLong ? (a > b ? '1' : '2') : (a < b ? '1' : '2');
-    const prompt = askLong ? '邊條長？' : '邊條短？';
+    const skin = LENGTH_SKIN_IDS[randInt(0, LENGTH_SKIN_IDS.length - 1)];
+    const meta = _lengthSkinMeta(skin);
+    const prompt = askLong ? meta.promptLong : meta.promptShort;
     const block = (n, ch) => ch.repeat(n);
     return {
       parts: [prompt],
       answer,
       type: 'compareLength',
       options: ['1', '2'],
-      optionLabels: { '1': '黃條', '2': '紫條' },
+      optionLabels: Object.assign({}, meta.labels),
       extra: {
         a, b,
-        left: a, right: b, // legacy keys kept
+        left: a, right: b,
         ask: askLong ? 'long' : 'short',
         prompt,
+        skin,
         unitsA: block(a, '■'),
         unitsB: block(b, '■'),
       },
@@ -3542,21 +3732,27 @@ function _normalizeBankQuestion(type, mode, q, reg) {
       q.optionLabels = { circle: '圓形', square: '方形', triangle: '三角形', star: '星形' };
     }
   } else if (type === 'compareLength') {
-    // V3.6 cycle53/57: force 黃/紫 labels；legacy A/B → 1/2
+    // V3.6 cycle53/57/61: skin labels；legacy A/B → 1/2
     let ans = String(q.answer);
     if (ans === 'A') ans = '1';
     if (ans === 'B') ans = '2';
     if (ans !== '1' && ans !== '2') return null;
     q.answer = ans;
     q.options = ['1', '2'];
-    q.optionLabels = { '1': '黃條', '2': '紫條' };
     const ex = q.extra || {};
     const a = Number(ex.a != null ? ex.a : ex.left);
     const b = Number(ex.b != null ? ex.b : ex.right);
     if (!Number.isFinite(a) || !Number.isFinite(b)) return null;
+    const skin = (ex.skin && LENGTH_SKINS[ex.skin]) ? ex.skin : 'bars';
+    const meta = _lengthSkinMeta(skin);
+    const askShort = ex.ask === 'short' || /短/.test(String(ex.prompt || ''));
+    const prompt = ex.prompt || (askShort ? meta.promptShort : meta.promptLong);
+    q.optionLabels = Object.assign({}, meta.labels);
     q.extra = Object.assign({}, ex, {
       a, b, left: a, right: b,
-      prompt: ex.prompt || (ex.ask === 'short' ? '邊條短？' : '邊條長？'),
+      skin,
+      ask: askShort ? 'short' : 'long',
+      prompt,
       unitsA: ex.unitsA || '■'.repeat(Math.max(1, a)),
       unitsB: ex.unitsB || '■'.repeat(Math.max(1, b)),
     });
@@ -3876,12 +4072,12 @@ const QuestionBank = (() => {
       { parts:['🔵🔵🔵🔵🔵🔵🔵🔵= ?'], answer:8 },
     ],
     compareLength: [
-      { parts:['邊條長？'], answer:'1', options:['1','2'], optionLabels:{'1':'黃條','2':'紫條'}, extra:{a:6,b:3,left:6,right:3,ask:'long',prompt:'邊條長？',unitsA:'■■■■■■',unitsB:'■■■'} },
-      { parts:['邊條短？'], answer:'2', options:['1','2'], optionLabels:{'1':'黃條','2':'紫條'}, extra:{a:3,b:7,left:3,right:7,ask:'short',prompt:'邊條短？',unitsA:'■■■',unitsB:'■■■■■■■'} },
-      { parts:['邊條長？'], answer:'2', options:['1','2'], optionLabels:{'1':'黃條','2':'紫條'}, extra:{a:2,b:6,left:2,right:6,ask:'long',prompt:'邊條長？',unitsA:'■■',unitsB:'■■■■■■'} },
-      { parts:['邊條短？'], answer:'1', options:['1','2'], optionLabels:{'1':'黃條','2':'紫條'}, extra:{a:4,b:8,left:4,right:8,ask:'short',prompt:'邊條短？',unitsA:'■■■■',unitsB:'■■■■■■■■'} },
-      { parts:['邊條長？'], answer:'1', options:['1','2'], optionLabels:{'1':'黃條','2':'紫條'}, extra:{a:8,b:4,left:8,right:4,ask:'long',prompt:'邊條長？',unitsA:'■■■■■■■■',unitsB:'■■■■'} },
-      { parts:['邊條短？'], answer:'2', options:['1','2'], optionLabels:{'1':'黃條','2':'紫條'}, extra:{a:5,b:8,left:5,right:8,ask:'short',prompt:'邊條短？',unitsA:'■■■■■',unitsB:'■■■■■■■■'} },
+      { parts:['邊條長？'], answer:'1', options:['1','2'], optionLabels:{'1':'黃條','2':'紫條'}, extra:{skin:'bars',a:6,b:3,left:6,right:3,ask:'long',prompt:'邊條長？',unitsA:'■■■■■■',unitsB:'■■■'} },
+      { parts:['邊枝短？'], answer:'2', options:['1','2'], optionLabels:{'1':'黃筆','2':'紫筆'}, extra:{skin:'pencil',a:3,b:7,left:3,right:7,ask:'short',prompt:'邊枝短？',unitsA:'■■■',unitsB:'■■■■■■■'} },
+      { parts:['邊架長？'], answer:'2', options:['1','2'], optionLabels:{'1':'黃車','2':'紫車'}, extra:{skin:'train',a:2,b:6,left:2,right:6,ask:'long',prompt:'邊架長？',unitsA:'■■',unitsB:'■■■■■■'} },
+      { parts:['邊條短？'], answer:'1', options:['1','2'], optionLabels:{'1':'黃蟲','2':'紫蟲'}, extra:{skin:'snake',a:4,b:8,left:4,right:8,ask:'short',prompt:'邊條短？',unitsA:'■■■■',unitsB:'■■■■■■■■'} },
+      { parts:['邊條長？'], answer:'1', options:['1','2'], optionLabels:{'1':'黃魚','2':'紫魚'}, extra:{skin:'fish',a:8,b:4,left:8,right:4,ask:'long',prompt:'邊條長？',unitsA:'■■■■■■■■',unitsB:'■■■■'} },
+      { parts:['邊枝長？'], answer:'2', options:['1','2'], optionLabels:{'1':'黃筆','2':'紫筆'}, extra:{skin:'pencil',a:3,b:7,left:3,right:7,ask:'long',prompt:'邊枝長？',unitsA:'■■■',unitsB:'■■■■■■■'} },
     ],
     orderAsc20: [
       { parts:['3  ·  7  ·  ？'], answer:'12', options:['12','5','9'], displayNums:[3,7] },
@@ -6235,8 +6431,9 @@ function showInstantHint(team, q) {
     const labels = {1:'左邊多', 2:'右邊多', 3:'一樣多'};
     hint = `💡 ${labels[q.answer] || `答案係 ${q.answer}`}`;
   } else if (q.type === 'compareLength') {
-    const labels = { '1': '黃條', '2': '紫條', A: '黃條', B: '紫條' };
-    hint = `💡 ${labels[q.answer] || q.answer}`;
+    const lab = (q.optionLabels && q.optionLabels[q.answer]) ||
+      ({ '1': '黃條', '2': '紫條', A: '黃條', B: '紫條' })[q.answer] || q.answer;
+    hint = `💡 ${lab}`;
   } else if (q.type === 'orderAsc20' || q.type === 'orderDesc20') {
     hint = `💡 正確：${q.answer}`;
   } else if (q.type === 'count20') {
@@ -6416,8 +6613,9 @@ function _easyHintText(q) {
     return labels[q.answer] || `答案係 ${q.answer}`;
   }
   if (q.type === 'compareLength') {
-    const labels = { '1': '黃條', '2': '紫條', A: '黃條', B: '紫條' };
-    return labels[q.answer] || `答案係 ${q.answer}`;
+    const lab = (q.optionLabels && q.optionLabels[q.answer]) ||
+      ({ '1': '黃條', '2': '紫條', A: '黃條', B: '紫條' })[q.answer];
+    return lab ? `答案係 ${lab}` : `答案係 ${q.answer}`;
   }
   if (q.type === 'orderAsc20' || q.type === 'orderDesc20' || q.type === 'ordering') {
     return `答案係 ${q.answer}`;
@@ -7717,7 +7915,7 @@ const STORAGE = {
   PROFILE_KEY: 'mg2.profile.v1',     // 持久（解鎖 / badged / stats 跨 session）
   SESSION_KEY: 'mg2.session.v1',     // 進行中 session（reload resume 用）
   HISTORY_KEY: 'mg2.history.v1',     // 過往 session report list（teacher dashboard 用）
-  BANK_KEY: 'mg2.bank.v3',           // V3.6 cycle57: scope type seeds + length labels
+  BANK_KEY: 'mg2.bank.v4',           // V3.6 cycle61: length object skins
   PROFILE_CAP: 64 * 1024,
   SESSION_CAP: 256 * 1024,
   HISTORY_CAP: 512 * 1024,
