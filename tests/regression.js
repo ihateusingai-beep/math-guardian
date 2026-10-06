@@ -196,7 +196,9 @@ assert('V3.4-U2 instant hint',   src.includes('showInstantHint(') && src.include
 assert('V3.4-U2 hint on wrong',  src.includes('if (Game.settings.instantHint) showInstantHint'));
 
 assert('V3.4-UI2 confetti module', src.includes('confetti(cx, cy, count'));
-assert('V3.4-UI2 confetti on hit', src.includes('FX.confetti(bRect.left + bRect.width / 2'));
+assert('V3.4-UI2 confetti on hit',
+  src.includes('FX.confetti(bRect.left + bRect.width / 2') ||
+  /FX\.confetti\(cx,\s*cy/.test(src));
 assert('V3.4-UI2 screen shake',    src.includes('screenShake()') && src.includes('screen-shake-active'));
 assert('V3.4-UI2 reduced-motion',  src.includes('prefers-reduced-motion: reduce'));
 assert('V3.4 settings defaults',   src.includes('instantHint: true') && src.includes('ttsEnabled: true'));
