@@ -1382,8 +1382,8 @@ assert('TRACK-02 class + boss panels',
   /id="menu-class-panel"/.test(src) && /id="menu-boss-panel"/.test(src));
 assert('TRACK-03 dual-options-wrap nests arena+skin',
   /id="dual-options-wrap"/.test(src) &&
-  /dual-options-wrap[\s\S]{0,800}dual-arena-picker/.test(src) &&
-  /dual-options-wrap[\s\S]{0,1200}dual-skin-picker/.test(src));
+  /dual-options-wrap[\s\S]{0,2000}dual-arena-picker/.test(src) &&
+  /dual-options-wrap[\s\S]{0,2500}dual-skin-picker/.test(src));
 assert('TRACK-04 menuTrack setting + syncMenuTrack',
   /menuTrack:\s*'class'/.test(src) && /syncMenuTrack/.test(src) && /mg2\.menuTrack/.test(src));
 assert('TRACK-05 boss start stays on boss panel',
@@ -1392,6 +1392,28 @@ assert('TRACK-06 class easy-start on class panel',
   /menu-class-panel[\s\S]{0,8000}id="btn-easy-start"/.test(src));
 assert('TRACK-07 section cards + opt-track',
   /menu-section-card/.test(src) && /opt-track\.opt-selected/.test(src));
+
+// V3.6 cycle64: menu polish A–D
+console.log('\n[T49] V3.6 audit cycle-64 (menu polish)');
+assert('POLISH64-01 dual 4-in-1 combo picker',
+  /id="dual-combo-picker"/.test(src) && /opt-dual-combo/.test(src) &&
+  /data-arena="versus"[^>]*data-skin="retro"/.test(src) &&
+  /data-arena="coop"[^>]*data-skin="classic"/.test(src));
+assert('POLISH64-02 class-start-summary line',
+  /id="class-start-summary"/.test(src) && /將會係：/.test(src));
+assert('POLISH64-03 boss 打怪方式 rename',
+  /打怪方式/.test(src) && /合作打王/.test(src) && /比分競賽/.test(src));
+assert('POLISH64-04 dualTeam separate from boss team',
+  /dualTeam:\s*'versus'/.test(src) &&
+  /Game\.settings\.dualTeam/.test(src) &&
+  /Game\.settings\.team = \(arena === 'coop'\) \? 'coop' : 'versus'/.test(src));
+assert('POLISH64-05 menuTrack not persisted (always class load)',
+  /Game\.settings\.menuTrack = 'class'/.test(src) &&
+  /removeItem\('mg2\.menuTrack'\)/.test(src) &&
+  !/localStorage\.setItem\('mg2\.menuTrack'/.test(src));
+assert('POLISH64-06 combo click sets dualTeam+skin',
+  /opt-dual-combo[\s\S]{0,400}dualTeam/.test(src) &&
+  /opt-dual-combo[\s\S]{0,500}arenaSkin/.test(src));
 
 // =========== summary ===========
 console.log(`\n========== ${pass} pass / ${fail} fail ==========`);

@@ -731,6 +731,11 @@
     border-color: #f472b6 !important;
     background: rgba(244,114,182,0.16) !important;
   }
+  .opt-dual-combo.opt-selected {
+    border-color: #34d399 !important;
+    background: rgba(52,211,153,0.18) !important;
+    box-shadow: 0 0 0 2px rgba(52,211,153,0.3);
+  }
   /* V3.6 cycle63: menu track (課堂 / Boss) */
   .opt-track.opt-selected {
     border-color: #c4b5fd !important;
@@ -2151,23 +2156,30 @@
         </div>
         <div id="play-helper" class="menu-section-sub">單人：全屏一題。雙隊：左藍右紫，適合 touch board。</div>
         <div id="dual-options-wrap" class="dual-options-card hidden">
-          <div class="dual-options-label">雙隊規則</div>
-          <div id="dual-arena-picker" class="grid grid-cols-2 gap-2" role="radiogroup" aria-label="雙隊遊戲">
-            <button type="button" class="opt-arena btn btn-ghost py-2.5 opt-selected text-sm" data-arena="versus" aria-pressed="true">
-              ⚔️ 對戰<br><span class="text-xs opacity-70" id="arena-versus-sub">拉贏對方</span>
+          <div class="dual-options-label">雙隊玩法（一掣揀定）</div>
+          <!-- V3.6 cycle64: 4-in-1 combo cards -->
+          <div id="dual-combo-picker" class="grid grid-cols-2 gap-2" role="radiogroup" aria-label="雙隊玩法">
+            <button type="button" class="opt-dual-combo btn btn-ghost py-2.5 text-sm" data-arena="versus" data-skin="classic" aria-pressed="false">
+              ⚔️🪢 對戰·經典<br><span class="text-xs opacity-70">扯大欖</span>
             </button>
-            <button type="button" class="opt-arena btn btn-ghost py-2.5 text-sm" data-arena="coop" aria-pressed="false">
-              🤝 合作<br><span class="text-xs opacity-70" id="arena-coop-sub">一齊前進</span>
+            <button type="button" class="opt-dual-combo btn btn-ghost py-2.5 text-sm opt-selected" data-arena="versus" data-skin="retro" aria-pressed="true">
+              ⚔️📏 對戰·復古<br><span class="text-xs opacity-70">像素扯尺</span>
+            </button>
+            <button type="button" class="opt-dual-combo btn btn-ghost py-2.5 text-sm" data-arena="coop" data-skin="classic" aria-pressed="false">
+              🤝🚢 合作·經典<br><span class="text-xs opacity-70">推船埋島</span>
+            </button>
+            <button type="button" class="opt-dual-combo btn btn-ghost py-2.5 text-sm" data-arena="coop" data-skin="retro" aria-pressed="false">
+              🤝🌉 合作·復古<br><span class="text-xs opacity-70">鋪路搭橋</span>
             </button>
           </div>
-          <div class="dual-options-label mt-3">畫面皮</div>
-          <div id="dual-skin-picker" class="grid grid-cols-2 gap-2" role="radiogroup" aria-label="遊戲皮">
-            <button type="button" class="opt-skin btn btn-ghost py-2.5 text-sm" data-skin="classic" aria-pressed="false">
-              🪢🚢 經典<br><span class="text-xs opacity-70" id="skin-classic-sub">扯大欖／推船</span>
-            </button>
-            <button type="button" class="opt-skin btn btn-ghost py-2.5 text-sm opt-selected" data-skin="retro" aria-pressed="true">
-              📏🌉 復古<br><span class="text-xs opacity-70" id="skin-retro-sub">像素尺／鋪路</span>
-            </button>
+          <!-- hidden lock-in pickers (cycle47/62 IDs + sync targets) -->
+          <div id="dual-arena-picker" class="hidden" aria-hidden="true">
+            <button type="button" class="opt-arena" data-arena="versus" tabindex="-1">versus</button>
+            <button type="button" class="opt-arena" data-arena="coop" tabindex="-1">coop</button>
+          </div>
+          <div id="dual-skin-picker" class="hidden" aria-hidden="true">
+            <button type="button" class="opt-skin" data-skin="classic" tabindex="-1">classic</button>
+            <button type="button" class="opt-skin" data-skin="retro" tabindex="-1">retro</button>
           </div>
         </div>
       </div>
@@ -2211,7 +2223,10 @@
         <div id="scope-helper" class="menu-section-sub">已選 4 個範疇 · 撳掣可開關（最少 1 個）</div>
       </div>
 
-      <!-- 一鍵開始 -->
+      <!-- 開始摘要 + 一鍵開始 -->
+      <div id="class-start-summary" class="text-sm text-center font-bold text-amber-200/90 px-2 py-2 rounded-xl bg-black/25 border border-amber-300/20">
+        單人 · 已選範疇 · 10 題
+      </div>
       <button id="btn-easy-start" class="w-full btn text-white text-xl py-4 flex items-center justify-center gap-3"
         style="background:linear-gradient(135deg,#a78bfa,#7c3aed);border:2px solid #c4b5fd;"
         aria-label="一鍵開始簡單練習">
@@ -2301,15 +2316,15 @@
         <div id="recommend-chips" class="mt-3" role="group" aria-label="自動推薦題型" hidden></div>
       </div>
 
-      <!-- 4) 隊伍模式 -->
+      <!-- 4) 打怪方式（Boss 專用；唔同課堂雙隊對戰） -->
       <div>
-        <label class="text-sm font-bold text-amber-300 mb-2 block">⑤ 隊伍模式</label>
+        <label class="text-sm font-bold text-amber-300 mb-2 block">⑤ 打怪方式</label>
         <div class="grid grid-cols-2 gap-3" role="radiogroup" aria-label="隊伍模式">
           <button class="opt-team btn btn-ghost opt-selected" data-team="coop" aria-pressed="true">
-            🤝 合作擊王<br><span class="text-xs opacity-70">兩隊一起打 boss</span>
+            🤝 合作打王<br><span class="text-xs opacity-70">兩隊一齊打 boss</span>
           </button>
           <button class="opt-team btn btn-ghost" data-team="versus" aria-pressed="false">
-            巔峰對戰<br><span class="text-xs opacity-70">比兩隊答題總分</span>
+            🏆 比分競賽<br><span class="text-xs opacity-70">比邊隊答啱多</span>
           </button>
         </div>
       </div>
@@ -4718,7 +4733,8 @@ const Game = {
     minutes: 5,
     mode: 'choice',   // 'choice' | 'keypad'
     types: ['add10'],
-    team: 'coop',     // 'coop' | 'versus'
+    team: 'coop',     // 'coop' | 'versus' — Boss 打怪方式
+    dualTeam: 'versus', // V3.6 cycle64: 課堂雙隊對戰/合作（同 team 分開）
     initialBossHp: 200,
     instantHint: true,    // V3.4-U2: 答錯即時提示 (SEN-friendly, default ON)
     ttsEnabled: true,     // V3.4-F2: TTS 開關
@@ -5972,46 +5988,32 @@ function setupMenu() {
       dualW.classList.toggle('hidden', !dual);
       dualW.classList.toggle('grid', dual);
     }
-    // V3.6 cycle63: dual options nested card (arena + skin)
+    // V3.6 cycle63/64: dual 4-in-1 combo
     const dualWrap = $('dual-options-wrap');
     if (dualWrap) dualWrap.classList.toggle('hidden', !dual);
-    const arenaPick = $('dual-arena-picker');
-    if (arenaPick) {
-      arenaPick.classList.remove('hidden');
-      arenaPick.classList.add('grid');
-    }
-    const skinPick = $('dual-skin-picker');
-    if (skinPick) {
-      skinPick.classList.remove('hidden');
-      skinPick.classList.add('grid');
-    }
-    // sync arena mode buttons ↔ Game.settings.team
-    const arenaMode = Game.settings.team === 'coop' ? 'coop' : 'versus';
+    const arenaMode = Game.settings.dualTeam === 'coop' ? 'coop' : 'versus';
+    Game.settings.dualTeam = arenaMode;
+    const skinMode = Game.settings.arenaSkin === 'classic' ? 'classic' : 'retro';
+    Game.settings.arenaSkin = skinMode;
+    document.querySelectorAll('.opt-dual-combo').forEach(x => {
+      const on = x.dataset.arena === arenaMode && x.dataset.skin === skinMode;
+      x.classList.toggle('opt-selected', on);
+      x.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+    // keep hidden lock-in arena/skin in sync with dualTeam
     document.querySelectorAll('.opt-arena').forEach(x => {
       const on = x.dataset.arena === arenaMode;
       x.classList.toggle('opt-selected', on);
       x.setAttribute('aria-pressed', on ? 'true' : 'false');
     });
-    // V3.6 cycle62: classic / retro skin
-    const skinMode = Game.settings.arenaSkin === 'classic' ? 'classic' : 'retro';
-    Game.settings.arenaSkin = skinMode;
     document.querySelectorAll('.opt-skin').forEach(x => {
       const on = x.dataset.skin === skinMode;
       x.classList.toggle('opt-selected', on);
       x.setAttribute('aria-pressed', on ? 'true' : 'false');
     });
-    // dynamic sublabels (對戰/合作 × 經典/復古)
-    const av = $('arena-versus-sub');
-    const ac = $('arena-coop-sub');
-    if (av) av.textContent = skinMode === 'retro' ? '像素扯尺' : '扯大欖';
-    if (ac) ac.textContent = skinMode === 'retro' ? '鋪路搭橋' : '合作推船';
-    const sc = $('skin-classic-sub');
-    const sr = $('skin-retro-sub');
-    if (sc) sc.textContent = arenaMode === 'coop' ? '推船' : '扯大欖';
-    if (sr) sr.textContent = arenaMode === 'coop' ? '鋪路' : '像素尺';
-    // also keep advanced team buttons in sync
+    // Boss「打怪方式」跟 Game.settings.team（唔同 dualTeam）
     document.querySelectorAll('.opt-team').forEach(x => {
-      const on = x.dataset.team === (arenaMode === 'coop' ? 'coop' : 'versus');
+      const on = x.dataset.team === (Game.settings.team === 'versus' ? 'versus' : 'coop');
       x.classList.toggle('opt-selected', on);
       x.setAttribute('aria-pressed', on ? 'true' : 'false');
     });
@@ -6023,15 +6025,25 @@ function setupMenu() {
       else if (skinMode === 'retro') ph.textContent = '復古扯尺：左藍右紫同時答，答對就拉尺，兩邊各 10 題比邊邊贏。';
       else ph.textContent = '對戰扯大欖：左藍右紫同時答，答對就拉繩，兩邊各 10 題比邊邊贏。';
     }
-    const sub = $('easy-start-sub');
-    if (sub) {
-      const n = (Game.settings.scopes && Game.settings.scopes.length) || 4;
-      if (!dual) sub.textContent = `單人 · ${n} 個範疇 · 10 題`;
-      else if (arenaMode === 'coop' && skinMode === 'retro') sub.textContent = `復古鋪路 · ${n} 個範疇 · 各 10 題`;
-      else if (arenaMode === 'coop') sub.textContent = `合作推船 · ${n} 個範疇 · 各 10 題`;
-      else if (skinMode === 'retro') sub.textContent = `復古扯尺 · ${n} 個範疇 · 各 10 題`;
-      else sub.textContent = `對戰扯大欖 · ${n} 個範疇 · 各 10 題`;
+    // V3.6 cycle64: one-line start summary
+    const n = (Game.settings.scopes && Game.settings.scopes.length) || 4;
+    const scopeNames = {
+      count20: '數數', compareLength: '長短', orderAsc20: '順序', orderDesc20: '倒序'
+    };
+    const scopeBits = (Game.settings.scopes || []).map(id => scopeNames[id] || id).filter(Boolean);
+    const scopeTxt = scopeBits.length ? scopeBits.join('+') : `${n}範疇`;
+    let playTxt = '單人';
+    if (dual) {
+      if (arenaMode === 'coop' && skinMode === 'retro') playTxt = '雙隊·合作·復古橋';
+      else if (arenaMode === 'coop') playTxt = '雙隊·合作·推船';
+      else if (skinMode === 'retro') playTxt = '雙隊·對戰·復古尺';
+      else playTxt = '雙隊·對戰·扯大欖';
     }
+    const summary = `${playTxt} · ${scopeTxt} · ${dual ? '各 10 題' : '10 題'}`;
+    const sub = $('easy-start-sub');
+    if (sub) sub.textContent = summary;
+    const sumEl = $('class-start-summary');
+    if (sumEl) sumEl.textContent = `將會係：${summary}`;
   };
   try {
     const saved = localStorage.getItem('mg2.playerId');
@@ -6058,20 +6070,37 @@ function setupMenu() {
     b.onclick = () => {
       Game.settings.playLayout = b.dataset.play === 'dual' ? 'dual' : 'solo';
       try { localStorage.setItem('mg2.playLayout', Game.settings.playLayout); } catch (_) {}
-      // dual 首次：預設 versus 扯大欖（有存檔跟存檔）
+      // dual 首次：預設 versus+retro（有存檔跟存檔）
       if (Game.settings.playLayout === 'dual') {
         let saved = null;
+        let savedSkin = null;
         try { saved = localStorage.getItem('mg2.dualArena'); } catch (_) {}
-        if (saved === 'coop' || saved === 'versus') Game.settings.team = saved;
-        else Game.settings.team = 'versus';
+        try { savedSkin = localStorage.getItem('mg2.arenaSkin'); } catch (_) {}
+        if (saved === 'coop' || saved === 'versus') Game.settings.dualTeam = saved;
+        else Game.settings.dualTeam = 'versus';
+        if (savedSkin === 'classic' || savedSkin === 'retro') Game.settings.arenaSkin = savedSkin;
+        else Game.settings.arenaSkin = 'retro';
       }
       syncPlayLayoutUI();
     };
   });
+  // V3.6 cycle64: one tap sets dualTeam + skin
+  document.querySelectorAll('.opt-dual-combo').forEach(b => {
+    b.onclick = () => {
+      Game.settings.dualTeam = b.dataset.arena === 'coop' ? 'coop' : 'versus';
+      Game.settings.arenaSkin = b.dataset.skin === 'classic' ? 'classic' : 'retro';
+      try {
+        localStorage.setItem('mg2.dualArena', Game.settings.dualTeam);
+        localStorage.setItem('mg2.arenaSkin', Game.settings.arenaSkin);
+      } catch (_) {}
+      syncPlayLayoutUI();
+    };
+  });
+  // legacy hidden pickers still clickable for tests / a11y hooks
   document.querySelectorAll('.opt-arena').forEach(b => {
     b.onclick = () => {
-      Game.settings.team = b.dataset.arena === 'coop' ? 'coop' : 'versus';
-      try { localStorage.setItem('mg2.dualArena', Game.settings.team); } catch (_) {}
+      Game.settings.dualTeam = b.dataset.arena === 'coop' ? 'coop' : 'versus';
+      try { localStorage.setItem('mg2.dualArena', Game.settings.dualTeam); } catch (_) {}
       syncPlayLayoutUI();
     };
   });
@@ -6084,20 +6113,19 @@ function setupMenu() {
   });
   try {
     const savedArena = localStorage.getItem('mg2.dualArena');
-    if (savedArena === 'coop' || savedArena === 'versus') Game.settings.team = savedArena;
+    if (savedArena === 'coop' || savedArena === 'versus') Game.settings.dualTeam = savedArena;
   } catch (_) {}
   try {
     const savedSkin = localStorage.getItem('mg2.arenaSkin');
     if (savedSkin === 'classic' || savedSkin === 'retro') Game.settings.arenaSkin = savedSkin;
     else {
-      // V3.6 cycle62: 長短範疇未存皮 → 預設 retro
       const sc = Game.settings.scopes || [];
       if (sc.length === 1 && sc[0] === 'compareLength') Game.settings.arenaSkin = 'retro';
     }
   } catch (_) {}
   syncPlayLayoutUI();
 
-  // V3.6 cycle41/63: menu tracks — class panel vs boss panel; advanced stays on boss
+  // V3.6 cycle41/63/64: menu tracks — always open on 課堂; Boss 唔持久化
   let advancedForcedOpen = true;
   const syncMenuTrack = () => {
     const track = Game.settings.menuTrack === 'boss' ? 'boss' : 'class';
@@ -6114,31 +6142,23 @@ function setupMenu() {
     const th = $('menu-track-helper');
     if (th) {
       th.textContent = track === 'class'
-        ? '課堂：①玩法 → ②身份 → ③題目 → 一鍵開始。雙隊先揀對戰／合作同畫面皮。'
-        : 'Boss：老師打怪設定。學生主線請切回「課堂練習」。';
+        ? '課堂：①玩法 → ②身份 → ③題目 → 睇摘要 → 一鍵開始。'
+        : 'Boss：老師打怪設定。返主頁會停喺課堂練習。';
     }
-    // class track implies easy practice path defaults; boss implies normal combat
-    if (track === 'class') {
-      // don't force difficulty until start; keep UI calm
-    } else {
-      if (Game.settings.difficulty === 'easy' && !advancedForcedOpen) {
-        // stay as teacher left it
-      }
-    }
-    try { localStorage.setItem('mg2.menuTrack', track); } catch (_) {}
+    // cycle64: 唔寫 menuTrack 入 localStorage — 每次返選單預設課堂
+    try { localStorage.removeItem('mg2.menuTrack'); } catch (_) {}
   };
   const syncMenuAdvanced = () => {
     const adv = $('menu-advanced');
     const tog = $('btn-menu-advanced-toggle');
     if (!adv) return;
-    // Boss track: advanced visible unless teacher collapsed; class track hides whole boss panel
     const onBoss = Game.settings.menuTrack === 'boss';
-    const hideAdv = onBoss ? !advancedForcedOpen : true;
-    adv.classList.toggle('hidden', hideAdv);
+    const hide = onBoss ? !advancedForcedOpen : true;
+    adv.classList.toggle('hidden', hide);
     if (tog) {
       tog.classList.toggle('hidden', !onBoss);
-      tog.setAttribute('aria-expanded', hideAdv ? 'false' : 'true');
-      tog.textContent = hideAdv
+      tog.setAttribute('aria-expanded', hide ? 'false' : 'true');
+      tog.textContent = hide
         ? '⚙️ 進階設定（老師覆寫 · 一鍵仍跟範疇）'
         : '⚙️ 收起進階設定（老師覆寫 · 一鍵仍跟範疇）';
     }
@@ -6148,7 +6168,6 @@ function setupMenu() {
       Game.settings.menuTrack = b.dataset.track === 'boss' ? 'boss' : 'class';
       if (Game.settings.menuTrack === 'boss') {
         advancedForcedOpen = true;
-        // entering boss → prefer normal difficulty unless already easy by teacher
         if (Game.settings.difficulty !== 'easy') {
           Game.settings.difficulty = 'normal';
           document.querySelectorAll('.opt-difficulty').forEach(x => {
@@ -6163,10 +6182,8 @@ function setupMenu() {
       if (typeof syncPlayLayoutUI === 'function') syncPlayLayoutUI();
     };
   });
-  try {
-    const savedTrack = localStorage.getItem('mg2.menuTrack');
-    if (savedTrack === 'class' || savedTrack === 'boss') Game.settings.menuTrack = savedTrack;
-  } catch (_) {}
+  // cycle64: ignore saved boss track — always class on load
+  Game.settings.menuTrack = 'class';
   const advToggle = $('btn-menu-advanced-toggle');
   if (advToggle) {
     advToggle.onclick = () => {
@@ -6339,14 +6356,15 @@ function setupMenu() {
     slider.setAttribute('aria-valuenow', '60');
     slider.setAttribute('aria-valuetext', 'Boss 初始生命值 60，範圍 60 至 500');
     // 4. Team / arena mode
-    // dual: keep user pick (versus=扯大欖 / coop=推船)；solo: coop 無對戰意義
+    // dual: keep dualTeam pick；solo: coop 無對戰意義
     if (Game.settings.playLayout === 'dual') {
-      let arena = Game.settings.team;
+      let arena = Game.settings.dualTeam;
       if (arena !== 'versus' && arena !== 'coop') {
         try { arena = localStorage.getItem('mg2.dualArena'); } catch (_) { arena = null; }
       }
-      Game.settings.team = (arena === 'coop') ? 'coop' : 'versus';
-      try { localStorage.setItem('mg2.dualArena', Game.settings.team); } catch (_) {}
+      Game.settings.dualTeam = (arena === 'coop') ? 'coop' : 'versus';
+      Game.settings.team = (arena === 'coop') ? 'coop' : 'versus'; // easy dual uses team for arena math
+      try { localStorage.setItem('mg2.dualArena', Game.settings.dualTeam); } catch (_) {}
     } else {
       Game.settings.team = 'coop';
     }
@@ -6356,7 +6374,7 @@ function setupMenu() {
       x.setAttribute('aria-pressed', on ? 'true' : 'false');
     });
     document.querySelectorAll('.opt-arena').forEach(x => {
-      const on = x.dataset.arena === Game.settings.team;
+      const on = x.dataset.arena === (Game.settings.dualTeam === 'coop' ? 'coop' : 'versus');
       x.classList.toggle('opt-selected', on);
       x.setAttribute('aria-pressed', on ? 'true' : 'false');
     });
@@ -6702,10 +6720,14 @@ function startGame() {
   Game.state.easyGoalTotal = isEasy ? 10 : 0;
   Game.state._easyEnding = false;
   Game.state._easyTeamDone = { knight: false, mage: false };
-  // V3.6 cycle47: dual keeps user team pick (versus=扯大欖 / coop=推船)
+  // V3.6 cycle47/64: dual keeps user team pick (versus=扯大欖 / coop=推船) via dualTeam
   // solo practice ignores team combat semantics
   if (isEasy && Game.settings.playLayout !== 'dual') {
     Game.settings.team = 'coop';
+  } else if (isEasy && Game.settings.playLayout === 'dual') {
+    const arena = Game.settings.dualTeam === 'coop' ? 'coop' : 'versus';
+    Game.settings.dualTeam = arena;
+    Game.settings.team = (arena === 'coop') ? 'coop' : 'versus';
   }
   if (Game.settings.win === 'time') {
     const m = clamp(parseInt($('time-input').value, 10) || 5, 1, 15);
