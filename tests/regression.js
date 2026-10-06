@@ -1351,6 +1351,29 @@ assert('LEN-04 bank v4 + skin seeds',
 assert('LEN-05 labels 黃筆/黃車 present',
   /'1': '黃筆'/.test(src) && /'1': '黃車'/.test(src) && /'1': '黃魚'/.test(src));
 
+// V3.6 cycle62: retro arena skins (ruler tug + bridge)
+console.log('\n[T47] V3.6 audit cycle-62 (retro arena)');
+assert('RETRO-01 arenaSkin setting + helper',
+  /arenaSkin:\s*'retro'/.test(src) && /function _isRetroArena/.test(src));
+assert('RETRO-02 dual-skin-picker classic/retro',
+  /id="dual-skin-picker"/.test(src) && /data-skin="classic"/.test(src) && /data-skin="retro"/.test(src));
+assert('RETRO-03 CSS skin-retro-tug + skin-retro-bridge',
+  /skin-retro-tug/.test(src) && /skin-retro-bridge/.test(src) && /sen-bridge-planks/.test(src));
+assert('RETRO-04 bridge DOM + planks helper',
+  /id="sen-arena-bridge"/.test(src) && /id="sen-bridge-planks"/.test(src) &&
+  /function _bridgePlanksHTML/.test(src));
+assert('RETRO-05 setup toggles retro skins',
+  /skin-retro-tug/.test(src) && /skin-retro-bridge/.test(src) &&
+  /_isRetroArena\(\)/.test(src) && /像素扯尺/.test(src) && /一齊鋪路/.test(src));
+assert('RETRO-06 localStorage mg2.arenaSkin',
+  /mg2\.arenaSkin/.test(src) && /opt-skin/.test(src));
+assert('RETRO-07 end titles retro variants',
+  /像素扯尺/.test(src) && /橋連住/.test(src));
+assert('RETRO-08 reduced-motion covers bridge',
+  /sen-bridge-planks/.test(src) && /sen-bridge-planks\.lay/.test(src));
+assert('RETRO-09 classic skins still present',
+  /skin-tug/.test(src) && /skin-boat/.test(src) && /一齊埋岸/.test(src));
+
 // =========== summary ===========
 console.log(`\n========== ${pass} pass / ${fail} fail ==========`);
 if (fail > 0) {

@@ -174,6 +174,144 @@
   .sen-arena.skin-boat::before {
     background: repeating-linear-gradient(0deg, transparent 0 10px, rgba(255,255,255,0.08) 10px 12px);
   }
+  /* V3.6 cycle62: retro arena skins — ruler tug + bridge */
+  .sen-arena.skin-retro-tug {
+    background:
+      linear-gradient(180deg, #1e1b4b 0%, #312e81 40%, #0f172a 100%);
+    border-bottom-color: rgba(250,204,21,0.55);
+    image-rendering: pixelated;
+  }
+  .sen-arena.skin-retro-tug::before {
+    content: '';
+    position: absolute; inset: 0;
+    pointer-events: none;
+    opacity: 0.4;
+    background:
+      repeating-linear-gradient(0deg, transparent 0 7px, rgba(255,255,255,0.05) 7px 8px),
+      repeating-linear-gradient(90deg, transparent 0 7px, rgba(255,255,255,0.04) 7px 8px);
+  }
+  .sen-arena.skin-retro-tug .sen-tug-rope {
+    height: 14px;
+    margin-top: -7px;
+    border-radius: 2px;
+    background:
+      repeating-linear-gradient(90deg,
+        #fef08a 0 6px, #eab308 6px 8px,
+        #fef08a 8px 14px, #a16207 14px 16px);
+    border: 2px solid #713f12;
+    box-shadow: 0 0 0 1px #fde68a, 0 2px 0 #422006;
+  }
+  .sen-arena.skin-retro-tug .sen-tug-knot {
+    border-radius: 4px;
+    border-color: #facc15;
+    background: #1e293b;
+    box-shadow: 4px 4px 0 #422006, 0 0 12px rgba(250,204,21,0.45);
+    font-size: 1.25rem;
+  }
+  .sen-arena.skin-retro-tug .sen-tug-mid {
+    width: 3px;
+    background: #facc15;
+    box-shadow: 0 0 6px #facc15;
+  }
+  .sen-arena.skin-retro-tug .sen-avatar {
+    border-radius: 4px;
+    box-shadow: 3px 3px 0 rgba(0,0,0,0.55);
+  }
+  .sen-arena.skin-retro-bridge {
+    background:
+      linear-gradient(180deg, #0c4a6e 0%, #075985 32%, #14532d 32%, #166534 55%, #052e16 100%);
+    border-bottom-color: rgba(74,222,128,0.5);
+    image-rendering: pixelated;
+  }
+  .sen-arena.skin-retro-bridge::before {
+    content: '';
+    position: absolute; inset: 0;
+    pointer-events: none;
+    opacity: 0.35;
+    background:
+      repeating-linear-gradient(90deg, transparent 0 10px, rgba(255,255,255,0.06) 10px 12px);
+  }
+  .sen-bridge-row {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    width: 100%;
+    position: relative;
+    z-index: 1;
+  }
+  .sen-bridge-track {
+    position: relative;
+    flex: 1;
+    height: 2.7rem;
+    border-radius: 4px;
+    background:
+      linear-gradient(180deg, rgba(56,189,248,0.55) 0%, rgba(14,116,144,0.75) 100%);
+    border: 3px solid #0f172a;
+    overflow: hidden;
+    box-shadow: inset 0 -6px 0 rgba(15,23,42,0.25), 3px 3px 0 rgba(0,0,0,0.35);
+  }
+  .sen-bridge-water {
+    position: absolute; inset: 0;
+    background:
+      repeating-linear-gradient(90deg, transparent 0 12px, rgba(255,255,255,0.12) 12px 14px);
+    opacity: 0.5;
+    pointer-events: none;
+  }
+  .sen-bridge-planks {
+    position: absolute;
+    left: 0; top: 18%;
+    height: 64%;
+    width: 0%;
+    display: flex;
+    align-items: stretch;
+    gap: 2px;
+    padding: 0 2px;
+    transition: width 0.45s ease;
+    z-index: 2;
+    overflow: hidden;
+  }
+  .sen-bridge-plank {
+    flex: 1 0 auto;
+    min-width: 10px;
+    border-radius: 2px;
+    background:
+      linear-gradient(180deg, #fbbf24 0%, #d97706 40%, #92400e 100%);
+    border: 1px solid #78350f;
+    box-shadow: inset 0 1px 0 rgba(254,243,199,0.5);
+  }
+  .sen-bridge-planks.lay { animation: sen-bridge-lay 0.4s ease; }
+  @keyframes sen-bridge-lay {
+    0% { filter: brightness(1.4); }
+    40% { filter: brightness(1.15) drop-shadow(0 0 6px #fbbf24); }
+    100% { filter: none; }
+  }
+  .sen-bridge-goal {
+    font-size: 1.45rem;
+    flex-shrink: 0;
+    filter: drop-shadow(0 1px 1px rgba(0,0,0,0.35));
+  }
+  .sen-bridge-bar {
+    margin-top: 0.3rem;
+    height: 0.6rem;
+    border-radius: 2px;
+    background: rgba(0,0,0,0.4);
+    overflow: hidden;
+    border: 2px solid #0f172a;
+    position: relative;
+    z-index: 1;
+    box-shadow: 2px 2px 0 rgba(0,0,0,0.35);
+  }
+  .sen-bridge-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #4ade80, #facc15 70%, #fef08a);
+    transition: width 0.45s ease;
+    box-shadow: 0 0 8px rgba(74,222,128,0.45);
+  }
+  .sen-arena.skin-retro-bridge .sen-avatar {
+    border-radius: 4px;
+    box-shadow: 3px 3px 0 rgba(0,0,0,0.55);
+  }
   .sen-arena-mode { display: flex; align-items: center; gap: 0.5rem; width: 100%; position: relative; z-index: 1; }
   .sen-arena-status {
     text-align: center;
@@ -337,9 +475,11 @@
     /* leave room for arena strip */
   }
   @media (prefers-reduced-motion: reduce) {
-    .sen-tug-knot, .sen-boat, .sen-boat-fill { transition: none !important; }
+    .sen-tug-knot, .sen-boat, .sen-boat-fill,
+    .sen-bridge-planks, .sen-bridge-fill { transition: none !important; }
     .sen-tug-knot.pull-l, .sen-tug-knot.pull-r, .sen-boat.splash,
-    .sen-avatar.bounce, .sen-boat.splash .sen-crew { animation: none !important; }
+    .sen-avatar.bounce, .sen-boat.splash .sen-crew,
+    .sen-bridge-planks.lay { animation: none !important; }
   }
   .sen-board-solo .sen-panel-mage { display: none !important; }
   .sen-board-solo .sen-panel-knight {
@@ -586,6 +726,10 @@
   .opt-arena.opt-selected {
     border-color: #34d399 !important;
     background: rgba(52,211,153,0.16) !important;
+  }
+  .opt-skin.opt-selected {
+    border-color: #f472b6 !important;
+    background: rgba(244,114,182,0.16) !important;
   }
   /* V3.6 cycle42: identity cards */
   .id-card {
@@ -1960,6 +2104,15 @@
             🚢 合作推船<br><span class="text-xs opacity-70">一齊前進 · 埋島</span>
           </button>
         </div>
+        <!-- V3.6 cycle62: classic / retro arena skin -->
+        <div id="dual-skin-picker" class="hidden grid grid-cols-2 gap-3 mt-2" role="radiogroup" aria-label="遊戲皮">
+          <button type="button" class="opt-skin btn btn-ghost py-2.5" data-skin="classic" aria-pressed="false">
+            🪢🚢 經典<br><span class="text-xs opacity-70">扯大欖／推船</span>
+          </button>
+          <button type="button" class="opt-skin btn btn-ghost py-2.5 opt-selected" data-skin="retro" aria-pressed="true">
+            📏🌉 復古<br><span class="text-xs opacity-70">像素尺／鋪路</span>
+          </button>
+        </div>
       </div>
 
       <!-- V3.6 cycle42/43: 身份卡（中度唔強制打字名） -->
@@ -2313,6 +2466,26 @@
           <div id="sen-boat-fill" class="sen-boat-fill"></div>
         </div>
       </div>
+      <!-- V3.6 cycle62: retro coop — pixel bridge -->
+      <div id="sen-arena-bridge" class="sen-arena-mode hidden">
+        <div class="sen-bridge-row">
+          <div class="sen-tug-side l">
+            <div class="sen-avatar l" id="sen-bridge-av-l" aria-hidden="true">🔵</div>
+          </div>
+          <span class="sen-bridge-goal" aria-hidden="true">🏞️</span>
+          <div class="sen-bridge-track" role="img" aria-label="像素橋">
+            <div class="sen-bridge-water" aria-hidden="true"></div>
+            <div id="sen-bridge-planks" class="sen-bridge-planks"></div>
+          </div>
+          <span class="sen-bridge-goal" aria-hidden="true">🏡</span>
+          <div class="sen-tug-side r">
+            <div class="sen-avatar r" id="sen-bridge-av-r" aria-hidden="true">🟣</div>
+          </div>
+        </div>
+        <div class="sen-bridge-bar" role="progressbar" id="sen-bridge-bar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+          <div id="sen-bridge-fill" class="sen-bridge-fill"></div>
+        </div>
+      </div>
       <div id="sen-arena-status" class="sen-arena-status">準備…</div>
     </div>
     <div id="sen-board" class="sen-board sen-board-solo">
@@ -2597,6 +2770,15 @@ function clamp(n, lo, hi) { return Math.max(lo, Math.min(hi, n)); }
 function _isEasyMode() { return Game.settings.difficulty === 'easy'; }
 function _isDualPlay() { return Game.settings.playLayout === 'dual'; }
 function _isCoopTeam() { return Game.settings.team === 'coop'; }
+function _isRetroArena() { return Game.settings.arenaSkin === 'retro'; }
+
+/** Build N plank nodes for retro bridge (SEN coop). */
+function _bridgePlanksHTML(n) {
+  const count = Math.max(0, Math.min(24, n | 0));
+  let html = '';
+  for (let i = 0; i < count; i++) html += '<span class="sen-bridge-plank" aria-hidden="true"></span>';
+  return html;
+}
 
 /** First glyph of identity label (e.g. "🐱 小貓" → 🐱) */
 function _teamEmoji(team) {
@@ -4482,6 +4664,7 @@ const Game = {
     playerIdRight: null,        // dual right team
     playerLabelRight: '同學',
     scopes: ['count20', 'compareLength', 'orderAsc20', 'orderDesc20'], // V3.6 cycle44
+    arenaSkin: 'retro',             // V3.6 cycle62: 'classic' | 'retro' (ruler tug / bridge)
   },
 
   state: {
@@ -5220,28 +5403,33 @@ const UI = {
     UI.setupSENArena();
   },
 
-  // V3.6 cycle47/49: dual arena — versus tug / coop boat + identity/scene
+  // V3.6 cycle47/49/62: dual arena — versus tug|ruler / coop boat|bridge + identity/scene
   setupSENArena() {
     const arena = $('sen-arena');
     const tug = $('sen-arena-tug');
     const boat = $('sen-arena-boat');
+    const bridge = $('sen-arena-bridge');
     if (!arena || !tug || !boat) return;
     const dual = _isDualPlay();
     const isEasy = _isEasyMode();
     const show = dual && isEasy;
     arena.classList.toggle('hidden', !show);
+    arena.classList.remove('skin-tug', 'skin-boat', 'skin-retro-tug', 'skin-retro-bridge');
     if (!show) {
       tug.classList.add('hidden');
       boat.classList.add('hidden');
-      arena.classList.remove('skin-tug', 'skin-boat');
+      if (bridge) bridge.classList.add('hidden');
       return;
     }
     const versus = !_isCoopTeam();
+    const retro = _isRetroArena();
+    // modes: versus→tug (classic|retro skin); coop classic→boat; coop retro→bridge
     tug.classList.toggle('hidden', !versus);
-    boat.classList.toggle('hidden', versus);
-    arena.classList.toggle('skin-tug', versus);
-    arena.classList.toggle('skin-boat', !versus);
-    // identity avatars on rope / boat
+    boat.classList.toggle('hidden', !( !versus && !retro ));
+    if (bridge) bridge.classList.toggle('hidden', !( !versus && retro ));
+    if (versus) arena.classList.add(retro ? 'skin-retro-tug' : 'skin-tug');
+    else arena.classList.add(retro ? 'skin-retro-bridge' : 'skin-boat');
+    // identity avatars on rope / boat / bridge
     const eL = _teamEmoji('knight');
     const eR = _teamEmoji('mage');
     const avL = $('sen-avatar-l');
@@ -5252,11 +5440,16 @@ const UI = {
     const cR = $('sen-boat-crew-r');
     if (cL) cL.textContent = eL;
     if (cR) cR.textContent = eR;
+    const bL = $('sen-bridge-av-l');
+    const bR = $('sen-bridge-av-r');
+    if (bL) bL.textContent = eL;
+    if (bR) bR.textContent = eR;
     // reset visuals
     const knot = $('sen-tug-knot');
     if (knot) {
       knot.style.left = '50%';
       knot.classList.remove('pull-l', 'pull-r');
+      knot.textContent = retro ? '📏' : '🪢';
     }
     const ship = $('sen-boat');
     if (ship) {
@@ -5267,8 +5460,21 @@ const UI = {
     if (fill) fill.style.width = '0%';
     const bar = $('sen-boat-bar');
     if (bar) bar.setAttribute('aria-valuenow', '0');
+    const planks = $('sen-bridge-planks');
+    if (planks) {
+      planks.style.width = '0%';
+      planks.innerHTML = '';
+      planks.classList.remove('lay');
+    }
+    const bFill = $('sen-bridge-fill');
+    if (bFill) bFill.style.width = '0%';
+    const bBar = $('sen-bridge-bar');
+    if (bBar) bBar.setAttribute('aria-valuenow', '0');
     const st = $('sen-arena-status');
-    if (st) st.textContent = versus ? '🪢 扯大欖 · 答對就拉！' : '🚢 一齊推船 · 答對就前進！';
+    if (st) {
+      if (versus) st.textContent = retro ? '📏 像素扯尺 · 答對就拉！' : '🪢 扯大欖 · 答對就拉！';
+      else st.textContent = retro ? '🌉 一齊鋪路 · 答對就加一格！' : '🚢 一齊推船 · 答對就前進！';
+    }
     UI.refreshSENArena(null, false);
   },
 
@@ -5282,7 +5488,9 @@ const UI = {
     const L = Game.settings.playerLabel || '左隊';
     const R = Game.settings.playerLabelRight || '右隊';
     const versus = !_isCoopTeam();
+    const retro = _isRetroArena();
     const st = $('sen-arena-status');
+    const mark = versus ? (retro ? '📏' : '🪢') : (retro ? '🌉' : '🚢');
 
     if (versus) {
       const knot = $('sen-tug-knot');
@@ -5300,9 +5508,35 @@ const UI = {
         }
       }
       if (st) {
-        if (tk.correct === tm.correct) st.textContent = `🪢 平手 ${tk.correct} : ${tm.correct}`;
-        else if (tk.correct > tm.correct) st.textContent = `🪢 ${L} 領先！ ${tk.correct} : ${tm.correct}`;
-        else st.textContent = `🪢 ${R} 領先！ ${tk.correct} : ${tm.correct}`;
+        if (tk.correct === tm.correct) st.textContent = `${mark} 平手 ${tk.correct} : ${tm.correct}`;
+        else if (tk.correct > tm.correct) st.textContent = `${mark} ${L} 領先！ ${tk.correct} : ${tm.correct}`;
+        else st.textContent = `${mark} ${R} 領先！ ${tk.correct} : ${tm.correct}`;
+      }
+    } else if (retro) {
+      // V3.6 cycle62: coop pixel bridge — shared progress, wrong never shrinks
+      const sum = (tk.correct || 0) + (tm.correct || 0);
+      const need = Math.max(goal * 2, 1);
+      const pct = Math.max(0, Math.min(100, Math.round((sum / need) * 100)));
+      const plankN = Math.max(0, Math.min(need, sum));
+      const planks = $('sen-bridge-planks');
+      if (planks) {
+        planks.style.width = pct + '%';
+        planks.innerHTML = _bridgePlanksHTML(Math.max(plankN, pct > 0 ? Math.max(1, Math.round(pct / 8)) : 0));
+        if (didCorrect) _pulseEl(planks, 'lay', 420);
+      }
+      const fill = $('sen-bridge-fill');
+      if (fill) fill.style.width = pct + '%';
+      const bar = $('sen-bridge-bar');
+      if (bar) {
+        bar.setAttribute('aria-valuenow', String(pct));
+        bar.setAttribute('aria-valuetext', `橋進度 ${pct}%`);
+      }
+      if (didCorrect && pullTeam) {
+        _pulseEl($(pullTeam === 'knight' ? 'sen-bridge-av-l' : 'sen-bridge-av-r'), 'bounce', 420);
+      }
+      if (st) {
+        if (pct >= 100) st.textContent = '🏡 橋連住啦！';
+        else st.textContent = `🌉 一齊鋪路 ${sum}/${need}（${pct}%）`;
       }
     } else {
       const sum = (tk.correct || 0) + (tm.correct || 0);
@@ -5674,10 +5908,23 @@ function setupMenu() {
       arenaPick.classList.toggle('hidden', !dual);
       arenaPick.classList.toggle('grid', dual);
     }
+    const skinPick = $('dual-skin-picker');
+    if (skinPick) {
+      skinPick.classList.toggle('hidden', !dual);
+      skinPick.classList.toggle('grid', dual);
+    }
     // sync arena mode buttons ↔ Game.settings.team
     const arenaMode = Game.settings.team === 'coop' ? 'coop' : 'versus';
     document.querySelectorAll('.opt-arena').forEach(x => {
       const on = x.dataset.arena === arenaMode;
+      x.classList.toggle('opt-selected', on);
+      x.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+    // V3.6 cycle62: classic / retro skin
+    const skinMode = Game.settings.arenaSkin === 'classic' ? 'classic' : 'retro';
+    Game.settings.arenaSkin = skinMode;
+    document.querySelectorAll('.opt-skin').forEach(x => {
+      const on = x.dataset.skin === skinMode;
       x.classList.toggle('opt-selected', on);
       x.setAttribute('aria-pressed', on ? 'true' : 'false');
     });
@@ -5690,14 +5937,18 @@ function setupMenu() {
     const ph = $('play-helper');
     if (ph) {
       if (!dual) ph.textContent = '單人：全屏一題，專心練習。';
+      else if (arenaMode === 'coop' && skinMode === 'retro') ph.textContent = '復古鋪路：左藍右紫同時答，答對加一格橋，兩邊各 10 題一齊過橋。';
       else if (arenaMode === 'coop') ph.textContent = '合作推船：左藍右紫同時答，答對船前進，兩邊各 10 題一齊埋島。';
+      else if (skinMode === 'retro') ph.textContent = '復古扯尺：左藍右紫同時答，答對就拉尺，兩邊各 10 題比邊邊贏。';
       else ph.textContent = '對戰扯大欖：左藍右紫同時答，答對就拉繩，兩邊各 10 題比邊邊贏。';
     }
     const sub = $('easy-start-sub');
     if (sub) {
       const n = (Game.settings.scopes && Game.settings.scopes.length) || 4;
       if (!dual) sub.textContent = `單人 · ${n} 個範疇 · 10 題`;
+      else if (arenaMode === 'coop' && skinMode === 'retro') sub.textContent = `復古鋪路 · ${n} 個範疇 · 各 10 題`;
       else if (arenaMode === 'coop') sub.textContent = `合作推船 · ${n} 個範疇 · 各 10 題`;
+      else if (skinMode === 'retro') sub.textContent = `復古扯尺 · ${n} 個範疇 · 各 10 題`;
       else sub.textContent = `對戰扯大欖 · ${n} 個範疇 · 各 10 題`;
     }
   };
@@ -5743,9 +5994,25 @@ function setupMenu() {
       syncPlayLayoutUI();
     };
   });
+  document.querySelectorAll('.opt-skin').forEach(b => {
+    b.onclick = () => {
+      Game.settings.arenaSkin = b.dataset.skin === 'classic' ? 'classic' : 'retro';
+      try { localStorage.setItem('mg2.arenaSkin', Game.settings.arenaSkin); } catch (_) {}
+      syncPlayLayoutUI();
+    };
+  });
   try {
     const savedArena = localStorage.getItem('mg2.dualArena');
     if (savedArena === 'coop' || savedArena === 'versus') Game.settings.team = savedArena;
+  } catch (_) {}
+  try {
+    const savedSkin = localStorage.getItem('mg2.arenaSkin');
+    if (savedSkin === 'classic' || savedSkin === 'retro') Game.settings.arenaSkin = savedSkin;
+    else {
+      // V3.6 cycle62: 長短範疇未存皮 → 預設 retro
+      const sc = Game.settings.scopes || [];
+      if (sc.length === 1 && sc[0] === 'compareLength') Game.settings.arenaSkin = 'retro';
+    }
   } catch (_) {}
   syncPlayLayoutUI();
 
@@ -6920,24 +7187,27 @@ function _endTitleFor(victory) {
       const L = Game.settings.playerLabel || '左隊';
       const R = Game.settings.playerLabelRight || '右隊';
       const coop = Game.settings.team === 'coop';
+      const retro = Game.settings.arenaSkin === 'retro';
       if (coop) {
         const sum = (tk.correct || 0) + (tm.correct || 0);
+        const title = retro ? `${left.medal}${right.medal} 🌉 橋連住` : `${left.medal}${right.medal} 🚢 一齊埋岸`;
+        const tier = retro ? '橋連住' : '一齊埋岸';
         return {
-          title: `${left.medal}${right.medal} 🚢 一齊埋岸`,
+          title,
           msg: `合作完成！左 ${tk.correct}/${tk.total}（${left.pct}% ${left.tier}）· 右 ${tm.correct}/${tm.total}（${right.pct}% ${right.tier}）· 合計答啱 ${sum}`,
-          icon: '🚢',
+          icon: retro ? '🌉' : '🚢',
           medal: `${left.medal}${right.medal}`,
-          tier: '一齊埋岸',
+          tier,
           easyCert: true,
           dualEnd: true,
           left, right,
         };
       }
-      let winner = '🪢 平手！';
-      if (tk.correct > tm.correct) winner = `🪢 ⬅ ${L} 拉贏！`;
-      else if (tm.correct > tk.correct) winner = `🪢 ${R} 拉贏！ ➡`;
+      let winner = retro ? '📏 平手！' : '🪢 平手！';
+      if (tk.correct > tm.correct) winner = retro ? `📏 ⬅ ${L} 拉贏！` : `🪢 ⬅ ${L} 拉贏！`;
+      else if (tm.correct > tk.correct) winner = retro ? `📏 ${R} 拉贏！ ➡` : `🪢 ${R} 拉贏！ ➡`;
       return {
-        title: `${left.medal}${right.medal} 扯大欖`,
+        title: `${left.medal}${right.medal} ${retro ? '像素扯尺' : '扯大欖'}`,
         msg: `${winner}  左 ${tk.correct}/${tk.total}（${left.pct}% ${left.tier}）· 右 ${tm.correct}/${tm.total}（${right.pct}% ${right.tier}）`,
         icon: left.medal,
         medal: `${left.medal}${right.medal}`,
