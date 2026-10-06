@@ -736,6 +736,11 @@
     background: rgba(52,211,153,0.18) !important;
     box-shadow: 0 0 0 2px rgba(52,211,153,0.3);
   }
+  .opt-solo-skin.opt-selected {
+    border-color: #38bdf8 !important;
+    background: rgba(56,189,248,0.18) !important;
+    box-shadow: 0 0 0 2px rgba(56,189,248,0.3);
+  }
   /* V3.6 cycle63: menu track (課堂 / Boss) */
   .opt-track.opt-selected {
     border-color: #c4b5fd !important;
@@ -2154,7 +2159,22 @@
             👥 左右雙隊<br><span class="text-xs opacity-70">電子白板 · 同時</span>
           </button>
         </div>
-        <div id="play-helper" class="menu-section-sub">單人：全屏一題。雙隊：左藍右紫，適合 touch board。</div>
+        <div id="play-helper" class="menu-section-sub">單人：全屏一題 + 小遊戲。雙隊：左藍右紫 touch board。</div>
+        <!-- V3.6 cycle65: solo mini-games (boat / bridge / ruler) -->
+        <div id="solo-options-wrap" class="dual-options-card">
+          <div class="dual-options-label">單人小遊戲（課堂）</div>
+          <div id="solo-combo-picker" class="grid grid-cols-3 gap-2" role="radiogroup" aria-label="單人小遊戲">
+            <button type="button" class="opt-solo-skin btn btn-ghost py-2 text-sm" data-skin="classic" data-solo-mode="boat" aria-pressed="false">
+              🚢 推船<br><span class="text-xs opacity-70">經典</span>
+            </button>
+            <button type="button" class="opt-solo-skin btn btn-ghost py-2 text-sm opt-selected" data-skin="retro" data-solo-mode="bridge" aria-pressed="true">
+              🌉 鋪路<br><span class="text-xs opacity-70">復古</span>
+            </button>
+            <button type="button" class="opt-solo-skin btn btn-ghost py-2 text-sm" data-skin="retro" data-solo-mode="ruler" aria-pressed="false">
+              📏 拉力<br><span class="text-xs opacity-70">復古尺</span>
+            </button>
+          </div>
+        </div>
         <div id="dual-options-wrap" class="dual-options-card hidden">
           <div class="dual-options-label">雙隊玩法（一掣揀定）</div>
           <!-- V3.6 cycle64: 4-in-1 combo cards -->
@@ -2247,7 +2267,8 @@
 
       <div class="menu-section-card" style="border-color:rgba(248,113,113,0.35);background:rgba(127,29,29,0.18);">
         <div class="menu-section-title">⚔️ Boss 戰役 · 老師設定</div>
-        <p class="text-xs text-white/60 leading-relaxed">打怪、鍵盤、完整題型。學生主線請用上面「課堂練習」。</p>
+        <p class="text-xs text-white/60 leading-relaxed">跟上面「① 點樣玩」：單人打王 / 雙隊打王都得。課堂小遊戲喺「課堂練習」軌。</p>
+        <div id="boss-play-hint" class="mt-2 text-sm font-bold text-amber-200">而家：🧍 單人打王</div>
       </div>
 
       <!-- 保留難度掣（regression + 老師可在 Boss 軌覆寫）；預設普通 -->
@@ -4749,6 +4770,7 @@ const Game = {
     playerLabelRight: '同學',
     scopes: ['count20', 'compareLength', 'orderAsc20', 'orderDesc20'], // V3.6 cycle44
     arenaSkin: 'retro',             // V3.6 cycle62: 'classic' | 'retro' (ruler tug / bridge)
+    soloMode: 'bridge',             // V3.6 cycle65: solo mini-game 'boat' | 'bridge' | 'ruler'
     menuTrack: 'class',             // V3.6 cycle63: 'class' 課堂 | 'boss' 戰役
   },
 
@@ -5480,7 +5502,7 @@ const UI = {
     const dual = Game.settings.playLayout === 'dual';
     board.classList.toggle('sen-board-solo', !dual);
     board.classList.toggle('sen-board-dual', dual);
-    board.classList.toggle('has-arena', dual);
+    board.classList.toggle('has-arena', true); // cycle65: solo+dual easy both have arena strip
     ['knight', 'mage'].forEach(tm => {
       const d = $(`sen-done-${tm}`);
       if (d) d.classList.add('hidden');
@@ -5488,7 +5510,7 @@ const UI = {
     UI.setupSENArena();
   },
 
-  // V3.6 cycle47/49/62: dual arena — versus tug|ruler / coop boat|bridge + identity/scene
+  // V3.6 cycle47/49/62/65: arena — dual tug|boat|bridge + solo boat|bridge|ruler
   setupSENArena() {
     const arena = $('sen-arena');
     const tug = $('sen-arena-tug');
@@ -5497,7 +5519,7 @@ const UI = {
     if (!arena || !tug || !boat) return;
     const dual = _isDualPlay();
     const isEasy = _isEasyMode();
-    const show = dual && isEasy;
+    const show = isEasy; // cycle65: solo + dual classroom both get mini-game strip
     arena.classList.toggle('hidden', !show);
     arena.classList.remove('skin-tug', 'skin-boat', 'skin-retro-tug', 'skin-retro-bridge');
     if (!show) {
@@ -5506,35 +5528,68 @@ const UI = {
       if (bridge) bridge.classList.add('hidden');
       return;
     }
-    const versus = !_isCoopTeam();
     const retro = _isRetroArena();
-    // modes: versus→tug (classic|retro skin); coop classic→boat; coop retro→bridge
-    tug.classList.toggle('hidden', !versus);
-    boat.classList.toggle('hidden', !( !versus && !retro ));
-    if (bridge) bridge.classList.toggle('hidden', !( !versus && retro ));
-    if (versus) arena.classList.add(retro ? 'skin-retro-tug' : 'skin-tug');
-    else arena.classList.add(retro ? 'skin-retro-bridge' : 'skin-boat');
-    // identity avatars on rope / boat / bridge
+    let versus = false;
+    let useBoat = false;
+    let useBridge = false;
+    let useTug = false;
+    if (dual) {
+      versus = !_isCoopTeam();
+      useTug = versus;
+      useBoat = !versus && !retro;
+      useBridge = !versus && retro;
+    } else {
+      // solo mini-game: boat | bridge | ruler
+      const sm = Game.settings.soloMode === 'boat' ? 'boat'
+        : (Game.settings.soloMode === 'ruler' ? 'ruler' : 'bridge');
+      Game.settings.soloMode = sm;
+      if (sm === 'boat') { useBoat = true; Game.settings.arenaSkin = 'classic'; Game.settings.team = 'coop'; }
+      else if (sm === 'ruler') { useTug = true; versus = true; Game.settings.arenaSkin = 'retro'; Game.settings.team = 'versus'; }
+      else { useBridge = true; Game.settings.arenaSkin = 'retro'; Game.settings.team = 'coop'; }
+    }
+    tug.classList.toggle('hidden', !useTug);
+    boat.classList.toggle('hidden', !useBoat);
+    if (bridge) bridge.classList.toggle('hidden', !useBridge);
+    if (useTug) arena.classList.add(retro || !dual ? 'skin-retro-tug' : 'skin-tug');
+    else if (useBridge) arena.classList.add('skin-retro-bridge');
+    else arena.classList.add('skin-boat');
+    // for solo classic boat, force classic skin class
+    if (useBoat) {
+      arena.classList.remove('skin-retro-tug', 'skin-retro-bridge', 'skin-tug');
+      arena.classList.add('skin-boat');
+    }
+    if (useTug && dual && !retro) {
+      arena.classList.remove('skin-retro-tug', 'skin-boat', 'skin-retro-bridge');
+      arena.classList.add('skin-tug');
+    }
+    if (useTug && (!dual || retro)) {
+      arena.classList.remove('skin-tug', 'skin-boat', 'skin-retro-bridge');
+      arena.classList.add('skin-retro-tug');
+    }
+    // identity avatars
     const eL = _teamEmoji('knight');
-    const eR = _teamEmoji('mage');
+    const eR = dual ? _teamEmoji('mage') : eL;
     const avL = $('sen-avatar-l');
     const avR = $('sen-avatar-r');
     if (avL) avL.textContent = eL;
-    if (avR) avR.textContent = eR;
+    if (avR) {
+      avR.textContent = dual ? eR : '🏁';
+      avR.style.opacity = dual ? '1' : '0.85';
+    }
     const cL = $('sen-boat-crew-l');
     const cR = $('sen-boat-crew-r');
     if (cL) cL.textContent = eL;
-    if (cR) cR.textContent = eR;
+    if (cR) cR.textContent = dual ? eR : '';
     const bL = $('sen-bridge-av-l');
     const bR = $('sen-bridge-av-r');
     if (bL) bL.textContent = eL;
-    if (bR) bR.textContent = eR;
+    if (bR) bR.textContent = dual ? eR : '🏡';
     // reset visuals
     const knot = $('sen-tug-knot');
     if (knot) {
-      knot.style.left = '50%';
+      knot.style.left = dual ? '50%' : '12%';
       knot.classList.remove('pull-l', 'pull-r');
-      knot.textContent = retro ? '📏' : '🪢';
+      knot.textContent = (retro || !dual) ? '📏' : '🪢';
     }
     const ship = $('sen-boat');
     if (ship) {
@@ -5557,31 +5612,90 @@ const UI = {
     if (bBar) bBar.setAttribute('aria-valuenow', '0');
     const st = $('sen-arena-status');
     if (st) {
-      if (versus) st.textContent = retro ? '📏 像素扯尺 · 答對就拉！' : '🪢 扯大欖 · 答對就拉！';
+      if (!dual) {
+        if (useTug) st.textContent = '📏 拉力挑戰 · 答對就拉向前！';
+        else if (useBridge) st.textContent = '🌉 單人鋪路 · 答對加一格！';
+        else st.textContent = '🚢 單人推船 · 答對就前進！';
+      } else if (versus) st.textContent = retro ? '📏 像素扯尺 · 答對就拉！' : '🪢 扯大欖 · 答對就拉！';
       else st.textContent = retro ? '🌉 一齊鋪路 · 答對就加一格！' : '🚢 一齊推船 · 答對就前進！';
     }
     UI.refreshSENArena(null, false);
   },
 
   refreshSENArena(pullTeam, didCorrect) {
-    if (!_isDualPlay() || !_isEasyMode()) return;
+    if (!_isEasyMode()) return;
     const arena = $('sen-arena');
     if (!arena || arena.classList.contains('hidden')) return;
+    const dual = _isDualPlay();
     const tk = Game.state.teams.knight || { correct: 0, total: 0 };
     const tm = Game.state.teams.mage || { correct: 0, total: 0 };
     const goal = Game.state.easyGoalTotal || 10;
-    const L = Game.settings.playerLabel || '左隊';
+    const L = Game.settings.playerLabel || (dual ? '左隊' : '你');
     const R = Game.settings.playerLabelRight || '右隊';
     const versus = !_isCoopTeam();
     const retro = _isRetroArena();
     const st = $('sen-arena-status');
-    const mark = versus ? (retro ? '📏' : '🪢') : (retro ? '🌉' : '🚢');
+    const mark = versus ? (retro || !dual ? '📏' : '🪢') : (retro ? '🌉' : '🚢');
 
+    // —— Solo progress paths ——
+    if (!dual) {
+      const sum = tk.correct || 0;
+      const need = Math.max(goal, 1);
+      const pct = Math.max(0, Math.min(100, Math.round((sum / need) * 100)));
+      const sm = Game.settings.soloMode === 'boat' ? 'boat'
+        : (Game.settings.soloMode === 'ruler' ? 'ruler' : 'bridge');
+      if (sm === 'ruler') {
+        const knot = $('sen-tug-knot');
+        if (knot) {
+          // 12% → 88% toward finish flag
+          const left = 12 + (pct / 100) * 76;
+          knot.style.left = left.toFixed(2) + '%';
+          if (didCorrect) {
+            _pulseEl(knot, 'pull-r', 420);
+            _pulseEl($('sen-avatar-l'), 'bounce', 420);
+          }
+        }
+        if (st) st.textContent = pct >= 100 ? '🏁 拉到終點！' : `📏 拉力 ${sum}/${need}（${pct}%）`;
+      } else if (sm === 'bridge') {
+        const planks = $('sen-bridge-planks');
+        if (planks) {
+          planks.style.width = pct + '%';
+          planks.innerHTML = _bridgePlanksHTML(Math.max(sum, pct > 0 ? Math.max(1, Math.round(pct / 8)) : 0));
+          if (didCorrect) _pulseEl(planks, 'lay', 420);
+        }
+        const fill = $('sen-bridge-fill');
+        if (fill) fill.style.width = pct + '%';
+        const bar = $('sen-bridge-bar');
+        if (bar) {
+          bar.setAttribute('aria-valuenow', String(pct));
+          bar.setAttribute('aria-valuetext', `橋進度 ${pct}%`);
+        }
+        if (didCorrect) _pulseEl($('sen-bridge-av-l'), 'bounce', 420);
+        if (st) st.textContent = pct >= 100 ? '🏡 橋連住啦！' : `🌉 鋪路 ${sum}/${need}（${pct}%）`;
+      } else {
+        const fill = $('sen-boat-fill');
+        if (fill) fill.style.width = pct + '%';
+        const bar = $('sen-boat-bar');
+        if (bar) {
+          bar.setAttribute('aria-valuenow', String(pct));
+          bar.setAttribute('aria-valuetext', `進度 ${pct}%`);
+        }
+        const ship = $('sen-boat');
+        if (ship) {
+          const left = 4 + (pct / 100) * 82;
+          ship.style.left = left.toFixed(2) + '%';
+          if (didCorrect) _pulseEl(ship, 'splash', 450);
+        }
+        if (st) st.textContent = pct >= 100 ? '🏝️ 埋岸啦！' : `🚢 前進 ${sum}/${need}（${pct}%）`;
+      }
+      return;
+    }
+
+    // —— Dual (unchanged math) ——
     if (versus) {
       const knot = $('sen-tug-knot');
       if (knot) {
         // V3.6 cycle60: 答對 → 結扯向自己（左=knight 向左；右=mage 向右）
-        // lead>0 左領先 → left% 變細；lead<0 右領先 → left% 變大
         const lead = (tk.correct || 0) - (tm.correct || 0);
         const max = Math.max(goal, 1);
         const t = Math.max(-1, Math.min(1, lead / max));
@@ -5598,7 +5712,6 @@ const UI = {
         else st.textContent = `${mark} ${R} 領先！ ${tk.correct} : ${tm.correct}`;
       }
     } else if (retro) {
-      // V3.6 cycle62: coop pixel bridge — shared progress, wrong never shrinks
       const sum = (tk.correct || 0) + (tm.correct || 0);
       const need = Math.max(goal * 2, 1);
       const pct = Math.max(0, Math.min(100, Math.round((sum / need) * 100)));
@@ -5636,7 +5749,6 @@ const UI = {
       }
       const ship = $('sen-boat');
       if (ship) {
-        // 4% → 86%
         const left = 4 + (pct / 100) * 82;
         ship.style.left = left.toFixed(2) + '%';
         if (didCorrect) _pulseEl(ship, 'splash', 450);
@@ -5988,15 +6100,30 @@ function setupMenu() {
       dualW.classList.toggle('hidden', !dual);
       dualW.classList.toggle('grid', dual);
     }
-    // V3.6 cycle63/64: dual 4-in-1 combo
+    // V3.6 cycle63/64/65: dual 4-in-1 + solo mini-games
     const dualWrap = $('dual-options-wrap');
     if (dualWrap) dualWrap.classList.toggle('hidden', !dual);
+    const soloWrap = $('solo-options-wrap');
+    if (soloWrap) soloWrap.classList.toggle('hidden', dual);
     const arenaMode = Game.settings.dualTeam === 'coop' ? 'coop' : 'versus';
     Game.settings.dualTeam = arenaMode;
-    const skinMode = Game.settings.arenaSkin === 'classic' ? 'classic' : 'retro';
-    Game.settings.arenaSkin = skinMode;
+    let skinMode = Game.settings.arenaSkin === 'classic' ? 'classic' : 'retro';
+    if (!dual) {
+      const sm = Game.settings.soloMode === 'boat' ? 'boat'
+        : (Game.settings.soloMode === 'ruler' ? 'ruler' : 'bridge');
+      Game.settings.soloMode = sm;
+      skinMode = sm === 'boat' ? 'classic' : 'retro';
+      Game.settings.arenaSkin = skinMode;
+    } else {
+      Game.settings.arenaSkin = skinMode;
+    }
     document.querySelectorAll('.opt-dual-combo').forEach(x => {
       const on = x.dataset.arena === arenaMode && x.dataset.skin === skinMode;
+      x.classList.toggle('opt-selected', on);
+      x.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+    document.querySelectorAll('.opt-solo-skin').forEach(x => {
+      const on = x.dataset.soloMode === Game.settings.soloMode;
       x.classList.toggle('opt-selected', on);
       x.setAttribute('aria-pressed', on ? 'true' : 'false');
     });
@@ -6019,13 +6146,19 @@ function setupMenu() {
     });
     const ph = $('play-helper');
     if (ph) {
-      if (!dual) ph.textContent = '單人：全屏一題，專心練習。';
-      else if (arenaMode === 'coop' && skinMode === 'retro') ph.textContent = '復古鋪路：左藍右紫同時答，答對加一格橋，兩邊各 10 題一齊過橋。';
+      if (!dual) {
+        const sm = Game.settings.soloMode;
+        if (sm === 'boat') ph.textContent = '單人推船：答對船前進，10 題埋岸。';
+        else if (sm === 'ruler') ph.textContent = '單人拉力：答對拉尺去終點，10 題完。';
+        else ph.textContent = '單人鋪路：答對加一格橋，10 題過橋。';
+      } else if (arenaMode === 'coop' && skinMode === 'retro') ph.textContent = '復古鋪路：左藍右紫同時答，答對加一格橋，兩邊各 10 題一齊過橋。';
       else if (arenaMode === 'coop') ph.textContent = '合作推船：左藍右紫同時答，答對船前進，兩邊各 10 題一齊埋島。';
       else if (skinMode === 'retro') ph.textContent = '復古扯尺：左藍右紫同時答，答對就拉尺，兩邊各 10 題比邊邊贏。';
       else ph.textContent = '對戰扯大欖：左藍右紫同時答，答對就拉繩，兩邊各 10 題比邊邊贏。';
     }
-    // V3.6 cycle64: one-line start summary
+    const bph = $('boss-play-hint');
+    if (bph) bph.textContent = dual ? '而家：👥 雙隊打王' : '而家：🧍 單人打王';
+    // V3.6 cycle64/65: one-line start summary
     const n = (Game.settings.scopes && Game.settings.scopes.length) || 4;
     const scopeNames = {
       count20: '數數', compareLength: '長短', orderAsc20: '順序', orderDesc20: '倒序'
@@ -6033,12 +6166,14 @@ function setupMenu() {
     const scopeBits = (Game.settings.scopes || []).map(id => scopeNames[id] || id).filter(Boolean);
     const scopeTxt = scopeBits.length ? scopeBits.join('+') : `${n}範疇`;
     let playTxt = '單人';
-    if (dual) {
-      if (arenaMode === 'coop' && skinMode === 'retro') playTxt = '雙隊·合作·復古橋';
-      else if (arenaMode === 'coop') playTxt = '雙隊·合作·推船';
-      else if (skinMode === 'retro') playTxt = '雙隊·對戰·復古尺';
-      else playTxt = '雙隊·對戰·扯大欖';
-    }
+    if (!dual) {
+      if (Game.settings.soloMode === 'boat') playTxt = '單人·推船';
+      else if (Game.settings.soloMode === 'ruler') playTxt = '單人·拉力尺';
+      else playTxt = '單人·鋪路';
+    } else if (arenaMode === 'coop' && skinMode === 'retro') playTxt = '雙隊·合作·復古橋';
+    else if (arenaMode === 'coop') playTxt = '雙隊·合作·推船';
+    else if (skinMode === 'retro') playTxt = '雙隊·對戰·復古尺';
+    else playTxt = '雙隊·對戰·扯大欖';
     const summary = `${playTxt} · ${scopeTxt} · ${dual ? '各 10 題' : '10 題'}`;
     const sub = $('easy-start-sub');
     if (sub) sub.textContent = summary;
@@ -6096,6 +6231,26 @@ function setupMenu() {
       syncPlayLayoutUI();
     };
   });
+  // V3.6 cycle65: solo mini-game skin
+  document.querySelectorAll('.opt-solo-skin').forEach(b => {
+    b.onclick = () => {
+      const sm = b.dataset.soloMode === 'boat' ? 'boat'
+        : (b.dataset.soloMode === 'ruler' ? 'ruler' : 'bridge');
+      Game.settings.soloMode = sm;
+      Game.settings.arenaSkin = sm === 'boat' ? 'classic' : 'retro';
+      try {
+        localStorage.setItem('mg2.soloMode', sm);
+        localStorage.setItem('mg2.arenaSkin', Game.settings.arenaSkin);
+      } catch (_) {}
+      syncPlayLayoutUI();
+    };
+  });
+  try {
+    const savedSolo = localStorage.getItem('mg2.soloMode');
+    if (savedSolo === 'boat' || savedSolo === 'bridge' || savedSolo === 'ruler') {
+      Game.settings.soloMode = savedSolo;
+    }
+  } catch (_) {}
   // legacy hidden pickers still clickable for tests / a11y hooks
   document.querySelectorAll('.opt-arena').forEach(b => {
     b.onclick = () => {
@@ -6700,18 +6855,22 @@ function startGame() {
     const ql = $(`${tm}-q-label`);
     if (ql) ql.classList.toggle('hidden', isEasy);
   });
-  // V3.6-SEN: easy mode shows only active team card (single-team focus for SEN)
+  // V3.6-SEN: card visibility
+  // easy dual = both panels; easy solo = knight; boss solo = knight only; boss dual = both
+  const dualPlay = Game.settings.playLayout === 'dual';
   if (isEasy) {
     const activeTeam = Game.state.currentTeam;
     ['knight', 'mage'].forEach(tm => {
       const card = $(`${tm}-card`);
-      if (card) card.classList.toggle('hidden', tm !== activeTeam);
+      if (!card) return;
+      if (!dualPlay) card.classList.toggle('hidden', tm !== 'knight');
+      else card.classList.toggle('hidden', tm !== activeTeam);
     });
   } else {
-    // Normal mode: show both
+    // Boss campaign: solo hides mage board
     ['knight', 'mage'].forEach(tm => {
       const card = $(`${tm}-card`);
-      if (card) card.classList.remove('hidden');
+      if (card) card.classList.toggle('hidden', !dualPlay && tm === 'mage');
     });
   }
   // 重設 adaptive
@@ -6720,14 +6879,22 @@ function startGame() {
   Game.state.easyGoalTotal = isEasy ? 10 : 0;
   Game.state._easyEnding = false;
   Game.state._easyTeamDone = { knight: false, mage: false };
-  // V3.6 cycle47/64: dual keeps user team pick (versus=扯大欖 / coop=推船) via dualTeam
-  // solo practice ignores team combat semantics
+  // V3.6 cycle47/64/65: dual keeps user team pick (versus=扯大欖 / coop=推船) via dualTeam
+  // solo classroom applies soloMode → team/skin for mini-games
   if (isEasy && Game.settings.playLayout !== 'dual') {
-    Game.settings.team = 'coop';
+    const sm = Game.settings.soloMode === 'boat' ? 'boat'
+      : (Game.settings.soloMode === 'ruler' ? 'ruler' : 'bridge');
+    Game.settings.soloMode = sm;
+    if (sm === 'boat') { Game.settings.team = 'coop'; Game.settings.arenaSkin = 'classic'; }
+    else if (sm === 'ruler') { Game.settings.team = 'versus'; Game.settings.arenaSkin = 'retro'; }
+    else { Game.settings.team = 'coop'; Game.settings.arenaSkin = 'retro'; }
   } else if (isEasy && Game.settings.playLayout === 'dual') {
     const arena = Game.settings.dualTeam === 'coop' ? 'coop' : 'versus';
     Game.settings.dualTeam = arena;
     Game.settings.team = (arena === 'coop') ? 'coop' : 'versus';
+  } else if (!isEasy && Game.settings.playLayout !== 'dual') {
+    // Boss solo: single hero — coop damage path is fine
+    Game.settings.team = 'coop';
   }
   if (Game.settings.win === 'time') {
     const m = clamp(parseInt($('time-input').value, 10) || 5, 1, 15);
@@ -6781,7 +6948,8 @@ function startGame() {
     if (Game.settings.playLayout === 'dual') nextQuestion('mage');
   } else {
     nextQuestion('knight');
-    nextQuestion('mage');
+    // V3.6 cycle65: boss dual only — solo 唔開右隊題
+    if (Game.settings.playLayout === 'dual') nextQuestion('mage');
   }
   UI.renderReview();
 

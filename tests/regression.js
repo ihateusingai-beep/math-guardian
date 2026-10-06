@@ -1415,6 +1415,23 @@ assert('POLISH64-06 combo click sets dualTeam+skin',
   /opt-dual-combo[\s\S]{0,400}dualTeam/.test(src) &&
   /opt-dual-combo[\s\S]{0,500}arenaSkin/.test(src));
 
+// V3.6 cycle65: solo mini-games + solo boss
+console.log('\n[T50] V3.6 audit cycle-65 (solo games + boss)');
+assert('SOLO-01 solo-options-wrap boat/bridge/ruler',
+  /id="solo-options-wrap"/.test(src) && /opt-solo-skin/.test(src) &&
+  /data-solo-mode="boat"/.test(src) && /data-solo-mode="bridge"/.test(src) &&
+  /data-solo-mode="ruler"/.test(src));
+assert('SOLO-02 soloMode setting + storage',
+  /soloMode:\s*'bridge'/.test(src) && /mg2\.soloMode/.test(src));
+assert('SOLO-03 arena shows for easy solo',
+  /show = isEasy/.test(src) && /Solo progress paths/.test(src));
+assert('SOLO-04 boss solo skips mage nextQuestion',
+  /cycle65: boss dual only[\s\S]{0,120}playLayout === 'dual'[\s\S]{0,40}nextQuestion\('mage'\)/.test(src));
+assert('SOLO-05 boss play hint',
+  /id="boss-play-hint"/.test(src) && /單人打王/.test(src));
+assert('SOLO-06 has-arena true for easy',
+  /has-arena', true/.test(src) || /has-arena', true\)/.test(src));
+
 // =========== summary ===========
 console.log(`\n========== ${pass} pass / ${fail} fail ==========`);
 if (fail > 0) {
