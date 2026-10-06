@@ -1564,6 +1564,25 @@
     box-shadow: 0 2px 0 rgba(0,0,0,.25);
   }
   .sen-opt-val { line-height: 1.1; }
+  .sen-opt-val.lbl-tone-yellow,
+  .option-btn.lbl-tone-yellow { color: #facc15 !important; text-shadow: 0 1px 0 #000, 0 0 10px rgba(250,204,21,0.35); font-weight: 900; }
+  .sen-opt-val.lbl-tone-purple,
+  .option-btn.lbl-tone-purple { color: #e9d5ff !important; text-shadow: 0 1px 0 #000, 0 0 10px rgba(192,132,252,0.4); font-weight: 900; }
+  .sen-opt-val.lbl-tone-blue,
+  .option-btn.lbl-tone-blue { color: #7dd3fc !important; text-shadow: 0 1px 0 #000, 0 0 10px rgba(56,189,248,0.35); font-weight: 900; }
+  .sen-opt-val.lbl-tone-red,
+  .option-btn.lbl-tone-red { color: #fca5a5 !important; text-shadow: 0 1px 0 #000, 0 0 10px rgba(248,113,113,0.35); font-weight: 900; }
+  .sen-opt-val.lbl-tone-green,
+  .option-btn.lbl-tone-green { color: #86efac !important; text-shadow: 0 1px 0 #000, 0 0 10px rgba(74,222,128,0.35); font-weight: 900; }
+  .sen-opt-val.lbl-tone-orange,
+  .option-btn.lbl-tone-orange { color: #fdba74 !important; text-shadow: 0 1px 0 #000, 0 0 10px rgba(251,146,60,0.35); font-weight: 900; }
+  /* color syllables inside label get extra punch */
+  .lbl-c-yellow { color: #facc15; }
+  .lbl-c-purple { color: #e9d5ff; }
+  .lbl-c-blue { color: #7dd3fc; }
+  .lbl-c-red { color: #fca5a5; }
+  .lbl-c-green { color: #86efac; }
+  .lbl-c-orange { color: #fdba74; }
   .sen-hint-line {
     margin-top: 1rem;
     font-size: 1.75rem;
@@ -3233,6 +3252,52 @@ function _lengthBarsHTML(ex) {
   };
 }
 
+/** V3.6 cycle68: color-word labels for low-literacy (黃魚→黃字黃色) */
+function _labelColorTone(text) {
+  const t = String(text || '');
+  if (/黃|黄/.test(t)) return 'yellow';
+  if (/紫/.test(t)) return 'purple';
+  if (/藍|蓝/.test(t)) return 'blue';
+  if (/紅|红/.test(t)) return 'red';
+  if (/綠|绿/.test(t)) return 'green';
+  if (/橙/.test(t)) return 'orange';
+  return '';
+}
+function _colorizeLabelHTML(text) {
+  const raw = String(text == null ? '' : text);
+  // escape then wrap color syllables
+  const esc = (typeof escapeHTML === 'function')
+    ? escapeHTML(raw)
+    : raw.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  return esc
+    .replace(/黃|黄/g, '<span class="lbl-c-yellow">$&</span>')
+    .replace(/紫/g, '<span class="lbl-c-purple">$&</span>')
+    .replace(/藍|蓝/g, '<span class="lbl-c-blue">$&</span>')
+    .replace(/紅|红/g, '<span class="lbl-c-red">$&</span>')
+    .replace(/綠|绿/g, '<span class="lbl-c-green">$&</span>')
+    .replace(/橙/g, '<span class="lbl-c-orange">$&</span>');
+}
+function _paintOptionLabel(el, text, { asButton = false } = {}) {
+  if (!el) return;
+  const val = String(text == null ? '' : text);
+  const tone = _labelColorTone(val);
+  // clear prior tones
+  el.classList.forEach?.(cls => {
+    if (String(cls).startsWith('lbl-tone-')) el.classList.remove(cls);
+  });
+  // classList.forEach may not exist on older — manual strip
+  ['yellow', 'purple', 'blue', 'red', 'green', 'orange'].forEach(t => {
+    el.classList.remove('lbl-tone-' + t);
+  });
+  if (tone) {
+    el.classList.add('lbl-tone-' + tone);
+    // whole label tinted + color chars emphasized
+    el.innerHTML = _colorizeLabelHTML(val);
+  } else {
+    el.textContent = val;
+  }
+}
+
 /** Shared MC choice grid (normal difficulty option-btn path) */
 function _appendChoiceGrid(area, q, team, gridClass) {
   const opts = q.options || [q.answer];
@@ -3244,13 +3309,9 @@ function _appendChoiceGrid(area, q, team, gridClass) {
   opts.forEach(opt => {
     const b = document.createElement('button');
     b.className = 'option-btn';
-    if (optLabels && optLabels[opt] !== undefined) {
-      b.textContent = optLabels[opt];
-      b.setAttribute('aria-label', optLabels[opt]);
-    } else {
-      b.textContent = String(opt);
-      b.setAttribute('aria-label', `答案 ${opt}`);
-    }
+    const label = (optLabels && optLabels[opt] !== undefined) ? String(optLabels[opt]) : String(opt);
+    _paintOptionLabel(b, label, { asButton: true });
+    b.setAttribute('aria-label', label);
     b.onclick = () => Game.handleAnswer(team, opt, b);
     grid.appendChild(b);
   });
@@ -5147,7 +5208,8 @@ const QuestionRenderer = {
     hourOpts.forEach(h => {
       const b = document.createElement('button');
       b.className = 'option-btn';
-      b.textContent = (labels && labels[h] !== undefined) ? labels[h] : (h + ' 點');
+      const lab = (labels && labels[h] !== undefined) ? labels[h] : (h + ' 點');
+      _paintOptionLabel(b, lab, { asButton: true });
       b.onclick = () => Game.handleAnswer(team, h, b);
       grid.appendChild(b);
     });
@@ -5179,7 +5241,7 @@ const QuestionRenderer = {
     q.options.forEach(opt => {
       const b = document.createElement('button');
       b.className = 'option-btn';
-      b.textContent = labelMap[opt] || opt;
+      _paintOptionLabel(b, labelMap[opt] || opt, { asButton: true });
       b.onclick = () => Game.handleAnswer(team, opt, b);
       grid.appendChild(b);
     });
@@ -5970,7 +6032,8 @@ const UI = {
       const letter = LETTERS[idx] || String(idx + 1);
       const val = (labels && labels[opt] !== undefined) ? String(labels[opt]) : String(opt);
       b.innerHTML = `<span class="sen-opt-letter" aria-hidden="true">${letter}</span><span class="sen-opt-val"></span>`;
-      b.querySelector('.sen-opt-val').textContent = val;
+      const valEl = b.querySelector('.sen-opt-val');
+      _paintOptionLabel(valEl, val);
       b.setAttribute('aria-label', `${letter}. ${val}`);
       b.dataset.letter = letter;
       b.onclick = () => { Game.handleAnswer(t, opt, b); };

@@ -1474,6 +1474,22 @@ assert('UI67-06 track class solid / boss outline CSS',
 assert('UI67-07 class-start-summary kept (sr-only ok)',
   /id="class-start-summary"/.test(src));
 
+// V3.6 cycle68: color-word option labels
+console.log('\n[T53] V3.6 audit cycle-68 (color labels)');
+assert('CLR-01 helpers present',
+  /function _labelColorTone/.test(src) &&
+  /function _colorizeLabelHTML/.test(src) &&
+  /function _paintOptionLabel/.test(src));
+assert('CLR-02 yellow/purple CSS tones',
+  /lbl-tone-yellow/.test(src) && /lbl-tone-purple/.test(src) &&
+  /lbl-c-yellow/.test(src) && /lbl-c-purple/.test(src));
+assert('CLR-03 SEN opts use paint',
+  /_paintOptionLabel\(valEl/.test(src));
+assert('CLR-04 choice grid uses paint',
+  /_paintOptionLabel\(b, label/.test(src));
+assert('CLR-05 length labels still 黃魚/紫筆',
+  /'1': '黃魚'/.test(src) && /'1': '黃筆'/.test(src));
+
 // =========== summary ===========
 console.log(`\n========== ${pass} pass / ${fail} fail ==========`);
 if (fail > 0) {
