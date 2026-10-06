@@ -1490,6 +1490,22 @@ assert('CLR-04 choice grid uses paint',
 assert('CLR-05 length labels still 黃魚/紫筆',
   /'1': '黃魚'/.test(src) && /'1': '黃筆'/.test(src));
 
+// V3.6 cycle69: immersive boss combat
+console.log('\n[T54] V3.6 audit cycle-69 (boss immersion)');
+assert('BOSSFX-01 stage + aura',
+  /boss-stage/.test(src) && /boss-aura/.test(src) && /boss-combat-hint/.test(src));
+assert('BOSSFX-02 slash/float/ring helpers',
+  /slashToBoss/.test(src) && /floatDamage/.test(src) && /impactRing/.test(src) &&
+  /bossArenaPulse/.test(src) && /screenHitFlash/.test(src));
+assert('BOSSFX-03 attack sting audio',
+  /attackSting:/.test(src) && /Audio\.attackSting/.test(src));
+assert('BOSSFX-04 correct uses slash then damage',
+  /slashToBoss\(team[\s\S]{0,80}damageBoss/.test(src));
+assert('BOSSFX-05 boss-hit-punch CSS',
+  /boss-hit-punch/.test(src) && /fx-float-dmg/.test(src) && /fx-slash/.test(src));
+assert('BOSSFX-06 damageBoss float + ring',
+  /floatDamage\(dmg/.test(src) && /impactRing\(cx/.test(src));
+
 // =========== summary ===========
 console.log(`\n========== ${pass} pass / ${fail} fail ==========`);
 if (fail > 0) {

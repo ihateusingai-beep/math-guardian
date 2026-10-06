@@ -1363,9 +1363,139 @@
     backdrop-filter: blur(4px);
   }
 
-  /* Subtle boss hit flash */
+  /* Subtle boss hit flash + cycle69 immersive combat */
   .boss-hit-flash {
-    animation: flash-wrong 0.5s;
+    animation: boss-hit-punch 0.55s ease-out;
+  }
+  @keyframes boss-hit-punch {
+    0% { filter: drop-shadow(0 0 0 transparent) brightness(1); transform: scale(1) rotate(0); }
+    20% { filter: drop-shadow(0 0 22px #ef4444) brightness(1.8); transform: scale(1.18) rotate(-4deg); }
+    45% { filter: drop-shadow(0 0 14px #fbbf24) brightness(1.35); transform: scale(0.92) rotate(3deg); }
+    100% { filter: drop-shadow(0 6px 12px rgba(220,38,38,0.4)) brightness(1); transform: scale(1) rotate(0); }
+  }
+  .boss-svg {
+    width: clamp(88px, 18vw, 128px);
+    height: clamp(88px, 18vw, 128px);
+    filter: drop-shadow(0 8px 18px rgba(220,38,38,0.55));
+    transition: filter .35s;
+    position: relative;
+    z-index: 2;
+  }
+  .boss-svg.enraged { filter: drop-shadow(0 0 18px #ef4444) hue-rotate(-15deg) saturate(1.6); }
+  .boss-svg.frozen  { filter: drop-shadow(0 0 18px #67e8f9) hue-rotate(180deg) brightness(0.95); }
+  #boss-panel {
+    border: 1px solid rgba(251,191,36,0.28) !important;
+    background:
+      radial-gradient(ellipse 80% 70% at 18% 55%, rgba(220,38,38,0.22), transparent 55%),
+      radial-gradient(ellipse 60% 50% at 85% 30%, rgba(168,85,247,0.12), transparent 50%),
+      linear-gradient(180deg, rgba(15,23,42,0.55), rgba(0,0,0,0.45)) !important;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06), 0 12px 40px rgba(0,0,0,0.35);
+  }
+  #boss-panel.boss-arena-pulse {
+    animation: boss-arena-pulse 0.55s ease-out;
+  }
+  @keyframes boss-arena-pulse {
+    0% { box-shadow: inset 0 0 0 2px rgba(251,191,36,0.15), 0 0 0 0 rgba(239,68,68,0); }
+    30% { box-shadow: inset 0 0 40px rgba(239,68,68,0.35), 0 0 28px rgba(251,191,36,0.45); }
+    100% { box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06), 0 12px 40px rgba(0,0,0,0.35); }
+  }
+  .boss-stage {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: clamp(96px, 20vw, 140px);
+    height: clamp(96px, 20vw, 140px);
+    flex-shrink: 0;
+  }
+  .boss-aura {
+    position: absolute;
+    inset: 8%;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(239,68,68,0.35), transparent 70%);
+    animation: boss-aura-spin 3.2s linear infinite;
+    pointer-events: none;
+    z-index: 0;
+  }
+  @keyframes boss-aura-spin {
+    0% { transform: scale(1) rotate(0deg); opacity: 0.7; }
+    50% { transform: scale(1.12) rotate(180deg); opacity: 1; }
+    100% { transform: scale(1) rotate(360deg); opacity: 0.7; }
+  }
+  .boss-floor {
+    position: absolute;
+    left: 10%; right: 10%; bottom: 6%;
+    height: 14%;
+    border-radius: 50%;
+    background: radial-gradient(ellipse, rgba(0,0,0,0.55), transparent 70%);
+    z-index: 0;
+  }
+  .fx-slash {
+    position: fixed;
+    pointer-events: none;
+    z-index: 65;
+    width: 56px; height: 56px;
+    font-size: 42px;
+    line-height: 1;
+    filter: drop-shadow(0 0 12px #fbbf24);
+    transition: left 0.38s cubic-bezier(0.2,0.8,0.2,1), top 0.38s cubic-bezier(0.2,0.8,0.2,1), opacity 0.38s, transform 0.38s;
+    opacity: 1;
+    transform: scale(1) rotate(-20deg);
+  }
+  .fx-slash.impact {
+    opacity: 0;
+    transform: scale(1.6) rotate(25deg);
+  }
+  .fx-float-dmg {
+    position: fixed;
+    pointer-events: none;
+    z-index: 68;
+    font-weight: 900;
+    font-size: clamp(1.4rem, 4vw, 2.2rem);
+    color: #fef08a;
+    text-shadow: 0 2px 0 #7f1d1d, 0 0 14px #ef4444, 2px 2px 0 #000;
+    animation: float-dmg 0.95s ease-out forwards;
+  }
+  @keyframes float-dmg {
+    0% { opacity: 0; transform: translate(-50%, 0) scale(0.6); }
+    15% { opacity: 1; transform: translate(-50%, -8px) scale(1.15); }
+    100% { opacity: 0; transform: translate(-50%, -72px) scale(1); }
+  }
+  .fx-impact-ring {
+    position: fixed;
+    pointer-events: none;
+    z-index: 62;
+    width: 24px; height: 24px;
+    margin-left: -12px; margin-top: -12px;
+    border-radius: 50%;
+    border: 3px solid #fde68a;
+    box-shadow: 0 0 18px #ef4444, inset 0 0 12px #fbbf24;
+    animation: impact-ring 0.55s ease-out forwards;
+  }
+  @keyframes impact-ring {
+    0% { transform: scale(0.3); opacity: 1; }
+    100% { transform: scale(4.2); opacity: 0; }
+  }
+  .fx-screen-hit {
+    position: fixed; inset: 0; pointer-events: none; z-index: 58;
+    background: radial-gradient(ellipse at center, transparent 40%, rgba(239,68,68,0.28) 100%);
+    animation: screen-hit-fade 0.35s ease-out forwards;
+  }
+  @keyframes screen-hit-fade {
+    0% { opacity: 0.9; }
+    100% { opacity: 0; }
+  }
+  #boss-hp-fill.hp-boss {
+    background: linear-gradient(90deg, #7f1d1d, #ef4444 40%, #fbbf24) !important;
+    box-shadow: 0 0 12px rgba(239,68,68,0.55);
+    transition: width 0.35s ease-out;
+  }
+  .boss-name-glow {
+    text-shadow: 0 0 12px rgba(251,191,36,0.45), 0 2px 0 #000;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .boss-aura, .fx-slash, .fx-float-dmg, .fx-impact-ring, .fx-screen-hit,
+    .boss-hit-flash, #boss-panel.boss-arena-pulse { animation: none !important; transition: none !important; }
   }
 
   /* Pause overlay */
@@ -1389,14 +1519,10 @@
     image-rendering: crisp-edges;
   }
   .pixel-icon { display: inline-block; vertical-align: middle; }
-  /* boss pixel art 容器 */
-  .boss-svg {
-    width: 72px; height: 72px;
-    filter: drop-shadow(0 6px 12px rgba(220,38,38,0.4));
-    transition: filter .4s;
-  }
-  .boss-svg.enraged { filter: drop-shadow(0 0 12px #ef4444) hue-rotate(-15deg) saturate(1.5); }
-  .boss-svg.frozen  { filter: drop-shadow(0 0 14px #67e8f9) hue-rotate(180deg) brightness(0.95); }
+  /* boss pixel art 容器 — size/filter overridden in cycle69 immersive block */
+  .boss-svg { transition: filter .35s; }
+  .boss-svg.enraged { filter: drop-shadow(0 0 18px #ef4444) hue-rotate(-15deg) saturate(1.6); }
+  .boss-svg.frozen  { filter: drop-shadow(0 0 18px #67e8f9) hue-rotate(180deg) brightness(0.95); }
   @keyframes troll-idle {
     0%,100% { transform: translateY(0); }
     50%     { transform: translateY(-3px); }
@@ -2524,24 +2650,28 @@
       </div>
     </header>
 
-    <!-- Boss 區 (V3.6-SEN: hidden in easy mode) -->
+    <!-- Boss 區 (V3.6-SEN: hidden in easy mode) · cycle69 immersive stage -->
     <div id="boss-panel" class="relative bg-black/30 border border-white/10 rounded-3xl p-3 md:p-4 shadow-2xl overflow-hidden">
-      <div class="flex items-center gap-3 mb-2">
-        <!-- P2-2: AI generated hero portrait (替補小 pixel sprite) -->
+      <div class="flex items-center gap-3 md:gap-4 mb-1">
         <img id="boss-hero-portrait" class="hidden" style="width:64px;height:64px;object-fit:contain;image-rendering:pixelated;flex-shrink:0;" alt="">
-        <div id="boss-icon" class="boss-svg troll-idle" role="img" aria-label="森林巨魔">
-          <svg class="pixel w-full h-full"><use id="boss-svg-use" href="#px-troll"/></svg>
-        </div>
-        <div class="flex-1">
-          <div class="flex justify-between items-baseline">
-            <h2 class="font-bold text-lg" id="boss-name-label">👹 森林巨魔 · Forest Troll</h2>
-            <span id="boss-status" class="text-xs px-2 py-0.5 rounded-full bg-green-500/20 text-green-300">正常</span>
+        <div class="boss-stage" aria-hidden="true">
+          <div class="boss-aura"></div>
+          <div class="boss-floor"></div>
+          <div id="boss-icon" class="boss-svg troll-idle" role="img" aria-label="森林巨魔">
+            <svg class="pixel w-full h-full"><use id="boss-svg-use" href="#px-troll"/></svg>
           </div>
-          <div class="track mt-1" role="progressbar" aria-label="Boss 生命值" aria-valuemin="0" aria-valuemax="200" aria-valuenow="200" aria-valuetext="Boss 滿血 200 / 200" id="boss-hp-track"><div id="boss-hp-fill" class="fill hp-boss" style="width:100%"></div></div>
-          <div class="flex justify-between text-xs text-white/60 mt-1">
-            <span>HP <span id="boss-hp-text">200</span>/<span id="boss-hp-max">200</span></span>
+        </div>
+        <div class="flex-1 min-w-0">
+          <div class="flex justify-between items-baseline gap-2">
+            <h2 class="font-bold text-lg md:text-xl boss-name-glow truncate" id="boss-name-label">👹 森林巨魔 · Forest Troll</h2>
+            <span id="boss-status" class="text-xs px-2 py-0.5 rounded-full bg-green-500/20 text-green-300 shrink-0">正常</span>
+          </div>
+          <div class="track mt-2" role="progressbar" aria-label="Boss 生命值" aria-valuemin="0" aria-valuemax="200" aria-valuenow="200" aria-valuetext="Boss 滿血 200 / 200" id="boss-hp-track"><div id="boss-hp-fill" class="fill hp-boss" style="width:100%"></div></div>
+          <div class="flex justify-between text-xs text-white/70 mt-1">
+            <span>HP <span id="boss-hp-text" class="text-amber-200 font-extrabold">200</span>/<span id="boss-hp-max">200</span></span>
             <span id="boss-threshold-info"></span>
           </div>
+          <div id="boss-combat-hint" class="text-[11px] text-amber-100/70 mt-1 font-bold">答啱 → ⚔️ 攻擊 Boss！</div>
         </div>
       </div>
     </div>
@@ -3419,14 +3549,28 @@ const Audio = (() => {
       tone(220, 0.16, 'sawtooth', 0.18, 110, 0.16);
       tone(180, 0.20, 'square', 0.16, 90, 0.20);
     },
-    attack:  () => { // 角色攻擊擊中 boss
-      tone(120, 0.06, 'square', 0.16, 800, 0.06); // 火球嗖
-      setTimeout(() => tone(80, 0.10, 'square', 0.16), 30); // impact
-      setTimeout(() => noise(0.08, 0.10, 600), 50); // 撞 hiss
+    attack:  () => { // 角色攻擊擊中 boss · cycle69 punchier
+      tone(140, 0.05, 'square', 0.18, 920, 0.05);
+      setTimeout(() => tone(90, 0.12, 'square', 0.2), 28);
+      setTimeout(() => noise(0.09, 0.12, 700), 45);
+      // short attack sting (mini BGM)
+      setTimeout(() => {
+        tone(392, 0.07, 'square', 0.1);
+        setTimeout(() => tone(523, 0.08, 'square', 0.11), 55);
+        setTimeout(() => tone(659, 0.12, 'square', 0.12), 110);
+      }, 70);
     },
-    bossHit: () => { // boss 受傷
-      tone(180, 0.18, 'square', 0.2, 90, 0.18); // 低沉轟
-      noise(0.10, 0.18, 400);                   // 撞 noise
+    bossHit: () => { // boss 受傷 · cycle69 heavier
+      tone(160, 0.16, 'square', 0.22, 70, 0.16);
+      noise(0.12, 0.2, 350);
+      setTimeout(() => tone(98, 0.2, 'sawtooth', 0.14, 55, 0.2), 40);
+      setTimeout(() => { tone(220, 0.08, 'triangle', 0.08); tone(330, 0.1, 'triangle', 0.06); }, 90);
+    },
+    attackSting: () => { // cycle69: 答對攻擊 fanfare 短句
+      tone(262, 0.06, 'square', 0.1);
+      setTimeout(() => tone(330, 0.06, 'square', 0.1), 50);
+      setTimeout(() => tone(392, 0.06, 'square', 0.11), 100);
+      setTimeout(() => tone(523, 0.14, 'square', 0.13), 150);
     },
     bossEnraged: () => { // boss 狂暴吼叫
       tone(110, 0.4, 'sawtooth', 0.18, 73, 0.4); // 下滑吼
@@ -3806,7 +3950,71 @@ const FX = {
     el.classList.remove('boss-hit-flash');
     void el.offsetWidth;
     el.classList.add('boss-hit-flash');
-    setTimeout(() => el.classList.remove('boss-hit-flash'), 500);
+    setTimeout(() => el.classList.remove('boss-hit-flash'), 550);
+  },
+  // V3.6 cycle69: projectile slash from team card → boss
+  slashToBoss(team, onImpact) {
+    const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const boss = $('boss-icon');
+    if (!boss) { if (onImpact) onImpact(); return; }
+    const b = boss.getBoundingClientRect();
+    const bx = b.left + b.width / 2;
+    const by = b.top + b.height / 2;
+    if (reduce) { if (onImpact) onImpact(); return; }
+    const card = $(`${team}-card`) || $(`${team}-active-badge`);
+    let sx = window.innerWidth * (team === 'mage' ? 0.72 : 0.28);
+    let sy = window.innerHeight * 0.62;
+    if (card) {
+      const r = card.getBoundingClientRect();
+      sx = r.left + r.width / 2;
+      sy = r.top + Math.min(r.height * 0.35, 80);
+    }
+    const slash = document.createElement('div');
+    slash.className = 'fx-slash';
+    slash.textContent = team === 'mage' ? '✨' : '⚔️';
+    slash.style.left = (sx - 28) + 'px';
+    slash.style.top = (sy - 28) + 'px';
+    document.body.appendChild(slash);
+    requestAnimationFrame(() => {
+      slash.style.left = (bx - 28) + 'px';
+      slash.style.top = (by - 28) + 'px';
+      slash.classList.add('impact');
+    });
+    setTimeout(() => {
+      slash.remove();
+      if (onImpact) onImpact();
+    }, 400);
+  },
+  floatDamage(amount, x, y) {
+    const el = document.createElement('div');
+    el.className = 'fx-float-dmg';
+    el.textContent = `-${amount}`;
+    el.style.left = x + 'px';
+    el.style.top = y + 'px';
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 1000);
+  },
+  impactRing(x, y) {
+    const el = document.createElement('div');
+    el.className = 'fx-impact-ring';
+    el.style.left = x + 'px';
+    el.style.top = y + 'px';
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 560);
+  },
+  screenHitFlash() {
+    const el = document.createElement('div');
+    el.className = 'fx-screen-hit';
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 360);
+  },
+  bossArenaPulse() {
+    const p = $('boss-panel');
+    if (!p) return;
+    p.classList.remove('boss-arena-pulse');
+    void p.offsetWidth;
+    p.classList.add('boss-arena-pulse');
+    setTimeout(() => p.classList.remove('boss-arena-pulse'), 560);
   },
 };
 
@@ -7393,17 +7601,23 @@ function _applyCorrectEffects(team, q, btn, prevRagePct) {
   t.energy = Math.min(100, t.energy + randInt(8, 14));
   if (Math.random() < 0.3) t.ultCharge = Math.min(2, t.ultCharge + 1);
   charAnimate(team, 'attacking');
+  // V3.6 cycle69: attack sting + projectile then damage
   Audio.attack();
-  setTimeout(() => Audio.correct(), 120);
-  setTimeout(() => Audio.energyTick(), 200);
-  FX.screenAlert(`+${team === 'knight' ? '騎士' : '法師'}命中！${Compliment.pick('correct')}`, '#22c55e');
+  if (Audio.attackSting) Audio.attackSting();
+  setTimeout(() => Audio.correct(), 140);
+  setTimeout(() => Audio.energyTick(), 220);
+  const dmg = 15 + Math.floor(Math.random() * 6);
+  FX.screenAlert(`⚔️ ${team === 'knight' ? '騎士' : '法師'}攻擊！${Compliment.pick('correct')}`, '#22c55e');
   highlightBtn(btn, true);
-  damageBoss(15 + Math.floor(Math.random() * 6));
-  // threshold 跨越觸發
-  const newRagePct = s_prevRagePct();
-  const wasAbove = prevRagePct > Game.state.bossRageThreshold * 100;
-  const nowAbove = newRagePct > Game.state.bossRageThreshold * 100;
-  if (wasAbove !== nowAbove && !Game.state.bossFrostTicks) Audio.hpTick();
+  const rageBefore = prevRagePct;
+  FX.slashToBoss(team, () => {
+    damageBoss(dmg);
+    // threshold 跨越觸發（等 HP 實際扣減後）
+    const newRagePct = s_prevRagePct();
+    const wasAbove = rageBefore > Game.state.bossRageThreshold * 100;
+    const nowAbove = newRagePct > Game.state.bossRageThreshold * 100;
+    if (wasAbove !== nowAbove && !Game.state.bossFrostTicks) Audio.hpTick();
+  });
   Adaptive.onCorrect(team, q.type);   // P1-B
   announceToA11y(`${TEAM_META[team].name} 答啱喇！對 boss 造成傷害。`);
 }
@@ -7528,19 +7742,22 @@ Game.askReReview = function(idx) {
 
 function damageBoss(amount) {
   const s = Game.state;
-  s.bossHp = Math.max(0, s.bossHp - amount);
+  const dmg = Math.max(1, Math.floor(amount));
+  s.bossHp = Math.max(0, s.bossHp - dmg);
   Audio.bossHit();
-  FX.hitFlash($('boss-icon'));
-  FX.shake($('boss-icon'), 'anim-shake');
-  FX.burst(
-    ($('boss-icon').getBoundingClientRect().left + 30),
-    ($('boss-icon').getBoundingClientRect().top + 30),
-    12,
-    ['#fde68a', '#fb923c', '#ef4444']
-  );
-    // V3.4-UI2: 大爆發 confetti (28 particles,
-  const bRect = $('boss-icon').getBoundingClientRect();
-  FX.confetti(bRect.left + bRect.width / 2, bRect.top + bRect.height / 2, 28);
+  const icon = $('boss-icon');
+  const bRect = icon ? icon.getBoundingClientRect() : { left: window.innerWidth/2, top: 120, width: 80, height: 80 };
+  const cx = bRect.left + bRect.width / 2;
+  const cy = bRect.top + bRect.height / 2;
+  FX.hitFlash(icon);
+  FX.shake(icon, 'anim-shake');
+  FX.impactRing(cx, cy);
+  FX.floatDamage(dmg, cx, cy - 10);
+  FX.screenHitFlash();
+  FX.bossArenaPulse();
+  FX.burst(cx, cy, 18, ['#fde68a', '#fb923c', '#ef4444', '#fef08a']);
+  // V3.4-UI2: confetti on big hits
+  FX.confetti(cx, cy, dmg >= 18 ? 32 : 18);
   UI.updateBoss();
   Snapshot.schedule('boss-hit');     // P1-A
   if (s.bossHp <= 0) endGame(true);
