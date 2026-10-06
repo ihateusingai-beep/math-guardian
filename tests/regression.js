@@ -1432,6 +1432,23 @@ assert('SOLO-05 boss play hint',
 assert('SOLO-06 has-arena true for easy',
   /has-arena', true/.test(src) || /has-arena', true\)/.test(src));
 
+// V3.6 cycle66: bugfix — boss blank / resume solo / unlock
+console.log('\n[T51] V3.6 audit cycle-66 (boss integrity fixes)');
+assert('BUG66-01 btn-start forces difficulty normal',
+  /btn-start[\s\S]{0,500}difficulty = 'normal'/.test(src));
+assert('BUG66-02 startGame ensures Bosses.current when !easy',
+  /cycle66: boss campaign must have a selected boss/.test(src) &&
+  /if \(!isEasy\)[\s\S]{0,300}Bosses\.current/.test(src));
+assert('BUG66-03 resume boss solo-aware',
+  /cycle66: resume boss[\s\S]{0,120}showQuestion\('knight'\)[\s\S]{0,80}playLayout === 'dual'/.test(src));
+assert('BUG66-04 unlockedBosses never empty',
+  /unlockedBosses\.length === 0/.test(src) &&
+  /includes\('forest-troll'\)/.test(src));
+assert('BUG66-05 opt-team does not write dualArena',
+  /Boss「打怪方式」唔寫入 dualArena/.test(src));
+assert('BUG66-06 Profile.load re-renderBossSelect',
+  /after Profile\.load[\s\S]{0,400}renderBossSelect/.test(src));
+
 // =========== summary ===========
 console.log(`\n========== ${pass} pass / ${fail} fail ==========`);
 if (fail > 0) {

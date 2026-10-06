@@ -6606,10 +6606,7 @@ function setupMenu() {
       b.classList.add('opt-selected');
       b.setAttribute('aria-pressed', 'true');
       Game.settings.team = b.dataset.team;
-      // dual arena picker stays in sync + persist
-      if (Game.settings.playLayout === 'dual' && (b.dataset.team === 'coop' || b.dataset.team === 'versus')) {
-        try { localStorage.setItem('mg2.dualArena', b.dataset.team); } catch (_) {}
-      }
+      // V3.6 cycle66: Boss「打怪方式」唔寫入 dualArena（避免污染課堂雙隊）
       if (typeof syncPlayLayoutUI === 'function') syncPlayLayoutUI();
     };
   });
@@ -6632,16 +6629,33 @@ function setupMenu() {
   }
   // 開始
   $('btn-start').onclick = () => {
-    // V3.3-U1: first-run onboarding tutoria
-  if (!localStorage.getItem('mg2.onboardingDone')) {
-    showOnboarding(() => {
-      localStorage.setItem('mg2.onboardingDone', '1');
-      startGame();
+    // V3.6 cycle66: Boss 戰役必須 normal — 避免上次 easy 殘留 → 無 boss 畫面
+    Game.settings.difficulty = 'normal';
+    Game.settings.menuTrack = 'boss';
+    document.querySelectorAll('.opt-difficulty').forEach(x => {
+      const on = x.dataset.diff === 'normal';
+      x.classList.toggle('opt-selected', on);
+      x.setAttribute('aria-pressed', on ? 'true' : 'false');
     });
-  } else {
-    startGame();
-  }
-};
+    if (!Bosses.current) {
+      const first = (Bosses.available && Bosses.available()[0]) || Bosses.list[0];
+      if (first) {
+        if (typeof Bosses.selectById === 'function') Bosses.selectById(first.id);
+        if (!Bosses.current) Bosses.current = first;
+      }
+    }
+    advancedForcedOpen = true;
+    if (typeof syncMenuTrack === 'function') syncMenuTrack();
+    // V3.3-U1: first-run onboarding tutorial
+    if (!localStorage.getItem('mg2.onboardingDone')) {
+      showOnboarding(() => {
+        localStorage.setItem('mg2.onboardingDone', '1');
+        startGame();
+      });
+    } else {
+      startGame();
+    }
+  };
 
 // V3.3-U1: 3-step onboarding tutorial
 // (note: nested in setupMenu is OK — only btn-start / easy-start call it)
@@ -6817,6 +6831,19 @@ function startGame() {
   const _po = $('pause-overlay'); if (_po) _po.classList.add('hidden');
   // V3.6-SEN: single isEasy binding for whole startGame (EASY-46 lock-in)
   const isEasy = Game.settings.difficulty === 'easy';
+  // V3.6 cycle66: boss campaign must have a selected boss (never blank panel)
+  if (!isEasy) {
+    if (!Bosses.current) {
+      const first = (Bosses.available && Bosses.available()[0]) || Bosses.list[0];
+      if (first) {
+        if (typeof Bosses.selectById === 'function' && Profile.isUnlocked('boss', first.id)) {
+          Bosses.selectById(first.id);
+        } else {
+          Bosses.current = first;
+        }
+      }
+    }
+  }
   // P1-C: 套用 Bosses.current 嘅 sprite + name + scene theme
   if (Bosses.current) {
     const use = document.getElementById('boss-svg-use');
@@ -8576,7 +8603,12 @@ const Profile = {
     if (!this.data.statsByType || typeof this.data.statsByType !== 'object') {
       this.data.statsByType = { add10:{c:0,w:0}, sub10:{c:0,w:0}, add20:{c:0,w:0}, sub20:{c:0,w:0}, add2d:{c:0,w:0}, sub2d:{c:0,w:0} };
     }
-    if (!Array.isArray(this.data.unlockedBosses)) this.data.unlockedBosses = ['forest-troll'];
+    if (!Array.isArray(this.data.unlockedBosses) || this.data.unlockedBosses.length === 0) {
+      this.data.unlockedBosses = ['forest-troll'];
+    } else if (!this.data.unlockedBosses.includes('forest-troll')) {
+      // V3.6 cycle66: never leave profile with zero playable boss
+      this.data.unlockedBosses = ['forest-troll', ...this.data.unlockedBosses];
+    }
     if (!Array.isArray(this.data.unlockedScenes)) this.data.unlockedScenes = ['forest'];
     if (!Array.isArray(this.data.unlockedChars)) this.data.unlockedChars = ['knight', 'mage'];
     if (!Array.isArray(this.data.badges)) this.data.badges = [];
@@ -9117,7 +9149,14 @@ window.addEventListener('DOMContentLoaded', () => {
   if (typeof Game.settings.recommendationEnabled !== 'boolean') {
     Game.settings.recommendationEnabled = true;
   }
-  Bosses.current = Bosses.list[0];
+  // V3.6 cycle66: after Profile.load — ensure boss + re-render select (setupMenu ran first)
+  if (!Bosses.current || !Profile.isUnlocked('boss', Bosses.current.id)) {
+    Bosses.current = Bosses.list[0];
+    if (typeof Bosses.selectById === 'function') {
+      Bosses.selectById('forest-troll') || (Bosses.current = Bosses.list[0]);
+    }
+  }
+  if (typeof renderBossSelect === 'function') renderBossSelect();
   if (Snapshot.hasResumable() && !location.search.includes('autostart=1')) {
     const btn = document.createElement('button');
     btn.textContent = '▶ 繼續上次遊戲';
@@ -9135,7 +9174,9 @@ window.addEventListener('DOMContentLoaded', () => {
           _wireSENScreen();
           UI.refreshSENScreen();
         } else {
-          for (const tm of TEAMS) UI.showQuestion(tm);
+          // V3.6 cycle66: resume boss — solo 只開騎士
+          UI.showQuestion('knight');
+          if (Game.settings.playLayout === 'dual') UI.showQuestion('mage');
         }
         UI.renderReview();
         btn.remove();
