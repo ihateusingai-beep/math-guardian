@@ -1391,7 +1391,8 @@ assert('TRACK-05 boss start stays on boss panel',
 assert('TRACK-06 class easy-start on class panel',
   /menu-class-panel[\s\S]{0,8000}id="btn-easy-start"/.test(src));
 assert('TRACK-07 section cards + opt-track',
-  /menu-section-card/.test(src) && /opt-track\.opt-selected/.test(src));
+  /menu-section-card/.test(src) &&
+  (/opt-track\.opt-selected/.test(src) || /opt-track\[data-track="class"\]\.opt-selected/.test(src)));
 
 // V3.6 cycle64: menu polish A–D
 console.log('\n[T49] V3.6 audit cycle-64 (menu polish)');
@@ -1448,6 +1449,30 @@ assert('BUG66-05 opt-team does not write dualArena',
   /Boss「打怪方式」唔寫入 dualArena/.test(src));
 assert('BUG66-06 Profile.load re-renderBossSelect',
   /after Profile\.load[\s\S]{0,400}renderBossSelect/.test(src));
+
+// V3.6 cycle67: UI polish A–E
+console.log('\n[T52] V3.6 audit cycle-67 (UI polish sticky/fold/presets)');
+assert('UI67-01 sticky class start',
+  /id="class-start-sticky"/.test(src) && /class-start-sticky/.test(src));
+assert('UI67-02 emoji preview ids',
+  /id="class-start-emoji"/.test(src) && /id="class-start-preview-label"/.test(src));
+assert('UI67-03 identity fold default closed',
+  /id="btn-identity-toggle"/.test(src) &&
+  /id="identity-body" class="hidden/.test(src));
+assert('UI67-04 scope presets count/length/all',
+  /data-scope-preset="count"/.test(src) &&
+  /data-scope-preset="length"/.test(src) &&
+  /data-scope-preset="all"/.test(src) &&
+  /opt-scope-preset/.test(src));
+assert('UI67-05 boss play solo/dual buttons',
+  /opt-play-boss/.test(src) &&
+  /aria-label="Boss 玩法"/.test(src));
+assert('UI67-06 track class solid / boss outline CSS',
+  /opt-track\[data-track="class"\]\.opt-selected/.test(src) &&
+  /opt-track\[data-track="boss"\]/.test(src) &&
+  /border-color: #f87171/.test(src));
+assert('UI67-07 class-start-summary kept (sr-only ok)',
+  /id="class-start-summary"/.test(src));
 
 // =========== summary ===========
 console.log(`\n========== ${pass} pass / ${fail} fail ==========`);

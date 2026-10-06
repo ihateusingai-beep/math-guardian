@@ -741,11 +741,106 @@
     background: rgba(56,189,248,0.18) !important;
     box-shadow: 0 0 0 2px rgba(56,189,248,0.3);
   }
-  /* V3.6 cycle63: menu track (課堂 / Boss) */
-  .opt-track.opt-selected {
+  /* V3.6 cycle63/67: menu track (課堂實心 / Boss 描邊) */
+  .opt-track[data-track="class"] {
+    border: 2px solid rgba(167,139,250,0.35) !important;
+  }
+  .opt-track[data-track="class"].opt-selected {
     border-color: #c4b5fd !important;
-    background: rgba(167,139,250,0.22) !important;
-    box-shadow: 0 0 0 2px rgba(196,181,253,0.35);
+    background: linear-gradient(135deg, rgba(167,139,250,0.55), rgba(124,58,237,0.45)) !important;
+    box-shadow: 0 0 0 2px rgba(196,181,253,0.45), 0 8px 20px rgba(124,58,237,0.25);
+    color: #fff !important;
+  }
+  .opt-track[data-track="boss"] {
+    border: 2px dashed rgba(248,113,113,0.55) !important;
+    background: rgba(127,29,29,0.12) !important;
+  }
+  .opt-track[data-track="boss"].opt-selected {
+    border-style: solid !important;
+    border-color: #f87171 !important;
+    background: linear-gradient(135deg, rgba(185,28,28,0.55), rgba(127,29,29,0.5)) !important;
+    box-shadow: 0 0 0 2px rgba(248,113,113,0.4);
+    color: #fff !important;
+  }
+  /* V3.6 cycle67: sticky class start + identity fold + scope chips */
+  .class-start-sticky {
+    position: sticky;
+    bottom: 0;
+    z-index: 25;
+    margin-top: 0.5rem;
+    padding: 0.65rem 0.55rem 0.75rem;
+    border-radius: 1.25rem 1.25rem 0 0;
+    background: linear-gradient(180deg, rgba(15,23,42,0.72), rgba(15,23,42,0.95));
+    border: 1px solid rgba(196,181,253,0.35);
+    border-bottom: none;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    box-shadow: 0 -8px 24px rgba(0,0,0,0.35);
+  }
+  .class-start-preview {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    font-size: 2.1rem;
+    line-height: 1;
+    margin-bottom: 0.4rem;
+    min-height: 2.4rem;
+    filter: drop-shadow(0 2px 6px rgba(0,0,0,0.45));
+  }
+  .class-start-preview .preview-label {
+    font-size: 0.72rem;
+    font-weight: 800;
+    color: #fde68a;
+    max-width: 11rem;
+    line-height: 1.25;
+    text-align: left;
+  }
+  .identity-toggle {
+    width: 100%;
+    text-align: left;
+    font-weight: 900;
+    color: #fcd34d;
+    font-size: 0.8rem;
+    padding: 0.35rem 0.15rem;
+    background: transparent;
+    border: none;
+  }
+  .identity-toggle .chev {
+    display: inline-block;
+    transition: transform 0.15s ease;
+    margin-right: 0.25rem;
+  }
+  .identity-toggle[aria-expanded="true"] .chev { transform: rotate(90deg); }
+  .scope-preset-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-bottom: 0.55rem;
+  }
+  .opt-scope-preset {
+    font-size: 0.72rem !important;
+    font-weight: 800 !important;
+    padding: 0.35rem 0.65rem !important;
+    border-radius: 999px !important;
+    border: 1px solid rgba(255,255,255,0.2) !important;
+    background: rgba(255,255,255,0.08) !important;
+    color: #e9d5ff !important;
+  }
+  .opt-scope-preset.opt-selected {
+    border-color: #34d399 !important;
+    background: rgba(52,211,153,0.22) !important;
+    color: #fff !important;
+  }
+  .opt-dual-combo {
+    font-size: 1.05rem !important;
+    line-height: 1.25 !important;
+  }
+  .opt-dual-combo .combo-emoji {
+    display: block;
+    font-size: 1.65rem;
+    line-height: 1.1;
+    margin-bottom: 0.15rem;
   }
   .menu-section-card {
     border: 1px solid rgba(255,255,255,0.12);
@@ -2180,16 +2275,16 @@
           <!-- V3.6 cycle64: 4-in-1 combo cards -->
           <div id="dual-combo-picker" class="grid grid-cols-2 gap-2" role="radiogroup" aria-label="雙隊玩法">
             <button type="button" class="opt-dual-combo btn btn-ghost py-2.5 text-sm" data-arena="versus" data-skin="classic" aria-pressed="false">
-              ⚔️🪢 對戰·經典<br><span class="text-xs opacity-70">扯大欖</span>
+              <span class="combo-emoji" aria-hidden="true">⚔️🪢</span>對戰·經典<br><span class="text-xs opacity-70">扯大欖</span>
             </button>
             <button type="button" class="opt-dual-combo btn btn-ghost py-2.5 text-sm opt-selected" data-arena="versus" data-skin="retro" aria-pressed="true">
-              ⚔️📏 對戰·復古<br><span class="text-xs opacity-70">像素扯尺</span>
+              <span class="combo-emoji" aria-hidden="true">⚔️📏</span>對戰·復古<br><span class="text-xs opacity-70">像素扯尺</span>
             </button>
             <button type="button" class="opt-dual-combo btn btn-ghost py-2.5 text-sm" data-arena="coop" data-skin="classic" aria-pressed="false">
-              🤝🚢 合作·經典<br><span class="text-xs opacity-70">推船埋島</span>
+              <span class="combo-emoji" aria-hidden="true">🤝🚢</span>合作·經典<br><span class="text-xs opacity-70">推船埋島</span>
             </button>
             <button type="button" class="opt-dual-combo btn btn-ghost py-2.5 text-sm" data-arena="coop" data-skin="retro" aria-pressed="false">
-              🤝🌉 合作·復古<br><span class="text-xs opacity-70">鋪路搭橋</span>
+              <span class="combo-emoji" aria-hidden="true">🤝🌉</span>合作·復古<br><span class="text-xs opacity-70">鋪路搭橋</span>
             </button>
           </div>
           <!-- hidden lock-in pickers (cycle47/62 IDs + sync targets) -->
@@ -2204,21 +2299,25 @@
         </div>
       </div>
 
-      <!-- 身份 -->
+      <!-- 身份（可選 · 預設摺） -->
       <div class="menu-section-card">
-        <div class="menu-section-title">② 身份卡</div>
-        <div id="identity-solo-wrap">
-          <div id="identity-picker" class="grid grid-cols-4 gap-2" role="radiogroup" aria-label="身份卡"></div>
-          <div id="identity-helper" class="menu-section-sub">可跳過 → 同學</div>
-        </div>
-        <div id="identity-dual-wrap" class="hidden grid grid-cols-2 gap-3">
-          <div>
-            <div class="text-xs text-blue-200 font-bold mb-1">⬅ 左隊</div>
-            <div id="identity-picker-left" class="grid grid-cols-2 gap-2" role="radiogroup" aria-label="左隊身份"></div>
+        <button type="button" id="btn-identity-toggle" class="identity-toggle" aria-expanded="false" aria-controls="identity-body">
+          <span class="chev" aria-hidden="true">▶</span>② 身份卡（可選）
+        </button>
+        <div id="identity-body" class="hidden mt-2">
+          <div id="identity-solo-wrap">
+            <div id="identity-picker" class="grid grid-cols-4 gap-2" role="radiogroup" aria-label="身份卡"></div>
+            <div id="identity-helper" class="menu-section-sub">可跳過 → 同學</div>
           </div>
-          <div>
-            <div class="text-xs text-purple-200 font-bold mb-1">右隊 ➡</div>
-            <div id="identity-picker-right" class="grid grid-cols-2 gap-2" role="radiogroup" aria-label="右隊身份"></div>
+          <div id="identity-dual-wrap" class="hidden grid grid-cols-2 gap-3">
+            <div>
+              <div class="text-xs text-blue-200 font-bold mb-1">⬅ 左隊</div>
+              <div id="identity-picker-left" class="grid grid-cols-2 gap-2" role="radiogroup" aria-label="左隊身份"></div>
+            </div>
+            <div>
+              <div class="text-xs text-purple-200 font-bold mb-1">右隊 ➡</div>
+              <div id="identity-picker-right" class="grid grid-cols-2 gap-2" role="radiogroup" aria-label="右隊身份"></div>
+            </div>
           </div>
         </div>
       </div>
@@ -2226,6 +2325,11 @@
       <!-- 題目範疇 -->
       <div class="menu-section-card">
         <div class="menu-section-title">③ 題目範疇（可多選）</div>
+        <div class="scope-preset-row" role="group" aria-label="範疇快捷">
+          <button type="button" class="opt-scope-preset" data-scope-preset="count">🔢 只數數</button>
+          <button type="button" class="opt-scope-preset" data-scope-preset="length">📏 只長短</button>
+          <button type="button" class="opt-scope-preset" data-scope-preset="all">✨ 全部</button>
+        </div>
         <div id="scope-picker" class="grid grid-cols-2 gap-3" role="group" aria-label="題目範疇">
           <button type="button" class="opt-scope btn btn-ghost opt-selected py-3 text-left" data-scope="count20" aria-pressed="true">
             🔢 數數 1–10<br><span class="text-xs opacity-70">睇圖數有幾多</span>
@@ -2243,21 +2347,25 @@
         <div id="scope-helper" class="menu-section-sub">已選 4 個範疇 · 撳掣可開關（最少 1 個）</div>
       </div>
 
-      <!-- 開始摘要 + 一鍵開始 -->
-      <div id="class-start-summary" class="text-sm text-center font-bold text-amber-200/90 px-2 py-2 rounded-xl bg-black/25 border border-amber-300/20">
-        單人 · 已選範疇 · 10 題
-      </div>
-      <button id="btn-easy-start" class="w-full btn text-white text-xl py-4 flex items-center justify-center gap-3"
-        style="background:linear-gradient(135deg,#a78bfa,#7c3aed);border:2px solid #c4b5fd;"
-        aria-label="一鍵開始簡單練習">
-        <span class="text-3xl">🌼</span>
-        <span>
-          <span class="block text-xl font-extrabold">簡單練習 · 一鍵開始</span>
-          <span id="easy-start-sub" class="text-xs opacity-80">單人 · 已選範疇 · 10 題</span>
-        </span>
-      </button>
-      <div id="diff-helper" class="text-xs text-white/55 text-center leading-relaxed">
-        簡單模式：跟題目範疇 · 10 題 · 大掣 A/B/C
+      <!-- V3.6 cycle67: sticky 開始（摘要合併入掣；上面大 emoji 預覽） -->
+      <div id="class-start-sticky" class="class-start-sticky">
+        <div id="class-start-preview" class="class-start-preview" aria-hidden="true">
+          <span id="class-start-emoji">🌉</span>
+          <span id="class-start-preview-label" class="preview-label">單人·鋪路</span>
+        </div>
+        <div id="class-start-summary" class="sr-only">單人 · 已選範疇 · 10 題</div>
+        <button id="btn-easy-start" class="w-full btn text-white text-xl py-4 flex items-center justify-center gap-3"
+          style="background:linear-gradient(135deg,#a78bfa,#7c3aed);border:2px solid #c4b5fd;"
+          aria-label="一鍵開始簡單練習">
+          <span class="text-3xl">🌼</span>
+          <span>
+            <span class="block text-xl font-extrabold">簡單練習 · 一鍵開始</span>
+            <span id="easy-start-sub" class="text-xs opacity-80">單人 · 已選範疇 · 10 題</span>
+          </span>
+        </button>
+        <div id="diff-helper" class="text-xs text-white/55 text-center leading-relaxed mt-2">
+          簡單模式：跟題目範疇 · 10 題 · 大掣 A/B/C
+        </div>
       </div>
 
       </div><!-- /#menu-class-panel -->
@@ -2267,7 +2375,15 @@
 
       <div class="menu-section-card" style="border-color:rgba(248,113,113,0.35);background:rgba(127,29,29,0.18);">
         <div class="menu-section-title">⚔️ Boss 戰役 · 老師設定</div>
-        <p class="text-xs text-white/60 leading-relaxed">跟上面「① 點樣玩」：單人打王 / 雙隊打王都得。課堂小遊戲喺「課堂練習」軌。</p>
+        <p class="text-xs text-white/60 leading-relaxed">先揀單人／雙隊，再調 Boss 同題型。</p>
+        <div class="grid grid-cols-2 gap-3 mt-2" role="radiogroup" aria-label="Boss 玩法">
+          <button type="button" class="opt-play-boss btn btn-ghost py-3 opt-selected" data-play="solo" aria-pressed="true">
+            🧍 單人打王<br><span class="text-xs opacity-70">只開騎士板</span>
+          </button>
+          <button type="button" class="opt-play-boss btn btn-ghost py-3" data-play="dual" aria-pressed="false">
+            👥 雙隊打王<br><span class="text-xs opacity-70">左右同時</span>
+          </button>
+        </div>
         <div id="boss-play-hint" class="mt-2 text-sm font-bold text-amber-200">而家：🧍 單人打王</div>
       </div>
 
@@ -6093,6 +6209,12 @@ function setupMenu() {
       x.classList.toggle('opt-selected', on);
       x.setAttribute('aria-pressed', on ? 'true' : 'false');
     });
+    // V3.6 cycle67: Boss 軌獨立 單人/雙隊 掣
+    document.querySelectorAll('.opt-play-boss').forEach(x => {
+      const on = x.dataset.play === Game.settings.playLayout;
+      x.classList.toggle('opt-selected', on);
+      x.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
     const soloW = $('identity-solo-wrap');
     const dualW = $('identity-dual-wrap');
     if (soloW) soloW.classList.toggle('hidden', dual);
@@ -6179,6 +6301,20 @@ function setupMenu() {
     if (sub) sub.textContent = summary;
     const sumEl = $('class-start-summary');
     if (sumEl) sumEl.textContent = `將會係：${summary}`;
+    // V3.6 cycle67: big emoji preview (summary text stays on button only)
+    let emoji = '🌼';
+    if (!dual) {
+      if (Game.settings.soloMode === 'boat') emoji = '🚢';
+      else if (Game.settings.soloMode === 'ruler') emoji = '📏';
+      else emoji = '🌉';
+    } else if (arenaMode === 'coop' && skinMode === 'retro') emoji = '🌉';
+    else if (arenaMode === 'coop') emoji = '🚢';
+    else if (skinMode === 'retro') emoji = '📏';
+    else emoji = '🪢';
+    const em = $('class-start-emoji');
+    if (em) em.textContent = emoji;
+    const plab = $('class-start-preview-label');
+    if (plab) plab.textContent = playTxt;
   };
   try {
     const saved = localStorage.getItem('mg2.playerId');
@@ -6219,6 +6355,29 @@ function setupMenu() {
       syncPlayLayoutUI();
     };
   });
+  // V3.6 cycle67: Boss panel playLayout buttons
+  document.querySelectorAll('.opt-play-boss').forEach(b => {
+    b.onclick = () => {
+      Game.settings.playLayout = b.dataset.play === 'dual' ? 'dual' : 'solo';
+      try { localStorage.setItem('mg2.playLayout', Game.settings.playLayout); } catch (_) {}
+      if (Game.settings.playLayout === 'dual') {
+        let saved = null;
+        try { saved = localStorage.getItem('mg2.dualArena'); } catch (_) {}
+        if (saved === 'coop' || saved === 'versus') Game.settings.dualTeam = saved;
+        else Game.settings.dualTeam = 'versus';
+      }
+      syncPlayLayoutUI();
+    };
+  });
+  // V3.6 cycle67: identity fold (default closed)
+  const idToggle = $('btn-identity-toggle');
+  const idBody = $('identity-body');
+  if (idToggle && idBody) {
+    idToggle.onclick = () => {
+      const open = idBody.classList.toggle('hidden') === false;
+      idToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    };
+  }
   // V3.6 cycle64: one tap sets dualTeam + skin
   document.querySelectorAll('.opt-dual-combo').forEach(b => {
     b.onclick = () => {
@@ -6427,6 +6586,17 @@ function setupMenu() {
       btn.classList.toggle('opt-selected', on);
       btn.setAttribute('aria-pressed', on ? 'true' : 'false');
     });
+    // V3.6 cycle67: highlight matching preset chip
+    const s = Game.settings.scopes.slice().sort().join(',');
+    const preset =
+      s === 'count20' ? 'count' :
+      s === 'compareLength' ? 'length' :
+      (s === DEFAULT_SCOPES.slice().sort().join(',') || s === 'compareLength,count20,orderAsc20,orderDesc20') ? 'all' :
+      null;
+    document.querySelectorAll('.opt-scope-preset').forEach(btn => {
+      const on = preset && btn.dataset.scopePreset === preset;
+      btn.classList.toggle('opt-selected', !!on);
+    });
     const helper = $('scope-helper');
     if (helper) helper.textContent = `已選 ${Game.settings.scopes.length} 個範疇 · 撳掣可開關（最少 1 個）`;
     // keep dual arena subtitle (對戰/合作) — don't flatten to bare「雙隊」
@@ -6456,6 +6626,17 @@ function setupMenu() {
     try { localStorage.setItem('mg2.scopes', JSON.stringify(Game.settings.scopes)); } catch (_) {}
     syncScopeUI();
   };
+  // V3.6 cycle67: scope presets 只數數 / 只長短 / 全部
+  document.querySelectorAll('.opt-scope-preset').forEach(btn => {
+    btn.onclick = () => {
+      const p = btn.dataset.scopePreset;
+      if (p === 'count') Game.settings.scopes = ['count20'];
+      else if (p === 'length') Game.settings.scopes = ['compareLength'];
+      else Game.settings.scopes = DEFAULT_SCOPES.slice();
+      try { localStorage.setItem('mg2.scopes', JSON.stringify(Game.settings.scopes)); } catch (_) {}
+      syncScopeUI();
+    };
+  });
   // restore scopes
   try {
     const raw = localStorage.getItem('mg2.scopes');
