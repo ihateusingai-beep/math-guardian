@@ -1374,6 +1374,25 @@ assert('RETRO-08 reduced-motion covers bridge',
 assert('RETRO-09 classic skins still present',
   /skin-tug/.test(src) && /skin-boat/.test(src) && /一齊埋岸/.test(src));
 
+// V3.6 cycle63: menu tracks — class vs boss
+console.log('\n[T48] V3.6 audit cycle-63 (menu tracks)');
+assert('TRACK-01 menu-track-picker class/boss',
+  /id="menu-track-picker"/.test(src) && /data-track="class"/.test(src) && /data-track="boss"/.test(src));
+assert('TRACK-02 class + boss panels',
+  /id="menu-class-panel"/.test(src) && /id="menu-boss-panel"/.test(src));
+assert('TRACK-03 dual-options-wrap nests arena+skin',
+  /id="dual-options-wrap"/.test(src) &&
+  /dual-options-wrap[\s\S]{0,800}dual-arena-picker/.test(src) &&
+  /dual-options-wrap[\s\S]{0,1200}dual-skin-picker/.test(src));
+assert('TRACK-04 menuTrack setting + syncMenuTrack',
+  /menuTrack:\s*'class'/.test(src) && /syncMenuTrack/.test(src) && /mg2\.menuTrack/.test(src));
+assert('TRACK-05 boss start stays on boss panel',
+  /menu-boss-panel[\s\S]{0,8000}id="btn-start"/.test(src));
+assert('TRACK-06 class easy-start on class panel',
+  /menu-class-panel[\s\S]{0,8000}id="btn-easy-start"/.test(src));
+assert('TRACK-07 section cards + opt-track',
+  /menu-section-card/.test(src) && /opt-track\.opt-selected/.test(src));
+
 // =========== summary ===========
 console.log(`\n========== ${pass} pass / ${fail} fail ==========`);
 if (fail > 0) {

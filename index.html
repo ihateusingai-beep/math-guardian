@@ -731,6 +731,44 @@
     border-color: #f472b6 !important;
     background: rgba(244,114,182,0.16) !important;
   }
+  /* V3.6 cycle63: menu track (課堂 / Boss) */
+  .opt-track.opt-selected {
+    border-color: #c4b5fd !important;
+    background: rgba(167,139,250,0.22) !important;
+    box-shadow: 0 0 0 2px rgba(196,181,253,0.35);
+  }
+  .menu-section-card {
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 1.25rem;
+    padding: 0.85rem 0.9rem;
+    background: rgba(15,23,42,0.35);
+  }
+  .menu-section-title {
+    font-size: 0.8rem;
+    font-weight: 900;
+    letter-spacing: 0.02em;
+    color: #fcd34d;
+    margin-bottom: 0.55rem;
+  }
+  .menu-section-sub {
+    font-size: 0.7rem;
+    color: rgba(255,255,255,0.55);
+    margin-top: 0.45rem;
+    line-height: 1.35;
+  }
+  .dual-options-card {
+    margin-top: 0.65rem;
+    padding: 0.65rem;
+    border-radius: 1rem;
+    border: 1px dashed rgba(52,211,153,0.35);
+    background: rgba(16,185,129,0.08);
+  }
+  .dual-options-label {
+    font-size: 0.7rem;
+    font-weight: 800;
+    color: #6ee7b7;
+    margin-bottom: 0.4rem;
+  }
   /* V3.6 cycle42: identity cards */
   .id-card {
     min-height: 72px;
@@ -2078,49 +2116,68 @@
         數學守護者
       </h1>
       <p class="text-base md:text-xl text-purple-200 mt-1">精準訓練版 v3.6 · Math Guardian</p>
-      <p class="text-xs md:text-sm text-white/50 mt-1">兩隊同心，守護城堡，精準答題擊敗森林巨魔</p>
+      <p class="text-xs md:text-sm text-white/50 mt-1">課堂練習 · 雙隊遊戲 · Boss 戰役（老師）</p>
     </div>
 
     <div class="w-full max-w-xl bg-white/5 backdrop-blur-md border border-white/10 rounded-3xl p-4 md:p-6 space-y-4 md:space-y-5 shadow-2xl mb-6">
 
-      <!-- V3.6 cycle43: 玩法 — 單人 vs 左右雙隊（電子白板） -->
-      <div>
-        <label class="text-sm font-bold text-amber-300 mb-2 block">玩法</label>
+      <!-- V3.6 cycle63: 兩軌分類 — 課堂練習 vs Boss 戰役 -->
+      <div class="menu-section-card" style="background:rgba(88,28,135,0.25);border-color:rgba(196,181,253,0.35);">
+        <div class="menu-section-title">揀模式</div>
+        <div id="menu-track-picker" class="grid grid-cols-2 gap-3" role="radiogroup" aria-label="主模式">
+          <button type="button" class="opt-track btn btn-ghost py-3 opt-selected" data-track="class" aria-pressed="true">
+            🌼 課堂練習<br><span class="text-xs opacity-70">主線 · 一鍵開</span>
+          </button>
+          <button type="button" class="opt-track btn btn-ghost py-3" data-track="boss" aria-pressed="false">
+            ⚔️ Boss 戰役<br><span class="text-xs opacity-70">老師設定 · 打怪</span>
+          </button>
+        </div>
+        <div id="menu-track-helper" class="menu-section-sub">課堂：玩法 → 題目 → 一鍵開始。Boss：進階打怪收喺呢度。</div>
+      </div>
+
+      <!-- ========== 課堂練習面板 ========== -->
+      <div id="menu-class-panel" class="space-y-4">
+
+      <!-- 玩法：單人 / 雙隊 + 對戰合作皮 -->
+      <div class="menu-section-card">
+        <div class="menu-section-title">① 點樣玩</div>
         <div class="grid grid-cols-2 gap-3" role="radiogroup" aria-label="玩法">
           <button type="button" class="opt-play btn btn-ghost opt-selected py-3" data-play="solo" aria-pressed="true">
             🧍 單人<br><span class="text-xs opacity-70">一人專心答</span>
           </button>
           <button type="button" class="opt-play btn btn-ghost py-3" data-play="dual" aria-pressed="false">
-            👥 左右雙隊<br><span class="text-xs opacity-70">電子白板 · 左/右同時</span>
+            👥 左右雙隊<br><span class="text-xs opacity-70">電子白板 · 同時</span>
           </button>
         </div>
-        <div id="play-helper" class="text-xs text-white/60 mt-2">單人：全屏一題。雙隊：左藍右紫，適合 touch board。</div>
-        <!-- V3.6 cycle47: dual arena mode (對戰扯大欖 / 合作推船) -->
-        <div id="dual-arena-picker" class="hidden grid grid-cols-2 gap-3 mt-3" role="radiogroup" aria-label="雙隊遊戲">
-          <button type="button" class="opt-arena btn btn-ghost py-3 opt-selected" data-arena="versus" aria-pressed="true">
-            🪢 對戰扯大欖<br><span class="text-xs opacity-70">答對就拉 · 邊邊贏</span>
-          </button>
-          <button type="button" class="opt-arena btn btn-ghost py-3" data-arena="coop" aria-pressed="false">
-            🚢 合作推船<br><span class="text-xs opacity-70">一齊前進 · 埋島</span>
-          </button>
-        </div>
-        <!-- V3.6 cycle62: classic / retro arena skin -->
-        <div id="dual-skin-picker" class="hidden grid grid-cols-2 gap-3 mt-2" role="radiogroup" aria-label="遊戲皮">
-          <button type="button" class="opt-skin btn btn-ghost py-2.5" data-skin="classic" aria-pressed="false">
-            🪢🚢 經典<br><span class="text-xs opacity-70">扯大欖／推船</span>
-          </button>
-          <button type="button" class="opt-skin btn btn-ghost py-2.5 opt-selected" data-skin="retro" aria-pressed="true">
-            📏🌉 復古<br><span class="text-xs opacity-70">像素尺／鋪路</span>
-          </button>
+        <div id="play-helper" class="menu-section-sub">單人：全屏一題。雙隊：左藍右紫，適合 touch board。</div>
+        <div id="dual-options-wrap" class="dual-options-card hidden">
+          <div class="dual-options-label">雙隊規則</div>
+          <div id="dual-arena-picker" class="grid grid-cols-2 gap-2" role="radiogroup" aria-label="雙隊遊戲">
+            <button type="button" class="opt-arena btn btn-ghost py-2.5 opt-selected text-sm" data-arena="versus" aria-pressed="true">
+              ⚔️ 對戰<br><span class="text-xs opacity-70" id="arena-versus-sub">拉贏對方</span>
+            </button>
+            <button type="button" class="opt-arena btn btn-ghost py-2.5 text-sm" data-arena="coop" aria-pressed="false">
+              🤝 合作<br><span class="text-xs opacity-70" id="arena-coop-sub">一齊前進</span>
+            </button>
+          </div>
+          <div class="dual-options-label mt-3">畫面皮</div>
+          <div id="dual-skin-picker" class="grid grid-cols-2 gap-2" role="radiogroup" aria-label="遊戲皮">
+            <button type="button" class="opt-skin btn btn-ghost py-2.5 text-sm" data-skin="classic" aria-pressed="false">
+              🪢🚢 經典<br><span class="text-xs opacity-70" id="skin-classic-sub">扯大欖／推船</span>
+            </button>
+            <button type="button" class="opt-skin btn btn-ghost py-2.5 text-sm opt-selected" data-skin="retro" aria-pressed="true">
+              📏🌉 復古<br><span class="text-xs opacity-70" id="skin-retro-sub">像素尺／鋪路</span>
+            </button>
+          </div>
         </div>
       </div>
 
-      <!-- V3.6 cycle42/43: 身份卡（中度唔強制打字名） -->
-      <div>
-        <label class="text-sm font-bold text-amber-300 mb-2 block">揀你嘅身份</label>
+      <!-- 身份 -->
+      <div class="menu-section-card">
+        <div class="menu-section-title">② 身份卡</div>
         <div id="identity-solo-wrap">
           <div id="identity-picker" class="grid grid-cols-4 gap-2" role="radiogroup" aria-label="身份卡"></div>
-          <div id="identity-helper" class="text-xs text-white/50 mt-2">可跳過 → 同學</div>
+          <div id="identity-helper" class="menu-section-sub">可跳過 → 同學</div>
         </div>
         <div id="identity-dual-wrap" class="hidden grid grid-cols-2 gap-3">
           <div>
@@ -2134,9 +2191,9 @@
         </div>
       </div>
 
-      <!-- V3.6 cycle44: 題目範疇（中度主線） -->
-      <div>
-        <label class="text-sm font-bold text-amber-300 mb-2 block">題目範疇（可多選）</label>
+      <!-- 題目範疇 -->
+      <div class="menu-section-card">
+        <div class="menu-section-title">③ 題目範疇（可多選）</div>
         <div id="scope-picker" class="grid grid-cols-2 gap-3" role="group" aria-label="題目範疇">
           <button type="button" class="opt-scope btn btn-ghost opt-selected py-3 text-left" data-scope="count20" aria-pressed="true">
             🔢 數數 1–10<br><span class="text-xs opacity-70">睇圖數有幾多</span>
@@ -2151,11 +2208,11 @@
             📉 倒序·跟住<br><span class="text-xs opacity-70">邊個跟住</span>
           </button>
         </div>
-        <div id="scope-helper" class="text-xs text-white/60 mt-2">已選 4 個範疇 · 撳掣可開關（最少 1 個）</div>
+        <div id="scope-helper" class="menu-section-sub">已選 4 個範疇 · 撳掣可開關（最少 1 個）</div>
       </div>
 
-      <!-- V3.6 cycle41: one-click simple practice (no student-facing SEN label) -->
-      <button id="btn-easy-start" class="w-full btn text-white text-xl py-4 mt-2 flex items-center justify-center gap-3"
+      <!-- 一鍵開始 -->
+      <button id="btn-easy-start" class="w-full btn text-white text-xl py-4 flex items-center justify-center gap-3"
         style="background:linear-gradient(135deg,#a78bfa,#7c3aed);border:2px solid #c4b5fd;"
         aria-label="一鍵開始簡單練習">
         <span class="text-3xl">🌼</span>
@@ -2164,32 +2221,42 @@
           <span id="easy-start-sub" class="text-xs opacity-80">單人 · 已選範疇 · 10 題</span>
         </span>
       </button>
+      <div id="diff-helper" class="text-xs text-white/55 text-center leading-relaxed">
+        簡單模式：跟題目範疇 · 10 題 · 大掣 A/B/C
+      </div>
 
-      <!-- 難度（學生可理解字眼；進階設定收喺下面） -->
-      <div>
-        <label class="text-sm font-bold text-amber-300 mb-2 block">難度</label>
+      </div><!-- /#menu-class-panel -->
+
+      <!-- ========== Boss 戰役面板（老師） ========== -->
+      <div id="menu-boss-panel" class="hidden space-y-4">
+
+      <div class="menu-section-card" style="border-color:rgba(248,113,113,0.35);background:rgba(127,29,29,0.18);">
+        <div class="menu-section-title">⚔️ Boss 戰役 · 老師設定</div>
+        <p class="text-xs text-white/60 leading-relaxed">打怪、鍵盤、完整題型。學生主線請用上面「課堂練習」。</p>
+      </div>
+
+      <!-- 保留難度掣（regression + 老師可在 Boss 軌覆寫）；預設普通 -->
+      <div class="menu-section-card">
+        <div class="menu-section-title">題目難度</div>
         <div class="grid grid-cols-2 gap-3" role="radiogroup" aria-label="難度">
           <button class="opt-difficulty btn btn-ghost opt-selected" data-diff="normal" aria-pressed="true">
-            🌱 普通<br><span class="text-xs opacity-70">4 選一 · 數字較大</span>
+            🌱 普通<br><span class="text-xs opacity-70">4 選一 · Boss</span>
           </button>
           <button class="opt-difficulty btn btn-ghost" data-diff="easy" aria-pressed="false">
-            🌼 簡單<br><span class="text-xs opacity-70">2-3 選一 · 題目簡單</span>
+            🌼 簡單<br><span class="text-xs opacity-70">2-3 選一 · 少壓力</span>
           </button>
-        </div>
-        <div id="diff-helper" class="text-xs text-white/60 mt-2 leading-relaxed">
-          簡單模式：跟題目範疇 · 10 題 · 大掣 A/B/C
         </div>
       </div>
 
       <button type="button" id="btn-menu-advanced-toggle" class="w-full btn btn-ghost text-sm py-2 border border-white/15"
-        aria-expanded="false" aria-controls="menu-advanced">
+        aria-expanded="true" aria-controls="menu-advanced">
         ⚙️ 進階設定（老師覆寫 · 一鍵仍跟範疇）
       </button>
 
-      <!-- Advanced combat settings — collapsed when simple mode -->
+      <!-- Advanced combat settings -->
       <div id="menu-advanced" class="space-y-5">
 
-      <!-- 1a) Boss 選擇 (P1-C) — 動態生成已解鎖嘅 bosses -->
+      <!-- 1a) Boss 選擇 -->
       <div>
         <label class="text-sm font-bold text-amber-300 mb-2 block">① 挑戰 Boss</label>
         <div id="boss-select-row" class="grid grid-cols-2 gap-3">
@@ -2221,7 +2288,7 @@
         <div id="mode-helper" class="text-xs text-white/60 mt-2 leading-relaxed"></div>
       </div>
 
-      <!-- 3) 題型 — v3.1 dynamic from TYPE_REGISTRY -->
+      <!-- 3) 題型 -->
       <div>
         <label class="text-sm font-bold text-amber-300 mb-2 block">④ 題型（可多選）</label>
         <div id="type-picker" class="grid grid-cols-2 gap-2"></div>
@@ -2231,7 +2298,6 @@
           <button id="btn-type-none" class="btn-sm bg-white/10 hover:bg-white/20 text-xs text-purple-200 hover:text-white border border-white/10">✗ 全清</button>
           <span id="type-count" class="text-xs text-white/40 ml-auto"></span>
         </div>
-        <!-- V3.5-cycle16: 自動推薦 chips row (tap-to-toggle, 跟 recommendationEnabled) -->
         <div id="recommend-chips" class="mt-3" role="group" aria-label="自動推薦題型" hidden></div>
       </div>
 
@@ -2248,7 +2314,7 @@
         </div>
       </div>
 
-      <!-- 5) Boss 初始 HP -->
+      <!-- 5) Boss HP -->
       <div>
         <label class="text-sm font-bold text-amber-300 mb-2 block">⑥ Boss 初始 HP <span id="hp-display" class="text-white font-extrabold ml-1">200</span></label>
         <input id="hp-slider" type="range" min="60" max="500" step="20" value="200" class="w-full" aria-label="Boss 初始 HP" aria-valuemin="60" aria-valuemax="500" aria-valuenow="200" aria-valuetext="Boss 初始生命值 200，範圍 60 至 500" />
@@ -2256,12 +2322,14 @@
 
       </div><!-- /#menu-advanced -->
 
-      <!-- 開始 -->
-      <button id="btn-start" class="w-full btn ultimate text-white text-xl mt-2 flex items-center justify-center gap-2" aria-label="開始守護戰役 — 開始新遊戲">
+      <button id="btn-start" class="w-full btn ultimate text-white text-xl mt-1 flex items-center justify-center gap-2" aria-label="開始守護戰役 — 開始新遊戲">
         <svg class="pixel icon-md"><use href="#px-castle"/></svg>
         開始守護戰役
       </button>
-      <div class="text-center text-xs text-white/60">提示：點擊畫面右上角鎖頭可隨時呼叫老師控制台</div>
+      <div class="text-center text-xs text-white/60">提示：遊戲中右上角鎖頭 = 老師控制台</div>
+
+      </div><!-- /#menu-boss-panel -->
+
     </div>
   </section>
 
@@ -4665,6 +4733,7 @@ const Game = {
     playerLabelRight: '同學',
     scopes: ['count20', 'compareLength', 'orderAsc20', 'orderDesc20'], // V3.6 cycle44
     arenaSkin: 'retro',             // V3.6 cycle62: 'classic' | 'retro' (ruler tug / bridge)
+    menuTrack: 'class',             // V3.6 cycle63: 'class' 課堂 | 'boss' 戰役
   },
 
   state: {
@@ -5903,15 +5972,18 @@ function setupMenu() {
       dualW.classList.toggle('hidden', !dual);
       dualW.classList.toggle('grid', dual);
     }
+    // V3.6 cycle63: dual options nested card (arena + skin)
+    const dualWrap = $('dual-options-wrap');
+    if (dualWrap) dualWrap.classList.toggle('hidden', !dual);
     const arenaPick = $('dual-arena-picker');
     if (arenaPick) {
-      arenaPick.classList.toggle('hidden', !dual);
-      arenaPick.classList.toggle('grid', dual);
+      arenaPick.classList.remove('hidden');
+      arenaPick.classList.add('grid');
     }
     const skinPick = $('dual-skin-picker');
     if (skinPick) {
-      skinPick.classList.toggle('hidden', !dual);
-      skinPick.classList.toggle('grid', dual);
+      skinPick.classList.remove('hidden');
+      skinPick.classList.add('grid');
     }
     // sync arena mode buttons ↔ Game.settings.team
     const arenaMode = Game.settings.team === 'coop' ? 'coop' : 'versus';
@@ -5928,6 +6000,15 @@ function setupMenu() {
       x.classList.toggle('opt-selected', on);
       x.setAttribute('aria-pressed', on ? 'true' : 'false');
     });
+    // dynamic sublabels (對戰/合作 × 經典/復古)
+    const av = $('arena-versus-sub');
+    const ac = $('arena-coop-sub');
+    if (av) av.textContent = skinMode === 'retro' ? '像素扯尺' : '扯大欖';
+    if (ac) ac.textContent = skinMode === 'retro' ? '鋪路搭橋' : '合作推船';
+    const sc = $('skin-classic-sub');
+    const sr = $('skin-retro-sub');
+    if (sc) sc.textContent = arenaMode === 'coop' ? '推船' : '扯大欖';
+    if (sr) sr.textContent = arenaMode === 'coop' ? '鋪路' : '像素尺';
     // also keep advanced team buttons in sync
     document.querySelectorAll('.opt-team').forEach(x => {
       const on = x.dataset.team === (arenaMode === 'coop' ? 'coop' : 'versus');
@@ -6016,27 +6097,85 @@ function setupMenu() {
   } catch (_) {}
   syncPlayLayoutUI();
 
-  // V3.6 cycle41: advanced menu collapse — simple path = one-click + difficulty + start
-  let advancedForcedOpen = false;
+  // V3.6 cycle41/63: menu tracks — class panel vs boss panel; advanced stays on boss
+  let advancedForcedOpen = true;
+  const syncMenuTrack = () => {
+    const track = Game.settings.menuTrack === 'boss' ? 'boss' : 'class';
+    Game.settings.menuTrack = track;
+    document.querySelectorAll('.opt-track').forEach(x => {
+      const on = x.dataset.track === track;
+      x.classList.toggle('opt-selected', on);
+      x.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+    const classP = $('menu-class-panel');
+    const bossP = $('menu-boss-panel');
+    if (classP) classP.classList.toggle('hidden', track !== 'class');
+    if (bossP) bossP.classList.toggle('hidden', track !== 'boss');
+    const th = $('menu-track-helper');
+    if (th) {
+      th.textContent = track === 'class'
+        ? '課堂：①玩法 → ②身份 → ③題目 → 一鍵開始。雙隊先揀對戰／合作同畫面皮。'
+        : 'Boss：老師打怪設定。學生主線請切回「課堂練習」。';
+    }
+    // class track implies easy practice path defaults; boss implies normal combat
+    if (track === 'class') {
+      // don't force difficulty until start; keep UI calm
+    } else {
+      if (Game.settings.difficulty === 'easy' && !advancedForcedOpen) {
+        // stay as teacher left it
+      }
+    }
+    try { localStorage.setItem('mg2.menuTrack', track); } catch (_) {}
+  };
   const syncMenuAdvanced = () => {
     const adv = $('menu-advanced');
     const tog = $('btn-menu-advanced-toggle');
     if (!adv) return;
-    const hideForEasy = Game.settings.difficulty === 'easy' && !advancedForcedOpen;
-    adv.classList.toggle('hidden', hideForEasy);
+    // Boss track: advanced visible unless teacher collapsed; class track hides whole boss panel
+    const onBoss = Game.settings.menuTrack === 'boss';
+    const hideAdv = onBoss ? !advancedForcedOpen : true;
+    adv.classList.toggle('hidden', hideAdv);
     if (tog) {
-      tog.setAttribute('aria-expanded', hideForEasy ? 'false' : 'true');
-      tog.textContent = hideForEasy ? '⚙️ 進階設定（老師）' : '⚙️ 收起進階設定';
+      tog.classList.toggle('hidden', !onBoss);
+      tog.setAttribute('aria-expanded', hideAdv ? 'false' : 'true');
+      tog.textContent = hideAdv
+        ? '⚙️ 進階設定（老師覆寫 · 一鍵仍跟範疇）'
+        : '⚙️ 收起進階設定（老師覆寫 · 一鍵仍跟範疇）';
     }
   };
+  document.querySelectorAll('.opt-track').forEach(b => {
+    b.onclick = () => {
+      Game.settings.menuTrack = b.dataset.track === 'boss' ? 'boss' : 'class';
+      if (Game.settings.menuTrack === 'boss') {
+        advancedForcedOpen = true;
+        // entering boss → prefer normal difficulty unless already easy by teacher
+        if (Game.settings.difficulty !== 'easy') {
+          Game.settings.difficulty = 'normal';
+          document.querySelectorAll('.opt-difficulty').forEach(x => {
+            const on = x.dataset.diff === 'normal';
+            x.classList.toggle('opt-selected', on);
+            x.setAttribute('aria-pressed', on ? 'true' : 'false');
+          });
+        }
+      }
+      syncMenuTrack();
+      syncMenuAdvanced();
+      if (typeof syncPlayLayoutUI === 'function') syncPlayLayoutUI();
+    };
+  });
+  try {
+    const savedTrack = localStorage.getItem('mg2.menuTrack');
+    if (savedTrack === 'class' || savedTrack === 'boss') Game.settings.menuTrack = savedTrack;
+  } catch (_) {}
   const advToggle = $('btn-menu-advanced-toggle');
   if (advToggle) {
     advToggle.onclick = () => {
       advancedForcedOpen = !advancedForcedOpen;
-      if (Game.settings.difficulty !== 'easy') advancedForcedOpen = true;
+      if (Game.settings.menuTrack !== 'boss') advancedForcedOpen = true;
       syncMenuAdvanced();
     };
   }
+  syncMenuTrack();
   syncMenuAdvanced();
 
   // 勝利條件
@@ -6094,10 +6233,10 @@ function setupMenu() {
         kb.classList.toggle('opacity-40', isEasy);
         kb.setAttribute('aria-disabled', String(isEasy));
       });
-      // cycle41: easy collapses advanced combat settings
+      // cycle41/63: easy on boss track can collapse advanced; class track ignores
       if (isEasy) advancedForcedOpen = false;
       else advancedForcedOpen = true;
-      syncMenuAdvanced();
+      if (Game.settings.menuTrack === 'boss') syncMenuAdvanced();
       const dh = $('diff-helper');
       if (dh) {
         dh.textContent = isEasy
