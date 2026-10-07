@@ -5276,6 +5276,11 @@ const Game = {
   },
 
   nextTeamInCoop() {
+    // V3.6 cycle71: solo 唔輪換到 mage（板已藏）
+    if (Game.settings.playLayout !== 'dual') {
+      this.state.currentTeam = 'knight';
+      return;
+    }
     this.state.currentTeam = (this.state.currentTeam === 'knight') ? 'mage' : 'knight';
     // V3.6-SEN: in easy mode, show only the active team card
     if (Game.settings.difficulty === 'easy') {
@@ -7437,8 +7442,10 @@ function startGame() {
     Game.settings.dualTeam = arena;
     Game.settings.team = (arena === 'coop') ? 'coop' : 'versus';
   } else if (!isEasy && Game.settings.playLayout !== 'dual') {
-    // Boss solo: single hero — coop damage path is fine
-    Game.settings.team = 'coop';
+    // V3.6 cycle71: solo Boss — 唔用 coop 輪隊（否則答完去隱藏 mage → 撳掣無反應）
+    // 打怪方式仍可顯示 coop 文案，但出題固定騎士；team 用 versus 語意避免 nextTeam 誤觸
+    Game.settings.team = 'versus';
+    Game.state.currentTeam = 'knight';
   }
   if (Game.settings.win === 'time') {
     const m = clamp(parseInt($('time-input').value, 10) || 5, 1, 15);
@@ -7737,6 +7744,14 @@ function _scheduleNextQuestion(team, delayMs) {
     }, delay || 700);
     return;
   }
+  // V3.6 cycle71: solo Boss 永遠只出騎士題（唔可以 coop 輪到隱藏 mage）
+  if (Game.settings.playLayout !== 'dual') {
+    Game.state.currentTeam = 'knight';
+    setTimeout(() => {
+      if (Game.state.running && !Game.state.ended) nextQuestion('knight');
+    }, delay);
+    return;
+  }
   if (Game.settings.team === 'coop') {
     Game.nextTeamInCoop();
     setTimeout(() => {
@@ -7796,7 +7811,9 @@ Game.askReReview = function(idx) {
   Game.state.review.splice(idx, 1);
   UI.renderReview();
   // 用當前輪到/最後的隊伍
-  const team = Game.settings.team === 'coop' ? Game.state.currentTeam : 'knight';
+  const team = Game.settings.playLayout !== 'dual'
+    ? 'knight'
+    : (Game.settings.team === 'coop' ? Game.state.currentTeam : 'knight');
   // 用同 type 出一道新題（等同重練）
   const type = item.type;
   const q = QuestionGen.make(type, Game.settings.mode);

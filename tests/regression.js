@@ -1523,6 +1523,19 @@ assert('BGM-03 persists mg2.bgm',
 assert('BGM-04 setChannel bgm + start\/stop',
   /toggleBgmChannel[\s\S]{0,250}setChannel\('bgm'/.test(src));
 
+// V3.6 cycle71: solo boss answer path
+console.log('\n[T56] V3.6 audit cycle-71 (solo boss click fix)');
+assert('SOLOBOSS-01 schedule never coop-rotates when solo',
+  /cycle71: solo Boss 永遠只出騎士題/.test(src) &&
+  /playLayout !== 'dual'[\s\S]{0,200}nextQuestion\('knight'\)/.test(src));
+assert('SOLOBOSS-02 nextTeamInCoop solo lock knight',
+  /cycle71: solo 唔輪換到 mage/.test(src) &&
+  /playLayout !== 'dual'[\s\S]{0,120}currentTeam = 'knight'/.test(src));
+assert('SOLOBOSS-03 startGame solo not force coop',
+  /cycle71: solo Boss[\s\S]{0,200}team = 'versus'/.test(src));
+assert('SOLOBOSS-04 re-review solo uses knight',
+  /playLayout !== 'dual'[\s\S]{0,80}'knight'[\s\S]{0,80}team === 'coop'/.test(src));
+
 // =========== summary ===========
 console.log(`\n========== ${pass} pass / ${fail} fail ==========`);
 if (fail > 0) {
