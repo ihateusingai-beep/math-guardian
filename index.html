@@ -831,6 +831,79 @@
     display: flex;
     flex-direction: column;
   }
+  /* V3.6 cycle76: height compare — vertical same-color columns */
+  .ht-pair {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-end;
+    justify-content: center;
+    gap: clamp(1.25rem, 5vw, 2.75rem);
+    width: 100%;
+    max-width: 34rem;
+    margin: 0.35rem auto 0;
+    padding: 0.75rem 0.5rem 0.35rem;
+    min-height: clamp(11rem, 42vh, 18rem);
+  }
+  .ht-pair-hit {
+    flex: 1 1 0;
+    min-width: 0;
+    min-height: clamp(10rem, 40vh, 17rem);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    padding: 0.85rem 0.55rem 0.9rem;
+    border-radius: 1.25rem;
+    border: 3px solid rgba(255,255,255,0.18);
+    background: rgba(0,0,0,0.22);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: border-color 0.15s, background 0.15s, transform 0.12s, box-shadow 0.2s;
+  }
+  .ht-pair-hit:active { transform: scale(0.98); }
+  .ht-pair-hit:focus-visible {
+    outline: 3px solid #fbbf24;
+    outline-offset: 3px;
+  }
+  .ht-pair-hit.is-correct {
+    border-color: #4ade80 !important;
+    background: rgba(34,197,94,0.28) !important;
+    box-shadow: 0 0 0 4px rgba(74,222,128,0.35), 0 0 28px rgba(74,222,128,0.45);
+  }
+  .ht-pair-hit.is-miss { opacity: 0.72; }
+  .ht-pair-stack {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    width: 100%;
+    height: 100%;
+    gap: 0.35rem;
+  }
+  .ht-pair-bar {
+    display: block;
+    width: clamp(2.6rem, 14vw, 4.2rem);
+    min-height: 18%;
+    max-height: 100%;
+    border-radius: 1.1rem 1.1rem 0.55rem 0.55rem;
+    border: 3px solid rgba(0,0,0,0.18);
+    box-shadow: inset 0 -4px 0 rgba(0,0,0,0.12), 0 4px 0 rgba(0,0,0,0.12);
+  }
+  .ht-pair-bar.tone-teal { background: linear-gradient(180deg, #5eead4, #0d9488); }
+  .ht-pair-bar.tone-sky { background: linear-gradient(180deg, #7dd3fc, #0284c7); }
+  .ht-pair-bar.tone-rose { background: linear-gradient(180deg, #fda4af, #e11d48); }
+  .ht-pair-bar.tone-slate { background: linear-gradient(180deg, #cbd5e1, #475569); }
+  .ht-pair-deco {
+    font-size: clamp(1.6rem, 6vw, 2.2rem);
+    line-height: 1;
+    filter: drop-shadow(0 1px 0 rgba(0,0,0,0.25));
+  }
+  .ht-pair-base {
+    width: clamp(3.2rem, 16vw, 5rem);
+    height: 0.55rem;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.2);
+  }
   /* V3.6 cycle73 legacy (kept for boss fallback chips) */
   .sen-bar-row.len-tap, .sen-len-row.len-tap {
     cursor: pointer;
@@ -2764,6 +2837,7 @@
         <div class="scope-preset-row" role="group" aria-label="範疇快捷">
           <button type="button" class="opt-scope-preset" data-scope-preset="count">🔢 只數數</button>
           <button type="button" class="opt-scope-preset" data-scope-preset="length">📏 只長短</button>
+          <button type="button" class="opt-scope-preset" data-scope-preset="height">↕️ 只高矮</button>
           <button type="button" class="opt-scope-preset" data-scope-preset="all">✨ 全部</button>
         </div>
         <div id="scope-picker" class="grid grid-cols-2 gap-3" role="group" aria-label="題目範疇">
@@ -2771,7 +2845,10 @@
             🔢 數數 1–10<br><span class="text-xs opacity-70">睇圖數有幾多</span>
           </button>
           <button type="button" class="opt-scope btn btn-ghost opt-selected py-3 text-left" data-scope="compareLength" aria-pressed="true">
-            📏 長短比較<br><span class="text-xs opacity-70">筆／蟲／車／魚／條</span>
+            📏 長短比較<br><span class="text-xs opacity-70">撳長／短嗰條</span>
+          </button>
+          <button type="button" class="opt-scope btn btn-ghost opt-selected py-3 text-left" data-scope="compareHeight" aria-pressed="true">
+            ↕️ 高矮比較<br><span class="text-xs opacity-70">撳高／矮嗰個</span>
           </button>
           <button type="button" class="opt-scope btn btn-ghost opt-selected py-3 text-left" data-scope="orderAsc20" aria-pressed="true">
             📈 順序·跟住<br><span class="text-xs opacity-70">邊個跟住</span>
@@ -2780,7 +2857,7 @@
             📉 倒序·跟住<br><span class="text-xs opacity-70">邊個跟住</span>
           </button>
         </div>
-        <div id="scope-helper" class="menu-section-sub">已選 4 個範疇 · 撳掣可開關（最少 1 個）</div>
+        <div id="scope-helper" class="menu-section-sub">已選 5 個範疇 · 撳掣可開關（最少 1 個）</div>
       </div>
 
       <!-- V3.6 cycle67: sticky 開始（摘要合併入掣；上面大 emoji 預覽） -->
@@ -3680,6 +3757,49 @@ function _lengthPairHTML(ex) {
   };
 }
 
+/** V3.6 cycle76: two same-color vertical columns — 高矮 */
+function _heightPairHTML(ex) {
+  const A = Math.max(1, Number(ex.a != null ? ex.a : ex.left) || 1);
+  const B = Math.max(1, Number(ex.b != null ? ex.b : ex.right) || 1);
+  const max = Math.max(A, B, 1);
+  const pctA = Math.max(22, Math.round((A / max) * 92));
+  const pctB = Math.max(22, Math.round((B / max) * 92));
+  const tone = ['teal', 'sky', 'rose', 'slate'].includes(ex.pairTone) ? ex.pairTone : 'teal';
+  const decoMap = { tree: '🌳', person: '🧍', building: '🏢' };
+  const deco = decoMap[ex.deco] || '🌳';
+  const ask = ex.ask === 'short' ? 'short' : 'tall';
+  const prompt = ex.prompt || (ask === 'short' ? '邊個矮？' : '邊個高？');
+  const hit = (side, pct) => {
+    const label = side === '1' ? '左邊' : '右邊';
+    return `<button type="button" class="ht-pair-hit" data-side="${side}" aria-label="${label}">
+      <span class="ht-pair-stack">
+        <span class="ht-pair-deco" aria-hidden="true">${deco}</span>
+        <span class="ht-pair-bar tone-${tone}" style="height:${pct}%" data-side-bar="${side}"></span>
+        <span class="ht-pair-base" aria-hidden="true"></span>
+      </span>
+    </button>`;
+  };
+  return {
+    A, B, skin: 'pair', mode: 'tap-pair', orient: 'height',
+    html: `<div class="ht-pair" role="group" aria-label="${prompt}" data-ask="${ask}">
+      ${hit('1', pctA)}
+      ${hit('2', pctB)}
+    </div>`,
+  };
+}
+
+function _isTapPairCompare(q) {
+  if (!q || !q.extra) return false;
+  if (!(q.extra.mode === 'tap-pair' || q.extra.skin === 'pair')) return false;
+  return q.type === 'compareLength' || q.type === 'compareHeight';
+}
+
+function _tapPairCorrectSay(q) {
+  if (!q) return '啱啦';
+  if (q.type === 'compareHeight') return (q.extra && q.extra.ask === 'short') ? '呢個矮' : '呢個高';
+  return (q.extra && q.extra.ask === 'short') ? '呢條短' : '呢條長';
+}
+
 function _lengthBarsHTML(ex) {
   // V3.6 cycle75: tap-pair mode (SEN pure compare)
   if (ex && (ex.mode === 'tap-pair' || ex.skin === 'pair')) {
@@ -3891,12 +4011,13 @@ function _lengthOptVisualHTML(opt, q) {
   </span>`;
 }
 
-/** Wire tap-on-picture for long/short (not equal-ask) */
+/** Wire tap-on-picture for long/short/tall (not equal-ask) */
 function _wireLengthVisualClicks(root, q, team) {
-  if (!root || !q || q.type !== 'compareLength') return;
-  if (q.extra && q.extra.ask === 'eq') return; // 一樣長用下面掣
-  // cycle75 pair hits
-  root.querySelectorAll('.len-pair-hit[data-side]').forEach(el => {
+  if (!root || !q) return;
+  if (!(q.type === 'compareLength' || q.type === 'compareHeight')) return;
+  if (q.extra && q.extra.ask === 'eq') return;
+  // cycle75/76 pair hits (horizontal length + vertical height)
+  root.querySelectorAll('.len-pair-hit[data-side], .ht-pair-hit[data-side]').forEach(el => {
     const side = el.getAttribute('data-side');
     if (side !== '1' && side !== '2') return;
     const fire = () => {
@@ -3917,17 +4038,18 @@ function _wireLengthVisualClicks(root, q, team) {
   });
 }
 
-/** cycle75: glow correct bar / soft miss */
+/** cycle75/76: glow correct bar / soft miss */
 function _lenPairMark(root, side, kind) {
   if (!root) return;
+  const hits = root.querySelectorAll('.len-pair-hit, .ht-pair-hit');
   if (kind === 'lock') {
-    root.querySelectorAll('.len-pair-hit').forEach(el => { el.disabled = true; });
+    hits.forEach(el => { el.disabled = true; });
     return;
   }
-  root.querySelectorAll('.len-pair-hit').forEach(el => {
+  hits.forEach(el => {
     el.classList.remove('is-correct', 'is-miss');
   });
-  const hit = root.querySelector(`.len-pair-hit[data-side="${side}"]`);
+  const hit = root.querySelector(`.len-pair-hit[data-side="${side}"], .ht-pair-hit[data-side="${side}"]`);
   if (!hit) return;
   if (kind === 'correct') hit.classList.add('is-correct');
   if (kind === 'miss') hit.classList.add('is-miss');
@@ -4527,14 +4649,16 @@ const TYPE_REGISTRY = {
   // === V3.6 cycle44: 中度主頁範疇 ===
   count20: { id:'count20', label:'數數 1-10', emoji:'🔢', difficulty:1, category:'math', icon:null, mode:['choice'], layout:'parts-emoji', desc:'睇圖數 1-10' },
   compareLength: { id:'compareLength', label:'長短比較', emoji:'📏', difficulty:1, category:'math', icon:null, mode:['choice'], layout:'bars', desc:'邊條長／短' },
+  compareHeight: { id:'compareHeight', label:'高矮比較', emoji:'📏', difficulty:1, category:'math', icon:null, mode:['choice'], layout:'height', desc:'邊個高／矮' },
   orderAsc20: { id:'orderAsc20', label:'1-20 順序', emoji:'📈', difficulty:1, category:'math', icon:null, mode:['choice'], layout:'seq-choice', desc:'兩數後邊個跟住（細→大）' },
   orderDesc20: { id:'orderDesc20', label:'1-20 倒序', emoji:'📉', difficulty:1, category:'math', icon:null, mode:['choice'], layout:'seq-choice', desc:'兩數後邊個跟住（大→細）' },
 };
 
-// V3.6 cycle44: home scope catalog (1 scope = 1 type)
+// V3.6 cycle44/76: home scope catalog (1 scope = 1 type)
 const SCOPE_CATALOG = [
   { id: 'count20', label: '數數 1–10', emoji: '🔢' },
   { id: 'compareLength', label: '長短比較', emoji: '📏' },
+  { id: 'compareHeight', label: '高矮比較', emoji: '↕️' },
   { id: 'orderAsc20', label: '順序·跟住', emoji: '📈' },
   { id: 'orderDesc20', label: '倒序·跟住', emoji: '📉' },
 ];
@@ -4748,6 +4872,42 @@ const Generators = {
       },
     };
   },
+  // V3.6 cycle76: 高矮比較 — 直立同色柱，撳高／矮嗰條
+  compareHeight() {
+    const shortN = randInt(2, 4);
+    let tallN = shortN * 2;
+    if (tallN > 8) tallN = 8;
+    if (tallN < shortN * 2) tallN = Math.min(8, shortN * 2);
+    const leftIsTall = Math.random() < 0.5;
+    const a = leftIsTall ? tallN : shortN;
+    const b = leftIsTall ? shortN : tallN;
+    const askTall = Math.random() < 0.5;
+    const answer = askTall ? (a > b ? '1' : '2') : (a < b ? '1' : '2');
+    const prompt = askTall ? '邊個高？' : '邊個矮？';
+    const tones = ['teal', 'sky', 'rose', 'slate'];
+    const pairTone = tones[randInt(0, tones.length - 1)];
+    const decoPool = ['tree', 'person', 'building'];
+    const deco = decoPool[randInt(0, decoPool.length - 1)];
+    return {
+      parts: [prompt],
+      answer,
+      type: 'compareHeight',
+      options: ['1', '2'],
+      optionLabels: { '1': '左', '2': '右' },
+      extra: {
+        a, b,
+        left: a, right: b,
+        ask: askTall ? 'tall' : 'short',
+        prompt,
+        skin: 'pair',
+        mode: 'tap-pair',
+        pairTone,
+        deco,
+        hideUnits: true,
+        orient: 'height',
+      },
+    };
+  },
   // V3.6 cycle44 helpers: 3 distinct 1-20 + MC sequences
   _seqThree() {
     const nums = [];
@@ -4931,6 +5091,43 @@ function _normalizeBankQuestion(type, mode, q, reg) {
       unitsB: '■'.repeat(Math.max(1, b)),
     });
     q.parts = [prompt];
+  } else if (type === 'compareHeight') {
+    // V3.6 cycle76: height tap-pair bank normalize
+    let ans = String(q.answer);
+    if (ans === 'A') ans = '1';
+    if (ans === 'B') ans = '2';
+    const ex = q.extra || {};
+    let a = Number(ex.a != null ? ex.a : ex.left);
+    let b = Number(ex.b != null ? ex.b : ex.right);
+    if (!Number.isFinite(a) || !Number.isFinite(b)) return null;
+    const askShort = ex.ask === 'short' || /矮/.test(String(ex.prompt || ''));
+    if (Math.abs(a - b) < Math.max(a, b) * 0.5) {
+      const shortN = Math.min(a, b, 4);
+      const tallN = Math.min(8, Math.max(shortN * 2, shortN + 3));
+      if (a >= b) { a = tallN; b = shortN; } else { a = shortN; b = tallN; }
+    }
+    if (ans !== '1' && ans !== '2') {
+      ans = askShort ? (a < b ? '1' : '2') : (a > b ? '1' : '2');
+    }
+    const prompt = ex.prompt || (askShort ? '邊個矮？' : '邊個高？');
+    const tones = ['teal', 'sky', 'rose', 'slate'];
+    const pairTone = (ex.pairTone && tones.includes(ex.pairTone)) ? ex.pairTone : tones[(a + b) % tones.length];
+    const deco = ['tree', 'person', 'building'].includes(ex.deco) ? ex.deco : 'tree';
+    q.answer = ans;
+    q.options = ['1', '2'];
+    q.optionLabels = { '1': '左', '2': '右' };
+    q.extra = Object.assign({}, ex, {
+      a, b, left: a, right: b,
+      skin: 'pair',
+      mode: 'tap-pair',
+      pairTone,
+      deco,
+      hideUnits: true,
+      orient: 'height',
+      ask: askShort ? 'short' : 'tall',
+      prompt,
+    });
+    q.parts = [prompt];
   } else if (type === 'orderAsc20' || type === 'orderDesc20') {
     // cycle55 next-number MC
     let stem = Array.isArray(q.displayNums) ? q.displayNums.map(Number) : null;
@@ -4997,7 +5194,7 @@ const QuestionGen = (() => {
       const bankUsable = bankQ && (
         reg.layout === 'parts-emoji' || reg.layout === 'sym-button' ||
         reg.layout === 'clock' || reg.layout === 'order' || reg.layout === 'shape' ||
-        reg.layout === 'bars' || reg.layout === 'seq-choice' ||
+        reg.layout === 'bars' || reg.layout === 'height' || reg.layout === 'seq-choice' ||
         reg.layout === 'numeric'
       );
       if (bankUsable) q = bankQ;
@@ -5014,6 +5211,7 @@ const QuestionGen = (() => {
       else if (reg.layout === 'shape') q = Generators.shapeMatch();
       else if (reg.layout === 'order') q = Generators.ordering(mode);
       else if (reg.layout === 'bars') q = Generators.compareLength();
+      else if (reg.layout === 'height') q = Generators.compareHeight();
       else if (reg.layout === 'seq-choice') q = Generators[type](mode);
       else q = Generators.numeric(type, mode);
     }
@@ -5255,6 +5453,15 @@ const QuestionBank = (() => {
       { parts:['邊條短？'], answer:'2', options:['1','2'], optionLabels:{'1':'左','2':'右'}, extra:{skin:'pair',mode:'tap-pair',pairTone:'sky',deco:'worm',a:7,b:3,left:7,right:3,ask:'short',prompt:'邊條短？',hideUnits:true} },
       { parts:['邊條長？'], answer:'2', options:['1','2'], optionLabels:{'1':'左','2':'右'}, extra:{skin:'pair',mode:'tap-pair',pairTone:'rose',deco:'worm',a:3,b:8,left:3,right:8,ask:'long',prompt:'邊條長？',hideUnits:true} },
       { parts:['邊條短？'], answer:'1', options:['1','2'], optionLabels:{'1':'左','2':'右'}, extra:{skin:'pair',mode:'tap-pair',pairTone:'slate',deco:'bar',a:2,b:6,left:2,right:6,ask:'short',prompt:'邊條短？',hideUnits:true} },
+    ],
+    compareHeight: [
+      // cycle76: vertical tap-pair
+      { parts:['邊個高？'], answer:'1', options:['1','2'], optionLabels:{'1':'左','2':'右'}, extra:{skin:'pair',mode:'tap-pair',pairTone:'teal',deco:'tree',a:6,b:3,left:6,right:3,ask:'tall',prompt:'邊個高？',hideUnits:true,orient:'height'} },
+      { parts:['邊個矮？'], answer:'1', options:['1','2'], optionLabels:{'1':'左','2':'右'}, extra:{skin:'pair',mode:'tap-pair',pairTone:'sky',deco:'person',a:3,b:7,left:3,right:7,ask:'short',prompt:'邊個矮？',hideUnits:true,orient:'height'} },
+      { parts:['邊個高？'], answer:'2', options:['1','2'], optionLabels:{'1':'左','2':'右'}, extra:{skin:'pair',mode:'tap-pair',pairTone:'rose',deco:'building',a:2,b:6,left:2,right:6,ask:'tall',prompt:'邊個高？',hideUnits:true,orient:'height'} },
+      { parts:['邊個矮？'], answer:'2', options:['1','2'], optionLabels:{'1':'左','2':'右'}, extra:{skin:'pair',mode:'tap-pair',pairTone:'slate',deco:'tree',a:8,b:4,left:8,right:4,ask:'short',prompt:'邊個矮？',hideUnits:true,orient:'height'} },
+      { parts:['邊個高？'], answer:'1', options:['1','2'], optionLabels:{'1':'左','2':'右'}, extra:{skin:'pair',mode:'tap-pair',pairTone:'teal',deco:'person',a:8,b:4,left:8,right:4,ask:'tall',prompt:'邊個高？',hideUnits:true,orient:'height'} },
+      { parts:['邊個矮？'], answer:'1', options:['1','2'], optionLabels:{'1':'左','2':'右'}, extra:{skin:'pair',mode:'tap-pair',pairTone:'sky',deco:'building',a:2,b:6,left:2,right:6,ask:'short',prompt:'邊個矮？',hideUnits:true,orient:'height'} },
     ],
     orderAsc20: [
       { parts:['3  ·  7  ·  ？'], answer:'12', options:['12','5','9'], displayNums:[3,7] },
@@ -5659,7 +5866,7 @@ const Game = {
     playerLabel: '同學',        // display name e.g. 🐱 小貓
     playerIdRight: null,        // dual right team
     playerLabelRight: '同學',
-    scopes: ['count20', 'compareLength', 'orderAsc20', 'orderDesc20'], // V3.6 cycle44
+    scopes: ['count20', 'compareLength', 'compareHeight', 'orderAsc20', 'orderDesc20'], // V3.6 cycle44/76
     arenaSkin: 'retro',             // V3.6 cycle62: 'classic' | 'retro' (ruler tug / bridge)
     soloMode: 'bridge',             // V3.6 cycle65: solo mini-game 'boat' | 'bridge' | 'ruler'
     menuTrack: 'class',             // V3.6 cycle63: 'class' 課堂 | 'boss' 戰役
@@ -5744,21 +5951,21 @@ const Game = {
       if (Game.state._easyTeamDone && Game.state._easyTeamDone[team]) return;
       const correct = _compareAnswer(q.answer, value, q.type).correct;
 
-      // V3.6 cycle75: length = tap real bar only；錯唔罰、唔跳題、只重播題
-      if (q.type === 'compareLength' && q.extra && (q.extra.mode === 'tap-pair' || q.extra.skin === 'pair')) {
+      // V3.6 cycle75/76: length/height = tap real bar only；錯唔罰、唔跳題、只重播題
+      if (_isTapPairCompare(q)) {
         const root = document.getElementById(`sen-q-emoji-${team}`);
         if (!correct) {
           _lenPairMark(root, value, 'miss');
           setTimeout(() => {
-            if (root) root.querySelectorAll('.len-pair-hit').forEach(el => el.classList.remove('is-miss'));
+            if (root) root.querySelectorAll('.len-pair-hit, .ht-pair-hit').forEach(el => el.classList.remove('is-miss'));
           }, 450);
-          const prompt = (q.extra && q.extra.prompt) || '邊條長？';
+          const prompt = (q.extra && q.extra.prompt) || (q.type === 'compareHeight' ? '邊個高？' : '邊條長？');
           if (Game.settings.ttsEnabled !== false && TTS && TTS.speak) TTS.speak(prompt, null, {});
           return; // 不計錯、不跳下一題
         }
         _lenPairMark(root, value, 'correct');
         _lenPairMark(root, value, 'lock');
-        const say = (q.extra.ask === 'short') ? '呢條短' : '呢條長';
+        const say = _tapPairCorrectSay(q);
         if (Game.settings.ttsEnabled !== false && TTS && TTS.speak) TTS.speak(say, null, {});
         if (Audio.correct) Audio.correct();
         Game.state.teams[team].total++;
@@ -5850,6 +6057,7 @@ const Game = {
 /** V3.6 cycle49: SEN prompt/TTS copy map (single source) */
 const SEN_COPY = {
   compareLength: { text: '邊條長？', ttsFrom: 'extra.prompt' },
+  compareHeight: { text: '邊個高？', ttsFrom: 'extra.prompt' },
   whatTime:      { text: '幾點鐘？', tts: '幾點鐘？' },
   shapeMatch:    { text: '這是什麼形狀？', tts: '這是什麼形狀？' },
   groupAdd:      { text: '加埋有幾多？', tts: null },
@@ -6033,6 +6241,16 @@ const QuestionRenderer = {
     if (!(q.extra && (q.extra.mode === 'tap-pair' || q.extra.skin === 'pair'))) {
       _appendChoiceGrid(area, q, team, 'grid grid-cols-2 gap-2');
     }
+    return true;
+  },
+
+  // V3.6 cycle76: height layout — vertical tap-pair
+  'height'(q, team, area) {
+    const visual = document.createElement('div');
+    visual.className = 'sen-q-visual';
+    visual.innerHTML = _heightPairHTML(q.extra || {}).html;
+    area.appendChild(visual);
+    _wireLengthVisualClicks(visual, q, team);
     return true;
   },
 
@@ -6722,11 +6940,16 @@ const UI = {
     const panel = $(`sen-panel-${t}`);
     if (panel) panel.classList.remove('len-focus');
 
-    if (q.type === 'compareLength' && q.extra && emojiEl) {
+    if ((q.type === 'compareLength' || q.type === 'compareHeight') && q.extra && emojiEl) {
       emojiEl.classList.add('sen-q-visual');
-      emojiEl.innerHTML = _lengthBarsHTML(q.extra).html;
+      if (q.type === 'compareHeight') {
+        emojiEl.innerHTML = _heightPairHTML(q.extra).html;
+      } else {
+        emojiEl.innerHTML = _lengthBarsHTML(q.extra).html;
+      }
       if (textEl) {
-        textEl.textContent = _senCopyText(q) || (q.extra.prompt) || '邊條長？';
+        textEl.textContent = _senCopyText(q) || (q.extra.prompt) ||
+          (q.type === 'compareHeight' ? '邊個高？' : '邊條長？');
       }
       if (panel) panel.classList.add('len-focus');
       if (optsArea) optsArea.innerHTML = '';
@@ -6736,7 +6959,7 @@ const UI = {
         const text = _senCopyTTS(q);
         if (text) TTS.speak(text, null, {});
       }
-      return; // cycle75: 無 A/B、無第二組圖
+      return; // cycle75/76: 無 A/B、無第二組圖
     } else if (q.type === 'whatTime' && q.extra && emojiEl) {
       // V3.6 cycle46: SEN clock face (no hour in text)
       const hour = Number(q.extra.hour != null ? q.extra.hour : q.answer) || 12;
@@ -7127,7 +7350,7 @@ function setupMenu() {
     // V3.6 cycle64/65: one-line start summary
     const n = (Game.settings.scopes && Game.settings.scopes.length) || 4;
     const scopeNames = {
-      count20: '數數', compareLength: '長短', orderAsc20: '順序', orderDesc20: '倒序'
+      count20: '數數', compareLength: '長短', compareHeight: '高矮', orderAsc20: '順序', orderDesc20: '倒序'
     };
     const scopeBits = (Game.settings.scopes || []).map(id => scopeNames[id] || id).filter(Boolean);
     const scopeTxt = scopeBits.length ? scopeBits.join('+') : `${n}範疇`;
@@ -7435,7 +7658,8 @@ function setupMenu() {
     const preset =
       s === 'count20' ? 'count' :
       s === 'compareLength' ? 'length' :
-      (s === DEFAULT_SCOPES.slice().sort().join(',') || s === 'compareLength,count20,orderAsc20,orderDesc20') ? 'all' :
+      s === 'compareHeight' ? 'height' :
+      (s === DEFAULT_SCOPES.slice().sort().join(',')) ? 'all' :
       null;
     document.querySelectorAll('.opt-scope-preset').forEach(btn => {
       const on = preset && btn.dataset.scopePreset === preset;
@@ -7470,12 +7694,13 @@ function setupMenu() {
     try { localStorage.setItem('mg2.scopes', JSON.stringify(Game.settings.scopes)); } catch (_) {}
     syncScopeUI();
   };
-  // V3.6 cycle67: scope presets 只數數 / 只長短 / 全部
+  // V3.6 cycle67/76: scope presets 只數數 / 只長短 / 只高矮 / 全部
   document.querySelectorAll('.opt-scope-preset').forEach(btn => {
     btn.onclick = () => {
       const p = btn.dataset.scopePreset;
       if (p === 'count') Game.settings.scopes = ['count20'];
       else if (p === 'length') Game.settings.scopes = ['compareLength'];
+      else if (p === 'height') Game.settings.scopes = ['compareHeight'];
       else Game.settings.scopes = DEFAULT_SCOPES.slice();
       try { localStorage.setItem('mg2.scopes', JSON.stringify(Game.settings.scopes)); } catch (_) {}
       syncScopeUI();
@@ -8080,9 +8305,9 @@ function showInstantHint(team, q) {
     // V3.6-SEN: show direction icon
     const labels = {1:'左邊多', 2:'右邊多', 3:'一樣多'};
     hint = `💡 ${labels[q.answer] || `答案係 ${q.answer}`}`;
-  } else if (q.type === 'compareLength') {
+  } else if (q.type === 'compareLength' || q.type === 'compareHeight') {
     const lab = (q.optionLabels && q.optionLabels[q.answer]) ||
-      ({ '1': '黃條', '2': '紫條', A: '黃條', B: '紫條', eq: '一樣長', diff: '唔一樣' })[q.answer] || q.answer;
+      ({ '1': '左', '2': '右', A: '左', B: '右' })[q.answer] || q.answer;
     hint = `💡 ${lab}`;
   } else if (q.type === 'orderAsc20' || q.type === 'orderDesc20') {
     hint = `💡 正確：${q.answer}`;
@@ -8276,9 +8501,9 @@ function _easyHintText(q) {
     const labels = { 1: '左邊多', 2: '右邊多', 3: '一樣多' };
     return labels[q.answer] || `答案係 ${q.answer}`;
   }
-  if (q.type === 'compareLength') {
+  if (q.type === 'compareLength' || q.type === 'compareHeight') {
     const lab = (q.optionLabels && q.optionLabels[q.answer]) ||
-      ({ '1': '黃條', '2': '紫條', A: '黃條', B: '紫條', eq: '一樣長', diff: '唔一樣' })[q.answer];
+      ({ '1': '左', '2': '右', A: '左', B: '右' })[q.answer];
     return lab ? `答案係 ${lab}` : `答案係 ${q.answer}`;
   }
   if (q.type === 'orderAsc20' || q.type === 'orderDesc20' || q.type === 'ordering') {

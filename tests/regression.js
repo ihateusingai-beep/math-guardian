@@ -38,8 +38,8 @@ const TYPE_REGISTRY_BLOCK = src.match(/const TYPE_REGISTRY\s*=\s*\{[\s\S]*?\n\};
 assert('TYPE_REGISTRY block present', !!TYPE_REGISTRY_BLOCK);
 const registrySrc = TYPE_REGISTRY_BLOCK ? TYPE_REGISTRY_BLOCK[0] : '';
 const typeIds = [...registrySrc.matchAll(/id:'([a-zA-Z0-9]+)'/g)].map(m => m[1]);
-const expectedIds = ['add10','sub10','add20','sub20','add2d','sub2d','count10','count1to3','groupAdd','compareGroup','compare10','double','whatTime','shapeMatch','ordering','count20','compareLength','orderAsc20','orderDesc20'];
-eq('19 type entries', typeIds.length, 19);
+const expectedIds = ['add10','sub10','add20','sub20','add2d','sub2d','count10','count1to3','groupAdd','compareGroup','compare10','double','whatTime','shapeMatch','ordering','count20','compareLength','compareHeight','orderAsc20','orderDesc20'];
+eq('20 type entries', typeIds.length, 20);
 for (const id of expectedIds) assert(`  type[${id}] present`, typeIds.includes(id));
 assert('  no duplicate id', new Set(typeIds).size === typeIds.length);
 
@@ -1400,6 +1400,34 @@ assert('LEN75-03 correct TTS 呢條長/短',
   /呢條長/.test(src) && /呢條短/.test(src));
 assert('LEN75-04 hideUnits + big hit',
   /hideUnits:\s*true/.test(src) && /min-height: clamp\(7\.5rem/.test(src));
+
+// V3.6 cycle76: height compare
+console.log('\n[T60] V3.6 audit cycle-76 (height tap-pair)');
+assert('HT76-01 type + layout height',
+  /compareHeight:\s*\{[\s\S]{0,120}layout:'height'/.test(src) &&
+  /function _heightPairHTML/.test(src) &&
+  /Generators\.compareHeight|compareHeight\(\)/.test(src));
+assert('HT76-02 SCOPE + menu + preset',
+  /id: 'compareHeight'/.test(src) &&
+  /data-scope=\"compareHeight\"/.test(src) &&
+  /data-scope-preset=\"height\"/.test(src) &&
+  /scopes = \['compareHeight'\]/.test(src));
+assert('HT76-03 SEN render + TTS say',
+  /_heightPairHTML\(q\.extra\)/.test(src) &&
+  /呢個高/.test(src) && /呢個矮/.test(src) &&
+  /邊個高？/.test(src) && /邊個矮？/.test(src));
+assert('HT76-04 CSS ht-pair vertical',
+  /\.ht-pair\s*\{/.test(src) && /\.ht-pair-hit/.test(src) && /ht-pair-bar/.test(src));
+assert('HT76-05 bank + normalize',
+  /compareHeight:\s*\[/.test(src) &&
+  /type === 'compareHeight'/.test(src) &&
+  /orient: 'height'/.test(src));
+assert('HT76-06 renderer height layout',
+  /'height'\s*\(q,\s*team,\s*area\)/.test(src) &&
+  /layout === 'height'/.test(src));
+assert('HT76-07 shared tap-pair path',
+  /function _isTapPairCompare/.test(src) &&
+  /_isTapPairCompare\(q\)/.test(src));
 
 // V3.6 cycle62: retro arena skins (ruler tug + bridge)
 console.log('\n[T47] V3.6 audit cycle-62 (retro arena)');
