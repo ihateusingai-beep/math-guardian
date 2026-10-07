@@ -1508,6 +1508,21 @@ assert('BOSSFX-05 boss-hit-punch CSS',
 assert('BOSSFX-06 damageBoss float + ring',
   /floatDamage\(dmg/.test(src) && /impactRing\(cx/.test(src));
 
+// V3.6 cycle70: boss center on HP bar + BGM toggle
+console.log('\n[T55] V3.6 audit cycle-70 (boss center + BGM)');
+assert('CENTER-01 boss-panel-center layout',
+  /boss-panel-center/.test(src) && /boss-hp-wrap/.test(src));
+assert('CENTER-02 boss stage before hp wrap order',
+  /boss-stage[\s\S]{0,500}boss-hp-wrap/.test(src));
+assert('BGM-01 buttons menu/game/sen',
+  /id="btn-bgm"/.test(src) && /id="btn-bgm-menu"/.test(src) && /id="btn-bgm-sen"/.test(src));
+assert('BGM-02 toggleBgmChannel + sync',
+  /function toggleBgmChannel/.test(src) && /function syncBgmButtonsUI/.test(src));
+assert('BGM-03 persists mg2.bgm',
+  /mg2\.bgm/.test(src));
+assert('BGM-04 setChannel bgm + start\/stop',
+  /toggleBgmChannel[\s\S]{0,250}setChannel\('bgm'/.test(src));
+
 // =========== summary ===========
 console.log(`\n========== ${pass} pass / ${fail} fail ==========`);
 if (fail > 0) {

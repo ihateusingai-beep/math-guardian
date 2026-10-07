@@ -1404,9 +1404,64 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: clamp(96px, 20vw, 140px);
-    height: clamp(96px, 20vw, 140px);
+    width: clamp(110px, 26vw, 160px);
+    height: clamp(110px, 26vw, 160px);
     flex-shrink: 0;
+    margin: 0 auto;
+    z-index: 3;
+  }
+  /* V3.6 cycle70: boss centered on HP bar (solo + dual same) */
+  .boss-panel-center {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 0.15rem;
+  }
+  .boss-panel-top {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.15rem;
+  }
+  .boss-hp-wrap {
+    position: relative;
+    width: 100%;
+    max-width: 36rem;
+    margin: -1.35rem auto 0;
+    z-index: 1;
+    padding: 0 0.25rem;
+  }
+  .boss-hp-wrap .track {
+    height: 1.15rem;
+    border-radius: 999px;
+    border: 2px solid rgba(251,191,36,0.45);
+    background: rgba(0,0,0,0.45);
+    overflow: hidden;
+    box-shadow: inset 0 2px 6px rgba(0,0,0,0.45), 0 0 12px rgba(239,68,68,0.25);
+  }
+  .boss-hp-wrap .track .fill {
+    height: 100%;
+  }
+  .boss-hp-meta {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    max-width: 36rem;
+    margin: 0.35rem auto 0;
+    font-size: 0.75rem;
+    color: rgba(255,255,255,0.75);
+  }
+  .btn-bgm-on {
+    border-color: rgba(52,211,153,0.55) !important;
+    color: #6ee7b7 !important;
+  }
+  .btn-bgm-off {
+    border-color: rgba(248,113,113,0.45) !important;
+    color: #fca5a5 !important;
+    opacity: 0.85;
   }
   .boss-aura {
     position: absolute;
@@ -2357,6 +2412,10 @@
 
   <!-- ========== 開始畫面 ========== -->
   <section id="screen-menu" class="flex flex-col items-center p-4 md:p-6" style="min-height:100vh;height:100vh;overflow-y:auto">
+    <!-- V3.6 cycle70: anytime BGM toggle (menu) -->
+    <button type="button" id="btn-bgm-menu" class="btn btn-ghost text-sm py-2 px-3 btn-bgm-on fixed top-3 right-3 z-40" title="背景音樂" aria-pressed="true" aria-label="背景音樂 BGM 開關">
+      🎵 BGM
+    </button>
     <div class="text-center mb-4 mt-2">
       <div class="flex justify-center items-end gap-3 mb-2">
         <svg class="pixel troll-idle" style="width:56px;height:56px"><use href="#px-troll"/></svg>
@@ -2641,6 +2700,9 @@
         <span class="mode-badge" id="badge-time">--:--</span>
       </div>
       <div class="flex items-center gap-2">
+        <button id="btn-bgm" type="button" class="btn btn-ghost text-sm py-2 px-3 btn-bgm-on" title="背景音樂" aria-pressed="true" aria-label="背景音樂 BGM 開關">
+          🎵
+        </button>
         <button id="btn-sound" class="btn btn-ghost text-sm py-2 px-3" title="音效">
           <svg class="pixel icon-mini"><use href="#px-sound-on"/></svg>
         </button>
@@ -2650,10 +2712,14 @@
       </div>
     </header>
 
-    <!-- Boss 區 (V3.6-SEN: hidden in easy mode) · cycle69 immersive stage -->
+    <!-- Boss 區 · cycle70: Boss 置中 · 企喺血條中間（單人/雙人相同） -->
     <div id="boss-panel" class="relative bg-black/30 border border-white/10 rounded-3xl p-3 md:p-4 shadow-2xl overflow-hidden">
-      <div class="flex items-center gap-3 md:gap-4 mb-1">
-        <img id="boss-hero-portrait" class="hidden" style="width:64px;height:64px;object-fit:contain;image-rendering:pixelated;flex-shrink:0;" alt="">
+      <div class="boss-panel-center">
+        <div class="boss-panel-top">
+          <h2 class="font-bold text-base md:text-xl boss-name-glow truncate text-left" id="boss-name-label">👹 森林巨魔</h2>
+          <span id="boss-status" class="text-xs px-2 py-0.5 rounded-full bg-green-500/20 text-green-300 shrink-0">正常</span>
+        </div>
+        <img id="boss-hero-portrait" class="hidden" style="width:64px;height:64px;object-fit:contain;image-rendering:pixelated;" alt="">
         <div class="boss-stage" aria-hidden="true">
           <div class="boss-aura"></div>
           <div class="boss-floor"></div>
@@ -2661,18 +2727,16 @@
             <svg class="pixel w-full h-full"><use id="boss-svg-use" href="#px-troll"/></svg>
           </div>
         </div>
-        <div class="flex-1 min-w-0">
-          <div class="flex justify-between items-baseline gap-2">
-            <h2 class="font-bold text-lg md:text-xl boss-name-glow truncate" id="boss-name-label">👹 森林巨魔 · Forest Troll</h2>
-            <span id="boss-status" class="text-xs px-2 py-0.5 rounded-full bg-green-500/20 text-green-300 shrink-0">正常</span>
+        <div class="boss-hp-wrap">
+          <div class="track" role="progressbar" aria-label="Boss 生命值" aria-valuemin="0" aria-valuemax="200" aria-valuenow="200" aria-valuetext="Boss 滿血 200 / 200" id="boss-hp-track">
+            <div id="boss-hp-fill" class="fill hp-boss" style="width:100%"></div>
           </div>
-          <div class="track mt-2" role="progressbar" aria-label="Boss 生命值" aria-valuemin="0" aria-valuemax="200" aria-valuenow="200" aria-valuetext="Boss 滿血 200 / 200" id="boss-hp-track"><div id="boss-hp-fill" class="fill hp-boss" style="width:100%"></div></div>
-          <div class="flex justify-between text-xs text-white/70 mt-1">
-            <span>HP <span id="boss-hp-text" class="text-amber-200 font-extrabold">200</span>/<span id="boss-hp-max">200</span></span>
-            <span id="boss-threshold-info"></span>
-          </div>
-          <div id="boss-combat-hint" class="text-[11px] text-amber-100/70 mt-1 font-bold">答啱 → ⚔️ 攻擊 Boss！</div>
         </div>
+        <div class="boss-hp-meta">
+          <span>HP <span id="boss-hp-text" class="text-amber-200 font-extrabold">200</span>/<span id="boss-hp-max">200</span></span>
+          <span id="boss-threshold-info"></span>
+        </div>
+        <div id="boss-combat-hint" class="text-[11px] text-amber-100/80 mt-1 font-bold">答啱 → ⚔️ 攻擊 Boss！</div>
       </div>
     </div>
 
@@ -2804,6 +2868,7 @@
   <!-- ========== V3.6: 超簡遊戲畫面（簡單練習：單人 / 左右雙隊） ========== -->
   <section id="screen-game-sen" class="hidden fixed inset-0 flex flex-col" style="background:#0f172a;z-index:50;">
     <button id="sen-btn-back" class="sen-chrome-back text-white text-xl w-12 h-12 rounded-2xl bg-black/50 border border-white/20 flex items-center justify-center" aria-label="返回主選單">⬅</button>
+    <button type="button" id="btn-bgm-sen" class="btn btn-ghost text-sm py-2 px-3 btn-bgm-on fixed top-3 right-3 z-[60]" title="背景音樂" aria-pressed="true" aria-label="背景音樂 BGM 開關">🎵</button>
     <!-- V3.6 cycle47/49: dual arena — versus 扯大欖 / coop 推船 + identity/scene -->
     <div id="sen-arena" class="sen-arena hidden" aria-live="polite" aria-atomic="true">
       <div id="sen-arena-tug" class="sen-arena-mode hidden">
@@ -8910,6 +8975,33 @@ function _download(filename, content, mime) {
 // 音效切換 --------------------------------------------------
 const SOUND_OFF_ICON = '<svg class="pixel icon-mini"><use href="#px-sound-off"/></svg>';
 const SOUND_ON_ICON  = '<svg class="pixel icon-mini"><use href="#px-sound-on"/></svg>';
+const BGM_ON_LABEL = '🎵';
+const BGM_OFF_LABEL = '🎵✕';
+
+function syncBgmButtonsUI() {
+  const on = typeof Audio.isBgmOn === 'function' ? Audio.isBgmOn() : true;
+  document.querySelectorAll('#btn-bgm, #btn-bgm-menu, #btn-bgm-sen').forEach(btn => {
+    if (!btn) return;
+    btn.setAttribute('aria-pressed', String(on));
+    btn.classList.toggle('btn-bgm-on', on);
+    btn.classList.toggle('btn-bgm-off', !on);
+    const isMenu = btn.id === 'btn-bgm-menu';
+    btn.textContent = on ? (isMenu ? '🎵 BGM' : BGM_ON_LABEL) : (isMenu ? '🎵✕ BGM' : BGM_OFF_LABEL);
+    btn.title = on ? '背景音樂：開（撳關）' : '背景音樂：關（撳開）';
+  });
+  try { localStorage.setItem('mg2.bgm', on ? '1' : '0'); } catch (_) {}
+}
+
+function toggleBgmChannel() {
+  const cur = typeof Audio.isBgmOn === 'function' ? Audio.isBgmOn() : true;
+  const next = !cur;
+  Audio.setChannel('bgm', next);
+  if (next && Game.state && Game.state.running) Audio.startBGM();
+  else if (!next) Audio.stopBGM();
+  syncBgmButtonsUI();
+  if (typeof syncAudioSettingsUI === 'function') syncAudioSettingsUI();
+}
+
 $('btn-sound').onclick = () => {
   const newVal = !Audio.isEnabled();
   Audio.enable(newVal);
@@ -8919,11 +9011,26 @@ $('btn-sound').onclick = () => {
   TTS.setEnabled(newVal);
   $('btn-sound').innerHTML = newVal ? SOUND_ON_ICON : SOUND_OFF_ICON;
   $('btn-sound').setAttribute('aria-pressed', String(newVal));
+  syncBgmButtonsUI();
   syncAudioSettingsUI();
 };
 $('btn-sound').innerHTML = SOUND_ON_ICON;
 $('btn-sound').setAttribute('aria-pressed', 'true');
 $('btn-sound').setAttribute('aria-label', '音效總開關 — 點擊靜音 / 取消靜音');
+
+// V3.6 cycle70: dedicated BGM toggle anytime (menu / game / SEN)
+['btn-bgm', 'btn-bgm-menu', 'btn-bgm-sen'].forEach(id => {
+  const b = $(id);
+  if (b) b.onclick = () => toggleBgmChannel();
+});
+try {
+  const savedBgm = localStorage.getItem('mg2.bgm');
+  if (savedBgm === '0') {
+    Audio.setChannel('bgm', false);
+    Audio.stopBGM();
+  }
+} catch (_) {}
+syncBgmButtonsUI();
 
 // V3.4-AUDIT5: per-channel settings UI 
 function syncAudioSettingsUI() {
@@ -8963,6 +9070,8 @@ function wireAudioSettings() {
     Audio.setChannel('bgm', e.target.checked);
     // 開返 → 立即啟動（如果 game running）；關 → startBGM 內部會 noop
     if (e.target.checked && Game.state && Game.state.running) Audio.startBGM();
+    else if (!e.target.checked) Audio.stopBGM();
+    if (typeof syncBgmButtonsUI === 'function') syncBgmButtonsUI();
   };
   if (ttsCb) ttsCb.onchange = (e) => { TTS.setEnabled(e.target.checked); };
     // V3.5-P0: Karaoke toggle — 切換時清乾淨任何 ac
