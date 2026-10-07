@@ -736,7 +736,102 @@
     background: linear-gradient(90deg, #e9d5ff, #a855f7 40%, #ddd6fe);
   }
   .sen-len-obj-icon { font-size: 1.3rem; line-height: 1; margin-left: -0.2rem; flex-shrink: 0; }
-  /* V3.6 cycle73: length answers = visual only (no literacy) */
+  /* V3.6 cycle75: pure length compare — tap the real bar only */
+  .len-pair {
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    justify-content: center;
+    gap: clamp(1.25rem, 5vw, 2.5rem);
+    width: 100%;
+    max-width: 36rem;
+    margin: 0.5rem auto 0;
+    padding: 0.5rem;
+  }
+  .len-pair-hit {
+    flex: 1 1 0;
+    min-width: 0;
+    min-height: clamp(7.5rem, 28vh, 11rem);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.1rem 0.65rem;
+    border-radius: 1.25rem;
+    border: 3px solid rgba(255,255,255,0.18);
+    background: rgba(0,0,0,0.22);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: border-color 0.15s, background 0.15s, transform 0.12s, box-shadow 0.2s;
+  }
+  .len-pair-hit:active { transform: scale(0.98); }
+  .len-pair-hit:focus-visible {
+    outline: 3px solid #fbbf24;
+    outline-offset: 3px;
+  }
+  .len-pair-hit.is-correct {
+    border-color: #4ade80 !important;
+    background: rgba(34,197,94,0.28) !important;
+    box-shadow: 0 0 0 4px rgba(74,222,128,0.35), 0 0 28px rgba(74,222,128,0.45);
+  }
+  .len-pair-hit.is-miss {
+    opacity: 0.72;
+  }
+  .len-pair-bar {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    height: clamp(2.4rem, 8vw, 3.2rem);
+    min-width: 18%;
+    max-width: 100%;
+    border-radius: 999px;
+    border: 3px solid rgba(0,0,0,0.18);
+    box-shadow: inset 0 -3px 0 rgba(0,0,0,0.12), 0 4px 0 rgba(0,0,0,0.12);
+    position: relative;
+  }
+  .len-pair-bar.tone-teal { background: linear-gradient(90deg, #5eead4, #0d9488); }
+  .len-pair-bar.tone-sky { background: linear-gradient(90deg, #7dd3fc, #0284c7); }
+  .len-pair-bar.tone-rose { background: linear-gradient(90deg, #fda4af, #e11d48); }
+  .len-pair-bar.tone-slate { background: linear-gradient(90deg, #cbd5e1, #475569); }
+  .len-pair-deco {
+    font-size: clamp(1.4rem, 5vw, 1.9rem);
+    line-height: 1;
+    margin-right: 0.15rem;
+    filter: drop-shadow(0 1px 0 rgba(0,0,0,0.25));
+  }
+  .sen-panel.len-focus .sen-panel-head {
+    opacity: 0.4;
+    transform: scale(0.9);
+    transform-origin: left center;
+    margin-bottom: 0.15rem !important;
+  }
+  .sen-panel.len-focus .sen-panel-head #sen-correct-knight,
+  .sen-panel.len-focus .sen-panel-head #sen-wrong-knight,
+  .sen-panel.len-focus .sen-panel-head #sen-correct-mage,
+  .sen-panel.len-focus .sen-panel-head #sen-wrong-mage {
+    font-size: 0.85rem !important;
+    opacity: 0.7;
+  }
+  .sen-panel.len-focus .sen-options { display: none !important; }
+  .sen-panel.len-focus .sen-q-text {
+    order: -1;
+    font-size: clamp(1.85rem, 6.5vw, 2.75rem) !important;
+    font-weight: 900 !important;
+    letter-spacing: 0.04em;
+    margin: 0.15rem 0 0.35rem !important;
+    text-shadow: 0 2px 0 rgba(0,0,0,0.35);
+  }
+  .sen-panel.len-focus .sen-q-emoji.sen-q-visual {
+    flex: 1 1 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 40vh;
+  }
+  .sen-panel.len-focus {
+    display: flex;
+    flex-direction: column;
+  }
+  /* V3.6 cycle73 legacy (kept for boss fallback chips) */
   .sen-bar-row.len-tap, .sen-len-row.len-tap {
     cursor: pointer;
     border-radius: 0.75rem;
@@ -3557,7 +3652,39 @@ function _lengthSkinMeta(skinId) {
   return LENGTH_SKINS[skinId] || LENGTH_SKINS.bars;
 }
 
+/** V3.6 cycle75: two same-color bars, horizontal, big hit targets, no units */
+function _lengthPairHTML(ex) {
+  const A = Math.max(1, Number(ex.a != null ? ex.a : ex.left) || 1);
+  const B = Math.max(1, Number(ex.b != null ? ex.b : ex.right) || 1);
+  const max = Math.max(A, B, 1);
+  const pctA = Math.max(22, Math.round((A / max) * 92));
+  const pctB = Math.max(22, Math.round((B / max) * 92));
+  const tone = ['teal', 'sky', 'rose', 'slate'].includes(ex.pairTone) ? ex.pairTone : 'teal';
+  const deco = ex.deco === 'worm' ? '🐛' : '';
+  const ask = ex.ask === 'short' ? 'short' : 'long';
+  const prompt = ex.prompt || (ask === 'short' ? '邊條短？' : '邊條長？');
+  const hit = (side, pct) => {
+    const label = side === '1' ? '左邊' : '右邊';
+    return `<button type="button" class="len-pair-hit" data-side="${side}" aria-label="${label}">
+      <span class="len-pair-bar tone-${tone}" style="width:${pct}%" data-side-bar="${side}">
+        ${deco ? `<span class="len-pair-deco" aria-hidden="true">${deco}</span>` : ''}
+      </span>
+    </button>`;
+  };
+  return {
+    A, B, skin: 'pair', mode: 'tap-pair',
+    html: `<div class="len-pair" role="group" aria-label="${prompt}" data-ask="${ask}">
+      ${hit('1', pctA)}
+      ${hit('2', pctB)}
+    </div>`,
+  };
+}
+
 function _lengthBarsHTML(ex) {
+  // V3.6 cycle75: tap-pair mode (SEN pure compare)
+  if (ex && (ex.mode === 'tap-pair' || ex.skin === 'pair')) {
+    return _lengthPairHTML(ex);
+  }
   // V3.6 cycle61/72: skin = bars|pencil|snake|train|fish|rope|carrot|road|ribbon
   const skinId = (ex && ex.skin) || 'bars';
   const meta = _lengthSkinMeta(skinId);
@@ -3768,6 +3895,17 @@ function _lengthOptVisualHTML(opt, q) {
 function _wireLengthVisualClicks(root, q, team) {
   if (!root || !q || q.type !== 'compareLength') return;
   if (q.extra && q.extra.ask === 'eq') return; // 一樣長用下面掣
+  // cycle75 pair hits
+  root.querySelectorAll('.len-pair-hit[data-side]').forEach(el => {
+    const side = el.getAttribute('data-side');
+    if (side !== '1' && side !== '2') return;
+    const fire = () => {
+      if (el.disabled) return;
+      Game.handleAnswer(team, side, el);
+    };
+    el.onclick = (e) => { e.preventDefault(); e.stopPropagation(); fire(); };
+  });
+  // legacy vertical rows
   root.querySelectorAll('.len-tap[data-side]').forEach(el => {
     const side = el.getAttribute('data-side');
     if (side !== '1' && side !== '2') return;
@@ -3777,6 +3915,22 @@ function _wireLengthVisualClicks(root, q, team) {
       if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fire(); }
     };
   });
+}
+
+/** cycle75: glow correct bar / soft miss */
+function _lenPairMark(root, side, kind) {
+  if (!root) return;
+  if (kind === 'lock') {
+    root.querySelectorAll('.len-pair-hit').forEach(el => { el.disabled = true; });
+    return;
+  }
+  root.querySelectorAll('.len-pair-hit').forEach(el => {
+    el.classList.remove('is-correct', 'is-miss');
+  });
+  const hit = root.querySelector(`.len-pair-hit[data-side="${side}"]`);
+  if (!hit) return;
+  if (kind === 'correct') hit.classList.add('is-correct');
+  if (kind === 'miss') hit.classList.add('is-miss');
 }
 
 /* ============== [2] 音訊 (Web Audio beeps) ============== */
@@ -4555,76 +4709,40 @@ const Generators = {
     const n = randInt(1, 10);
     return { parts: [f.repeat(n), '= ?'], answer: n, type:'count20', answerDisplay: String(n) };
   },
-  // V3.6 cycle45/53/61/72: 長短比較 — 9 skins + 一樣長變奏
+  // V3.6 cycle45/53/61/72/75: 長短比較 — SEN 純撳實物（同色、≥1:2、無 A/B）
   compareLength() {
-    const skin = LENGTH_SKIN_IDS[randInt(0, LENGTH_SKIN_IDS.length - 1)];
-    const meta = _lengthSkinMeta(skin);
     const block = (n, ch) => ch.repeat(n);
-    // ~18% 一樣長／唔一樣（兩條等長）
-    if (Math.random() < 0.18) {
-      const n = randInt(3, 7);
-      const a = n, b = n;
-      const prompt = meta.promptEq || '一樣長？';
-      return {
-        parts: [prompt],
-        answer: 'eq',
-        type: 'compareLength',
-        options: ['eq', 'diff'],
-        optionLabels: Object.assign({}, LENGTH_EQ_LABELS),
-        extra: {
-          a, b, left: a, right: b,
-          ask: 'eq',
-          prompt,
-          skin,
-          unitsA: block(a, '■'),
-          unitsB: block(b, '■'),
-        },
-      };
-    }
-    // units 2–8，最少差 3，中度一眼見到長短
-    let a = randInt(2, 8);
-    let b = randInt(2, 8);
-    let guard = 0;
-    while (Math.abs(a - b) < 3 && guard++ < 40) {
-      a = randInt(2, 8);
-      b = randInt(2, 8);
-    }
-    if (Math.abs(a - b) < 3) { a = 3; b = 7; }
-    // ~12% 唔一樣 distractor with unequal bars + 一樣長選項
-    if (Math.random() < 0.12) {
-      const prompt = meta.promptEq || '一樣長？';
-      return {
-        parts: [prompt],
-        answer: 'diff',
-        type: 'compareLength',
-        options: ['eq', 'diff'],
-        optionLabels: Object.assign({}, LENGTH_EQ_LABELS),
-        extra: {
-          a, b, left: a, right: b,
-          ask: 'eq',
-          prompt,
-          skin,
-          unitsA: block(a, '■'),
-          unitsB: block(b, '■'),
-        },
-      };
-    }
+    // cycle75: 純比長短 — short 2–4，long = 至少 2×（一眼 1:2）
+    const shortN = randInt(2, 4);
+    let longN = shortN * 2;
+    if (longN > 8) longN = 8;
+    if (longN < shortN * 2) longN = Math.min(8, shortN * 2);
+    // 萬一 short=4 → long=8；short=3 → 6
+    const leftIsLong = Math.random() < 0.5;
+    const a = leftIsLong ? longN : shortN;
+    const b = leftIsLong ? shortN : longN;
     const askLong = Math.random() < 0.5;
-    // '1'=上(黃) '2'=下(紫)
     const answer = askLong ? (a > b ? '1' : '2') : (a < b ? '1' : '2');
-    const prompt = askLong ? meta.promptLong : meta.promptShort;
+    const prompt = askLong ? '邊條長？' : '邊條短？';
+    const tones = ['teal', 'sky', 'rose', 'slate'];
+    const pairTone = tones[randInt(0, tones.length - 1)];
+    const deco = Math.random() < 0.55 ? 'worm' : 'bar';
     return {
       parts: [prompt],
       answer,
       type: 'compareLength',
       options: ['1', '2'],
-      optionLabels: Object.assign({}, meta.labels),
+      optionLabels: { '1': '左', '2': '右' },
       extra: {
         a, b,
         left: a, right: b,
         ask: askLong ? 'long' : 'short',
         prompt,
-        skin,
+        skin: 'pair',
+        mode: 'tap-pair',
+        pairTone,
+        deco,
+        hideUnits: true,
         unitsA: block(a, '■'),
         unitsB: block(b, '■'),
       },
@@ -4773,47 +4891,46 @@ function _normalizeBankQuestion(type, mode, q, reg) {
       q.optionLabels = { circle: '圓形', square: '方形', triangle: '三角形', star: '星形' };
     }
   } else if (type === 'compareLength') {
-    // V3.6 cycle53/57/61/72: skin labels；legacy A/B → 1/2；eq/diff 一樣長
+    // V3.6 cycle53/57/61/72/75: pair tap-mode (SEN) + legacy skin/eq bank
     let ans = String(q.answer);
     if (ans === 'A') ans = '1';
     if (ans === 'B') ans = '2';
     const ex = q.extra || {};
-    const a = Number(ex.a != null ? ex.a : ex.left);
-    const b = Number(ex.b != null ? ex.b : ex.right);
+    let a = Number(ex.a != null ? ex.a : ex.left);
+    let b = Number(ex.b != null ? ex.b : ex.right);
     if (!Number.isFinite(a) || !Number.isFinite(b)) return null;
-    const skin = (ex.skin && LENGTH_SKINS[ex.skin]) ? ex.skin : 'bars';
-    const meta = _lengthSkinMeta(skin);
-    const isEqAsk = ex.ask === 'eq' || ans === 'eq' || ans === 'diff' || /一樣長/.test(String(ex.prompt || q.parts && q.parts[0] || ''));
-    if (isEqAsk) {
-      const same = a === b;
-      q.answer = same ? 'eq' : 'diff';
-      q.options = ['eq', 'diff'];
-      q.optionLabels = Object.assign({}, LENGTH_EQ_LABELS);
-      const prompt = ex.prompt || meta.promptEq || '一樣長？';
-      q.extra = Object.assign({}, ex, {
-        a, b, left: a, right: b,
-        skin, ask: 'eq', prompt,
-        unitsA: ex.unitsA || '■'.repeat(Math.max(1, a)),
-        unitsB: ex.unitsB || '■'.repeat(Math.max(1, b)),
-      });
-      q.parts = [prompt];
-    } else {
-      if (ans !== '1' && ans !== '2') return null;
-      q.answer = ans;
-      q.options = ['1', '2'];
-      const askShort = ex.ask === 'short' || /短/.test(String(ex.prompt || ''));
-      const prompt = ex.prompt || (askShort ? meta.promptShort : meta.promptLong);
-      q.optionLabels = Object.assign({}, meta.labels);
-      q.extra = Object.assign({}, ex, {
-        a, b, left: a, right: b,
-        skin,
-        ask: askShort ? 'short' : 'long',
-        prompt,
-        unitsA: ex.unitsA || '■'.repeat(Math.max(1, a)),
-        unitsB: ex.unitsB || '■'.repeat(Math.max(1, b)),
-      });
-      q.parts = [q.extra.prompt];
+    // cycle75: force pure tap-pair for classroom length (no color-as-answer, no units UI)
+    const askShort = ex.ask === 'short' || /短/.test(String(ex.prompt || ''));
+    const askLong = !askShort && (ex.ask === 'long' || /長/.test(String(ex.prompt || '')) || true);
+    // ensure visible 1:2 if too close
+    if (Math.abs(a - b) < Math.max(a, b) * 0.5) {
+      const shortN = Math.min(a, b, 4);
+      const longN = Math.min(8, Math.max(shortN * 2, shortN + 3));
+      if (a >= b) { a = longN; b = shortN; } else { a = shortN; b = longN; }
     }
+    if (ans !== '1' && ans !== '2') {
+      // recompute from lengths
+      ans = askShort ? (a < b ? '1' : '2') : (a > b ? '1' : '2');
+    }
+    const prompt = ex.prompt || (askShort ? '邊條短？' : '邊條長？');
+    const tones = ['teal', 'sky', 'rose', 'slate'];
+    const pairTone = (ex.pairTone && tones.includes(ex.pairTone)) ? ex.pairTone : tones[(a + b) % tones.length];
+    q.answer = ans;
+    q.options = ['1', '2'];
+    q.optionLabels = { '1': '左', '2': '右' };
+    q.extra = Object.assign({}, ex, {
+      a, b, left: a, right: b,
+      skin: 'pair',
+      mode: 'tap-pair',
+      pairTone,
+      deco: ex.deco === 'bar' ? 'bar' : 'worm',
+      hideUnits: true,
+      ask: askShort ? 'short' : 'long',
+      prompt,
+      unitsA: '■'.repeat(Math.max(1, a)),
+      unitsB: '■'.repeat(Math.max(1, b)),
+    });
+    q.parts = [prompt];
   } else if (type === 'orderAsc20' || type === 'orderDesc20') {
     // cycle55 next-number MC
     let stem = Array.isArray(q.displayNums) ? q.displayNums.map(Number) : null;
@@ -5129,19 +5246,15 @@ const QuestionBank = (() => {
       { parts:['🔵🔵🔵🔵🔵🔵🔵🔵= ?'], answer:8 },
     ],
     compareLength: [
-      { parts:['邊條長？'], answer:'1', options:['1','2'], optionLabels:{'1':'黃條','2':'紫條'}, extra:{skin:'bars',a:6,b:3,left:6,right:3,ask:'long',prompt:'邊條長？',unitsA:'■■■■■■',unitsB:'■■■'} },
-      { parts:['邊枝短？'], answer:'2', options:['1','2'], optionLabels:{'1':'黃筆','2':'紫筆'}, extra:{skin:'pencil',a:3,b:7,left:3,right:7,ask:'short',prompt:'邊枝短？',unitsA:'■■■',unitsB:'■■■■■■■'} },
-      { parts:['邊架長？'], answer:'2', options:['1','2'], optionLabels:{'1':'黃車','2':'紫車'}, extra:{skin:'train',a:2,b:6,left:2,right:6,ask:'long',prompt:'邊架長？',unitsA:'■■',unitsB:'■■■■■■'} },
-      { parts:['邊條短？'], answer:'1', options:['1','2'], optionLabels:{'1':'黃蟲','2':'紫蟲'}, extra:{skin:'snake',a:4,b:8,left:4,right:8,ask:'short',prompt:'邊條短？',unitsA:'■■■■',unitsB:'■■■■■■■■'} },
-      { parts:['邊條長？'], answer:'1', options:['1','2'], optionLabels:{'1':'黃魚','2':'紫魚'}, extra:{skin:'fish',a:8,b:4,left:8,right:4,ask:'long',prompt:'邊條長？',unitsA:'■■■■■■■■',unitsB:'■■■■'} },
-      { parts:['邊枝長？'], answer:'2', options:['1','2'], optionLabels:{'1':'黃筆','2':'紫筆'}, extra:{skin:'pencil',a:3,b:7,left:3,right:7,ask:'long',prompt:'邊枝長？',unitsA:'■■■',unitsB:'■■■■■■■'} },
-      // cycle72 new skins + equal
-      { parts:['邊條長？'], answer:'1', options:['1','2'], optionLabels:{'1':'黃繩','2':'紫繩'}, extra:{skin:'rope',a:7,b:3,left:7,right:3,ask:'long',prompt:'邊條長？',unitsA:'■■■■■■■',unitsB:'■■■'} },
-      { parts:['邊條短？'], answer:'2', options:['1','2'], optionLabels:{'1':'黃蘿蔔','2':'紫蘿蔔'}, extra:{skin:'carrot',a:6,b:2,left:6,right:2,ask:'short',prompt:'邊條短？',unitsA:'■■■■■■',unitsB:'■■'} },
-      { parts:['邊條長？'], answer:'2', options:['1','2'], optionLabels:{'1':'黃路','2':'紫路'}, extra:{skin:'road',a:3,b:8,left:3,right:8,ask:'long',prompt:'邊條長？',unitsA:'■■■',unitsB:'■■■■■■■■'} },
-      { parts:['邊條短？'], answer:'1', options:['1','2'], optionLabels:{'1':'黃絲帶','2':'紫絲帶'}, extra:{skin:'ribbon',a:2,b:6,left:2,right:6,ask:'short',prompt:'邊條短？',unitsA:'■■',unitsB:'■■■■■■'} },
-      { parts:['一樣長？'], answer:'eq', options:['eq','diff'], optionLabels:{eq:'一樣長',diff:'唔一樣'}, extra:{skin:'bars',a:5,b:5,left:5,right:5,ask:'eq',prompt:'一樣長？',unitsA:'■■■■■',unitsB:'■■■■■'} },
-      { parts:['一樣長？'], answer:'diff', options:['eq','diff'], optionLabels:{eq:'一樣長',diff:'唔一樣'}, extra:{skin:'rope',a:3,b:7,left:3,right:7,ask:'eq',prompt:'一樣長？',unitsA:'■■■',unitsB:'■■■■■■■'} },
+      // cycle75: tap-pair only（同色、≥1:2、無 A/B 文案）
+      { parts:['邊條長？'], answer:'1', options:['1','2'], optionLabels:{'1':'左','2':'右'}, extra:{skin:'pair',mode:'tap-pair',pairTone:'teal',deco:'worm',a:6,b:3,left:6,right:3,ask:'long',prompt:'邊條長？',hideUnits:true} },
+      { parts:['邊條短？'], answer:'1', options:['1','2'], optionLabels:{'1':'左','2':'右'}, extra:{skin:'pair',mode:'tap-pair',pairTone:'sky',deco:'worm',a:3,b:7,left:3,right:7,ask:'short',prompt:'邊條短？',hideUnits:true} },
+      { parts:['邊條長？'], answer:'2', options:['1','2'], optionLabels:{'1':'左','2':'右'}, extra:{skin:'pair',mode:'tap-pair',pairTone:'rose',deco:'bar',a:2,b:6,left:2,right:6,ask:'long',prompt:'邊條長？',hideUnits:true} },
+      { parts:['邊條短？'], answer:'2', options:['1','2'], optionLabels:{'1':'左','2':'右'}, extra:{skin:'pair',mode:'tap-pair',pairTone:'slate',deco:'worm',a:8,b:4,left:8,right:4,ask:'short',prompt:'邊條短？',hideUnits:true} },
+      { parts:['邊條長？'], answer:'1', options:['1','2'], optionLabels:{'1':'左','2':'右'}, extra:{skin:'pair',mode:'tap-pair',pairTone:'teal',deco:'bar',a:8,b:4,left:8,right:4,ask:'long',prompt:'邊條長？',hideUnits:true} },
+      { parts:['邊條短？'], answer:'2', options:['1','2'], optionLabels:{'1':'左','2':'右'}, extra:{skin:'pair',mode:'tap-pair',pairTone:'sky',deco:'worm',a:7,b:3,left:7,right:3,ask:'short',prompt:'邊條短？',hideUnits:true} },
+      { parts:['邊條長？'], answer:'2', options:['1','2'], optionLabels:{'1':'左','2':'右'}, extra:{skin:'pair',mode:'tap-pair',pairTone:'rose',deco:'worm',a:3,b:8,left:3,right:8,ask:'long',prompt:'邊條長？',hideUnits:true} },
+      { parts:['邊條短？'], answer:'1', options:['1','2'], optionLabels:{'1':'左','2':'右'}, extra:{skin:'pair',mode:'tap-pair',pairTone:'slate',deco:'bar',a:2,b:6,left:2,right:6,ask:'short',prompt:'邊條短？',hideUnits:true} },
     ],
     orderAsc20: [
       { parts:['3  ·  7  ·  ？'], answer:'12', options:['12','5','9'], displayNums:[3,7] },
@@ -5630,6 +5743,49 @@ const Game = {
       if (Game.state._easyEnding) return;
       if (Game.state._easyTeamDone && Game.state._easyTeamDone[team]) return;
       const correct = _compareAnswer(q.answer, value, q.type).correct;
+
+      // V3.6 cycle75: length = tap real bar only；錯唔罰、唔跳題、只重播題
+      if (q.type === 'compareLength' && q.extra && (q.extra.mode === 'tap-pair' || q.extra.skin === 'pair')) {
+        const root = document.getElementById(`sen-q-emoji-${team}`);
+        if (!correct) {
+          _lenPairMark(root, value, 'miss');
+          setTimeout(() => {
+            if (root) root.querySelectorAll('.len-pair-hit').forEach(el => el.classList.remove('is-miss'));
+          }, 450);
+          const prompt = (q.extra && q.extra.prompt) || '邊條長？';
+          if (Game.settings.ttsEnabled !== false && TTS && TTS.speak) TTS.speak(prompt, null, {});
+          return; // 不計錯、不跳下一題
+        }
+        _lenPairMark(root, value, 'correct');
+        _lenPairMark(root, value, 'lock');
+        const say = (q.extra.ask === 'short') ? '呢條短' : '呢條長';
+        if (Game.settings.ttsEnabled !== false && TTS && TTS.speak) TTS.speak(say, null, {});
+        if (Audio.correct) Audio.correct();
+        Game.state.teams[team].total++;
+        Game.state.teams[team].correct++;
+        _recordAnswerStats(team, q, true);
+        UI.refreshSENScreen();
+        UI.refreshSENArena(team, true);
+        const goal = Game.state.easyGoalTotal || 0;
+        const dual = Game.settings.playLayout === 'dual';
+        if (goal > 0 && Game.state.teams[team].total >= goal) {
+          if (!Game.state._easyTeamDone) Game.state._easyTeamDone = { knight: false, mage: false };
+          Game.state._easyTeamDone[team] = true;
+          UI.markSENTeamDone(team);
+          const bothDone = dual
+            ? (Game.state._easyTeamDone.knight && Game.state._easyTeamDone.mage)
+            : true;
+          if (bothDone) {
+            Game.state._easyEnding = true;
+            Game.state.running = false;
+            setTimeout(() => { if (!Game.state.ended) endGame(true); }, 700);
+          }
+          return;
+        }
+        _scheduleNextQuestion(team, 900);
+        return;
+      }
+
       if (!correct && Game.settings.instantHint !== false) {
         UI._senShowFeedback(false, _easyHintText(q), team);
       } else {
@@ -5866,14 +6022,17 @@ const QuestionRenderer = {
     return QuestionRenderer['numeric'](q, team, area);
   },
 
-  // V3.6 cycle46/73: bars layout (compareLength) — visual answers
+  // V3.6 cycle46/73/75: bars layout — tap-pair preferred
   'bars'(q, team, area) {
     const visual = document.createElement('div');
     visual.className = 'sen-q-visual';
     visual.innerHTML = _lengthBarsHTML(q.extra || {}).html;
     area.appendChild(visual);
     _wireLengthVisualClicks(visual, q, team);
-    _appendChoiceGrid(area, q, team, 'grid grid-cols-2 gap-2');
+    // cycle75: pair mode = no second choice row
+    if (!(q.extra && (q.extra.mode === 'tap-pair' || q.extra.skin === 'pair'))) {
+      _appendChoiceGrid(area, q, team, 'grid grid-cols-2 gap-2');
+    }
     return true;
   },
 
@@ -6559,11 +6718,25 @@ const UI = {
       emojiEl.textContent = '';
     }
 
-    // V3.6 cycle45/50: visual dispatch (bars / clock / shape / COUNT GRID / parts)
+    // V3.6 cycle45/50/75: visual dispatch (bars / clock / shape / COUNT GRID / parts)
+    const panel = $(`sen-panel-${t}`);
+    if (panel) panel.classList.remove('len-focus');
+
     if (q.type === 'compareLength' && q.extra && emojiEl) {
       emojiEl.classList.add('sen-q-visual');
       emojiEl.innerHTML = _lengthBarsHTML(q.extra).html;
-      if (textEl) textEl.textContent = _senCopyText(q) || '邊條長？';
+      if (textEl) {
+        textEl.textContent = _senCopyText(q) || (q.extra.prompt) || '邊條長？';
+      }
+      if (panel) panel.classList.add('len-focus');
+      if (optsArea) optsArea.innerHTML = '';
+      _wireLengthVisualClicks(emojiEl, q, t);
+      // Auto TTS once
+      if (Game.settings.ttsEnabled && Game.settings.playLayout !== 'dual') {
+        const text = _senCopyTTS(q);
+        if (text) TTS.speak(text, null, {});
+      }
+      return; // cycle75: 無 A/B、無第二組圖
     } else if (q.type === 'whatTime' && q.extra && emojiEl) {
       // V3.6 cycle46: SEN clock face (no hour in text)
       const hour = Number(q.extra.hour != null ? q.extra.hour : q.answer) || 12;
@@ -6634,28 +6807,19 @@ const UI = {
     if (!optsArea) return;
     optsArea.innerHTML = '';
     const LETTERS = ['A', 'B', 'C', 'D'];
-    // V3.6 cycle73: length → 圖選（色條+emoji），保留 A/B 手勢標
-    const isLen = q.type === 'compareLength';
     shuffled.forEach((opt, idx) => {
       const b = document.createElement('button');
-      b.className = 'sen-opt-btn' + (isLen ? ' len-vis-btn' : '');
+      b.className = 'sen-opt-btn';
       const letter = LETTERS[idx] || String(idx + 1);
       const val = (labels && labels[opt] !== undefined) ? String(labels[opt]) : String(opt);
-      if (isLen) {
-        b.innerHTML = `<span class="sen-opt-letter" aria-hidden="true">${letter}</span><span class="sen-opt-val">${_lengthOptVisualHTML(opt, q)}</span>`;
-      } else {
-        b.innerHTML = `<span class="sen-opt-letter" aria-hidden="true">${letter}</span><span class="sen-opt-val"></span>`;
-        const valEl = b.querySelector('.sen-opt-val');
-        _paintOptionLabel(valEl, val);
-      }
+      b.innerHTML = `<span class="sen-opt-letter" aria-hidden="true">${letter}</span><span class="sen-opt-val"></span>`;
+      const valEl = b.querySelector('.sen-opt-val');
+      _paintOptionLabel(valEl, val);
       b.setAttribute('aria-label', `${letter}. ${val}`);
       b.dataset.letter = letter;
       b.onclick = () => { Game.handleAnswer(t, opt, b); };
       optsArea.appendChild(b);
     });
-
-    // cycle73: 圖上直接撳黃／紫（長短題；一樣長用下面掣）
-    if (isLen && emojiEl) _wireLengthVisualClicks(emojiEl, q, t);
 
     // Auto TTS: solo only (dual = manual per-side 🔊 to avoid cross-talk)
     if (Game.settings.ttsEnabled && Game.settings.playLayout !== 'dual') {

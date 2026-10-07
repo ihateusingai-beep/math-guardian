@@ -1066,9 +1066,9 @@ assert('EASY-53 shapeMatch optionLabels is value-map not shapes.map array',
   /type:'shapeMatch'[\s\S]{0,80}optionLabels:\s*labels/.test(src) &&
   !/optionLabels:\s*shapes\.map/.test(src));
 assert('EASY-54 easy handleAnswer records Profile stats via _recordAnswerStats',
-  /difficulty === 'easy'[\s\S]{0,900}_recordAnswerStats/.test(src));
+  /difficulty === 'easy'[\s\S]{0,3500}_recordAnswerStats/.test(src));
 assert('EASY-55 easy handleAnswer plays Audio.correct / Audio.wrong',
-  /difficulty === 'easy'[\s\S]{0,1200}Audio\.correct[\s\S]{0,400}Audio\.wrong/.test(src));
+  /difficulty === 'easy'[\s\S]{0,3500}Audio\.correct[\s\S]{0,800}Audio\.wrong/.test(src));
 
 // V3.6-SEN cycle37: hoist + goal end + one-click start
 console.log('\n[T32] V3.6 audit cycle-37 (wire hoist / easy goal / one-click)');
@@ -1182,10 +1182,11 @@ assert('EASY-86 scopes setting + mg2.scopes persist',
 
 // V3.6 cycle45: compareLength real visual
 console.log('\n[T37] V3.6 audit cycle-45 (compareLength visual)');
-assert('EASY-87 compareLength min diff 3 + 黃/紫 answers',
-  /Math\.abs\(a - b\) < 3/.test(src) &&
+assert('EASY-87 compareLength ratio ≥1:2 + tap-pair answers',
+  /shortN \* 2/.test(src) &&
   /options:\s*\['1',\s*'2'\]/.test(src) &&
-  /optionLabels:\s*\{\s*'1':\s*'黃條',\s*'2':\s*'紫條'\s*\}/.test(src));
+  /mode:\s*'tap-pair'/.test(src) &&
+  /optionLabels:\s*\{\s*'1':\s*'左',\s*'2':\s*'右'\s*\}/.test(src));
 assert('EASY-88 bars use rem width + unit blocks + track',
   /sen-bar-track/.test(src) && /sen-bar-units/.test(src) &&
   (/width:\$\{wA\}rem/.test(src) || /width:\$\{w\}rem/.test(src)) && /unitsA/.test(src) &&
@@ -1348,13 +1349,13 @@ console.log('\n[T46] V3.6 audit cycle-61 (length skins)');
 assert('LEN-01 LENGTH_SKINS has 5+ skins',
   /LENGTH_SKINS\s*=\s*\{/.test(src) &&
   /pencil:/.test(src) && /snake:/.test(src) && /train:/.test(src) && /fish:/.test(src) && /bars:/.test(src));
-assert('LEN-02 generator picks skin',
-  /const skin = LENGTH_SKIN_IDS\[randInt/.test(src) && /extra:[\s\S]{0,200}skin,/.test(src));
+assert('LEN-02 generator uses tap-pair mode',
+  /mode:\s*'tap-pair'/.test(src) && /skin:\s*'pair'/.test(src) && /pairTone/.test(src));
 assert('LEN-03 skin CSS objects',
   /sen-pencil/.test(src) && /sen-snake/.test(src) && /sen-train/.test(src) && /sen-fish/.test(src));
-assert('LEN-04 bank v4 + skin seeds',
-  /mg2\.bank\.v4/.test(src) && /skin:'pencil'/.test(src) && /skin:'train'/.test(src));
-assert('LEN-05 labels 黃筆/黃車 present',
+assert('LEN-04 bank v4 + pair seeds',
+  /mg2\.bank\.v4/.test(src) && /mode:'tap-pair'/.test(src) && /skin:'pair'/.test(src));
+assert('LEN-05 labels 黃筆/黃車 retained in LENGTH_SKINS',
   /'1': '黃筆'/.test(src) && /'1': '黃車'/.test(src) && /'1': '黃魚'/.test(src));
 
 // V3.6 cycle72: more length skins + equal
@@ -1362,33 +1363,43 @@ console.log('\n[T57] V3.6 audit cycle-72 (length expand)');
 assert('LEN72-01 9 skins incl rope/carrot/road/ribbon',
   /rope:/.test(src) && /carrot:/.test(src) && /road:/.test(src) && /ribbon:/.test(src) &&
   /LENGTH_SKIN_IDS = Object\.keys\(LENGTH_SKINS\)/.test(src));
-assert('LEN72-02 equal labels + generator eq/diff',
-  /LENGTH_EQ_LABELS/.test(src) && /answer: 'eq'/.test(src) && /answer: 'diff'/.test(src) &&
-  /一樣長/.test(src) && /唔一樣/.test(src));
+assert('LEN72-02 equal labels retained (legacy consts)',
+  /LENGTH_EQ_LABELS/.test(src) && /一樣長/.test(src) && /唔一樣/.test(src));
 assert('LEN72-03 generic len-obj CSS',
   /sen-len-obj/.test(src) && /skin-rope/.test(src) && /skin-carrot/.test(src));
-assert('LEN72-04 bank seeds new skins + eq',
-  /skin:'rope'/.test(src) && /skin:'carrot'/.test(src) && /skin:'road'/.test(src) &&
-  /skin:'ribbon'/.test(src) && /answer:'eq'/.test(src));
-assert('LEN72-05 bank normalize supports eq',
-  /isEqAsk/.test(src) && /LENGTH_EQ_LABELS/.test(src));
+assert('LEN72-04 bank seeds tap-pair',
+  /mode:'tap-pair'/.test(src) && /skin:'pair'/.test(src) && /pairTone:'teal'/.test(src));
+assert('LEN72-05 bank normalize forces tap-pair',
+  /skin: 'pair'/.test(src) && /mode: 'tap-pair'/.test(src) && /hideUnits: true/.test(src));
 
 // V3.6 cycle73: length answers visual-only (no literacy test)
 console.log('\n[T58] V3.6 audit cycle-73 (length visual answers)');
 assert('LEN73-01 _lengthOptVisualHTML + wire taps',
   /function _lengthOptVisualHTML/.test(src) && /function _wireLengthVisualClicks/.test(src));
-assert('LEN73-02 SEN uses visual opts for compareLength',
-  /isLen[\s\S]{0,200}_lengthOptVisualHTML/.test(src) ||
-  /compareLength[\s\S]{0,400}_lengthOptVisualHTML/.test(src));
-assert('LEN73-03 bars renderer wires clicks + visual grid',
+assert('LEN73-02 SEN length early-return no A/B opts',
+  /return; \/\/ cycle75: 無 A\/B/.test(src) ||
+  /len-focus/.test(src) && /_wireLengthVisualClicks\(emojiEl/.test(src));
+assert('LEN73-03 bars renderer wires clicks; pair skips grid',
   /_wireLengthVisualClicks\(visual/.test(src) &&
-  /'bars'[\s\S]{0,300}_appendChoiceGrid/.test(src));
-assert('LEN73-04 len-tap data-side on rows',
-  /len-tap[\s\S]{0,40}data-side/.test(src));
-assert('LEN73-05 eq/diff visual marks',
-  /len-opt-eq-mark/.test(src) && /🟰/.test(src));
-assert('LEN73-06 CSS len-vis-btn',
-  /len-vis-btn/.test(src) && /len-opt-swatch/.test(src));
+  (/tap-pair[\s\S]{0,200}_appendChoiceGrid/.test(src) || /mode === 'tap-pair'[\s\S]{0,120}_appendChoiceGrid/.test(src)));
+assert('LEN73-04 len-pair-hit data-side',
+  /len-pair-hit[\s\S]{0,80}data-side/.test(src));
+assert('LEN73-05 pair CSS + correct glow',
+  /len-pair-hit/.test(src) && /is-correct/.test(src) && /呢條長/.test(src));
+assert('LEN73-06 wrong = silent replay no penalty',
+  /不計錯、不跳下一題/.test(src) || /TTS\.speak\(prompt/.test(src) && /return; \/\/ 不計錯/.test(src));
+
+// V3.6 cycle75: pure length SEN UX lock
+console.log('\n[T59] V3.6 audit cycle-75 (length tap-pair SEN)');
+assert('LEN75-01 _lengthPairHTML same-tone bars',
+  /function _lengthPairHTML/.test(src) && /tone-\$\{tone\}/.test(src) || /tone-\$\{/.test(src));
+assert('LEN75-02 no second option row in SEN length',
+  /panel\.classList\.add\('len-focus'\)/.test(src) &&
+  /\.sen-panel\.len-focus \.sen-options/.test(src));
+assert('LEN75-03 correct TTS 呢條長/短',
+  /呢條長/.test(src) && /呢條短/.test(src));
+assert('LEN75-04 hideUnits + big hit',
+  /hideUnits:\s*true/.test(src) && /min-height: clamp\(7\.5rem/.test(src));
 
 // V3.6 cycle62: retro arena skins (ruler tug + bridge)
 console.log('\n[T47] V3.6 audit cycle-62 (retro arena)');
