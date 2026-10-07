@@ -1341,7 +1341,7 @@ assert('TUG-02 jolt direction matches side',
 
 // V3.6 cycle61: length object skins (pencil/snake/train/fish)
 console.log('\n[T46] V3.6 audit cycle-61 (length skins)');
-assert('LEN-01 LENGTH_SKINS has 5 skins',
+assert('LEN-01 LENGTH_SKINS has 5+ skins',
   /LENGTH_SKINS\s*=\s*\{/.test(src) &&
   /pencil:/.test(src) && /snake:/.test(src) && /train:/.test(src) && /fish:/.test(src) && /bars:/.test(src));
 assert('LEN-02 generator picks skin',
@@ -1352,6 +1352,22 @@ assert('LEN-04 bank v4 + skin seeds',
   /mg2\.bank\.v4/.test(src) && /skin:'pencil'/.test(src) && /skin:'train'/.test(src));
 assert('LEN-05 labels 黃筆/黃車 present',
   /'1': '黃筆'/.test(src) && /'1': '黃車'/.test(src) && /'1': '黃魚'/.test(src));
+
+// V3.6 cycle72: more length skins + equal
+console.log('\n[T57] V3.6 audit cycle-72 (length expand)');
+assert('LEN72-01 9 skins incl rope/carrot/road/ribbon',
+  /rope:/.test(src) && /carrot:/.test(src) && /road:/.test(src) && /ribbon:/.test(src) &&
+  /LENGTH_SKIN_IDS = Object\.keys\(LENGTH_SKINS\)/.test(src));
+assert('LEN72-02 equal labels + generator eq/diff',
+  /LENGTH_EQ_LABELS/.test(src) && /answer: 'eq'/.test(src) && /answer: 'diff'/.test(src) &&
+  /一樣長/.test(src) && /唔一樣/.test(src));
+assert('LEN72-03 generic len-obj CSS',
+  /sen-len-obj/.test(src) && /skin-rope/.test(src) && /skin-carrot/.test(src));
+assert('LEN72-04 bank seeds new skins + eq',
+  /skin:'rope'/.test(src) && /skin:'carrot'/.test(src) && /skin:'road'/.test(src) &&
+  /skin:'ribbon'/.test(src) && /answer:'eq'/.test(src));
+assert('LEN72-05 bank normalize supports eq',
+  /isEqAsk/.test(src) && /LENGTH_EQ_LABELS/.test(src));
 
 // V3.6 cycle62: retro arena skins (ruler tug + bridge)
 console.log('\n[T47] V3.6 audit cycle-62 (retro arena)');
