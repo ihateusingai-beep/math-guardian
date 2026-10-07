@@ -1369,6 +1369,23 @@ assert('LEN72-04 bank seeds new skins + eq',
 assert('LEN72-05 bank normalize supports eq',
   /isEqAsk/.test(src) && /LENGTH_EQ_LABELS/.test(src));
 
+// V3.6 cycle73: length answers visual-only (no literacy test)
+console.log('\n[T58] V3.6 audit cycle-73 (length visual answers)');
+assert('LEN73-01 _lengthOptVisualHTML + wire taps',
+  /function _lengthOptVisualHTML/.test(src) && /function _wireLengthVisualClicks/.test(src));
+assert('LEN73-02 SEN uses visual opts for compareLength',
+  /isLen[\s\S]{0,200}_lengthOptVisualHTML/.test(src) ||
+  /compareLength[\s\S]{0,400}_lengthOptVisualHTML/.test(src));
+assert('LEN73-03 bars renderer wires clicks + visual grid',
+  /_wireLengthVisualClicks\(visual/.test(src) &&
+  /'bars'[\s\S]{0,300}_appendChoiceGrid/.test(src));
+assert('LEN73-04 len-tap data-side on rows',
+  /len-tap[\s\S]{0,40}data-side/.test(src));
+assert('LEN73-05 eq/diff visual marks',
+  /len-opt-eq-mark/.test(src) && /🟰/.test(src));
+assert('LEN73-06 CSS len-vis-btn',
+  /len-vis-btn/.test(src) && /len-opt-swatch/.test(src));
+
 // V3.6 cycle62: retro arena skins (ruler tug + bridge)
 console.log('\n[T47] V3.6 audit cycle-62 (retro arena)');
 assert('RETRO-01 arenaSkin setting + helper',

@@ -735,6 +735,81 @@
     background: linear-gradient(90deg, #e9d5ff, #a855f7 40%, #ddd6fe);
   }
   .sen-len-obj-icon { font-size: 1.3rem; line-height: 1; margin-left: -0.2rem; flex-shrink: 0; }
+  /* V3.6 cycle73: length answers = visual only (no literacy) */
+  .sen-bar-row.len-tap, .sen-len-row.len-tap {
+    cursor: pointer;
+    border-radius: 0.75rem;
+    padding: 0.25rem 0.35rem;
+    transition: background 0.15s, transform 0.12s, box-shadow 0.15s;
+  }
+  .sen-bar-row.len-tap:active, .sen-len-row.len-tap:active {
+    transform: scale(0.98);
+  }
+  .sen-bar-row.len-tap:focus-visible, .sen-len-row.len-tap:focus-visible {
+    outline: 3px solid #fbbf24;
+    outline-offset: 2px;
+  }
+  .sen-opt-btn.len-vis-btn {
+    min-height: 5.5rem;
+    flex-direction: column;
+    gap: 0.35rem;
+    justify-content: center;
+  }
+  .sen-opt-btn.len-vis-btn .sen-opt-val {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    font-size: inherit;
+  }
+  .len-opt-vis {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    width: 100%;
+  }
+  .len-opt-swatch {
+    display: block;
+    height: 1.35rem;
+    min-width: 1.6rem;
+    max-width: 100%;
+    border-radius: 999px;
+    border: 3px solid rgba(0,0,0,0.2);
+    box-shadow: 0 2px 0 rgba(0,0,0,0.15);
+  }
+  .len-opt-swatch.y { background: linear-gradient(90deg, #fde68a, #f59e0b); border-color: #fbbf24; }
+  .len-opt-swatch.p { background: linear-gradient(90deg, #ddd6fe, #7c3aed); border-color: #a78bfa; }
+  .len-opt-emo { font-size: 1.85rem; line-height: 1; }
+  .len-opt-eq-bars {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    width: 4.5rem;
+  }
+  .len-opt-eq-bars i {
+    display: block;
+    height: 0.85rem;
+    border-radius: 999px;
+    border: 2px solid rgba(0,0,0,0.15);
+  }
+  .len-opt-eq-bars i.y { background: #fbbf24; width: 100%; }
+  .len-opt-eq-bars i.p { background: #a78bfa; width: 100%; }
+  .len-opt-eq-bars i.y.short { width: 45%; }
+  .len-opt-eq-bars i.p.long { width: 100%; }
+  .len-opt-eq-bars i.y.long { width: 100%; }
+  .len-opt-eq-bars i.p.short { width: 45%; }
+  .len-opt-eq-mark { font-size: 1.75rem; font-weight: 900; line-height: 1; }
+  .option-btn.len-vis-btn {
+    min-height: 4.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+    font-size: 1rem;
+  }
   .sen-bar-units {
     margin-top: 0.15rem;
     font-size: clamp(1.35rem, 4.5vw, 2.1rem);
@@ -3473,7 +3548,7 @@ function _lengthBarsHTML(ex) {
     const is1 = side === '1';
     const tone = is1 ? 'y' : 'p';
     const icon = meta.emoji || meta.tag1 || '📏';
-    return `<div class="sen-bar-row sen-len-row skin-${skinId}">
+    return `<div class="sen-bar-row sen-len-row skin-${skinId} len-tap" data-side="${side}" role="button" tabindex="0" aria-label="${is1 ? '黃' : '紫'}">
       <span class="sen-bar-tag ${tone}">${is1 ? '黃' : '紫'}</span>
       <div class="sen-obj-track">
         <div class="sen-len-obj ${tone} skin-${skinId}" style="width:${w}rem">
@@ -3495,14 +3570,14 @@ function _lengthBarsHTML(ex) {
       cars.push('<span class="sen-train-engine" aria-hidden="true">🚂</span>');
       for (let i = 1; i < n; i++) cars.push('<span class="sen-train-car" aria-hidden="true">🚃</span>');
       if (n < 1) cars.push('<span class="sen-train-engine" aria-hidden="true">🚂</span>');
-      return `<div class="sen-bar-row sen-len-row skin-train">
+      return `<div class="sen-bar-row sen-len-row skin-train len-tap" data-side="${side}" role="button" tabindex="0" aria-label="${is1 ? '黃車' : '紫車'}">
         <span class="sen-bar-tag ${tone}">${is1 ? '黃' : '紫'}</span>
         <div class="sen-train ${tone}" aria-hidden="true">${cars.join('')}</div>
       </div>
       <div class="sen-bar-units ${is1 ? '' : 'b'}" aria-hidden="true">${'■'.repeat(Math.max(1, n))}</div>`;
     }
     if (skinId === 'pencil') {
-      return `<div class="sen-bar-row sen-len-row skin-pencil">
+      return `<div class="sen-bar-row sen-len-row skin-pencil len-tap" data-side="${side}" role="button" tabindex="0" aria-label="${is1 ? '黃筆' : '紫筆'}">
         <span class="sen-bar-tag ${tone}">${tag}</span>
         <div class="sen-obj-track">
           <div class="sen-pencil ${tone}" style="width:${w}rem">
@@ -3514,7 +3589,7 @@ function _lengthBarsHTML(ex) {
       <div class="sen-bar-units ${is1 ? '' : 'b'}" aria-hidden="true">${units}</div>`;
     }
     if (skinId === 'snake') {
-      return `<div class="sen-bar-row sen-len-row skin-snake">
+      return `<div class="sen-bar-row sen-len-row skin-snake len-tap" data-side="${side}" role="button" tabindex="0" aria-label="${is1 ? '黃蟲' : '紫蟲'}">
         <span class="sen-bar-tag ${tone}">${tag}</span>
         <div class="sen-obj-track">
           <div class="sen-snake ${tone}" style="width:${w}rem">
@@ -3526,7 +3601,7 @@ function _lengthBarsHTML(ex) {
       <div class="sen-bar-units ${is1 ? '' : 'b'}" aria-hidden="true">${units}</div>`;
     }
     if (skinId === 'fish') {
-      return `<div class="sen-bar-row sen-len-row skin-fish">
+      return `<div class="sen-bar-row sen-len-row skin-fish len-tap" data-side="${side}" role="button" tabindex="0" aria-label="${is1 ? '黃魚' : '紫魚'}">
         <span class="sen-bar-tag ${tone}">${tag}</span>
         <div class="sen-obj-track">
           <div class="sen-fish ${tone}" style="width:${w}rem">
@@ -3541,7 +3616,7 @@ function _lengthBarsHTML(ex) {
       return genericObj(side, w);
     }
     // default bars
-    return `<div class="sen-bar-row">
+    return `<div class="sen-bar-row len-tap" data-side="${side}" role="button" tabindex="0" aria-label="${is1 ? '黃條' : '紫條'}">
       <span class="sen-bar-tag ${tone}">${tag}</span>
       <div class="sen-bar-track"><div class="sen-bar ${is1 ? '' : 'b'}" style="width:${w}rem"></div></div>
     </div>
@@ -3611,17 +3686,71 @@ function _appendChoiceGrid(area, q, team, gridClass) {
   grid.setAttribute('role', 'group');
   grid.setAttribute('aria-label', '答案選項');
   const optLabels = q.optionLabels || null;
-  opts.forEach(opt => {
+  const LETTERS = ['A', 'B', 'C', 'D'];
+  opts.forEach((opt, idx) => {
     const b = document.createElement('button');
     b.className = 'option-btn';
     const label = (optLabels && optLabels[opt] !== undefined) ? String(optLabels[opt]) : String(opt);
-    _paintOptionLabel(b, label, { asButton: true });
-    b.setAttribute('aria-label', label);
+    if (q && q.type === 'compareLength') {
+      // V3.6 cycle73: visual choice — no reading required
+      b.classList.add('len-vis-btn');
+      const letter = LETTERS[idx] || String(idx + 1);
+      b.innerHTML = `<span class="sen-opt-letter" aria-hidden="true">${letter}</span>${_lengthOptVisualHTML(opt, q)}`;
+      b.setAttribute('aria-label', `${letter}. ${label}`);
+      b.dataset.letter = letter;
+    } else {
+      _paintOptionLabel(b, label, { asButton: true });
+      b.setAttribute('aria-label', label);
+    }
     b.onclick = () => Game.handleAnswer(team, opt, b);
     grid.appendChild(b);
   });
   area.appendChild(grid);
   return true;
+}
+
+/** V3.6 cycle73: length option = color bar + emoji (唔考識字) */
+function _lengthOptVisualHTML(opt, q) {
+  const ex = (q && q.extra) || {};
+  const skin = ex.skin || 'bars';
+  const meta = _lengthSkinMeta(skin);
+  if (opt === 'eq') {
+    return `<span class="len-opt-vis eq" aria-hidden="true">
+      <span class="len-opt-eq-bars"><i class="y"></i><i class="p"></i></span>
+      <span class="len-opt-eq-mark">🟰</span>
+    </span>`;
+  }
+  if (opt === 'diff') {
+    return `<span class="len-opt-vis diff" aria-hidden="true">
+      <span class="len-opt-eq-bars"><i class="y short"></i><i class="p long"></i></span>
+      <span class="len-opt-eq-mark">≠</span>
+    </span>`;
+  }
+  const is1 = (opt === '1' || opt === 'A' || opt === 1);
+  const n = Number(is1 ? (ex.a != null ? ex.a : ex.left) : (ex.b != null ? ex.b : ex.right)) || 4;
+  const tone = is1 ? 'y' : 'p';
+  const rawEmo = is1 ? (meta.emoji || meta.tag1 || '') : (meta.emoji || meta.tag2 || '');
+  const emo = (rawEmo === '黃' || rawEmo === '紫' || !rawEmo) ? '' : rawEmo;
+  const w = Math.max(1.4, Math.min(5.5, n * 0.55)).toFixed(2);
+  return `<span class="len-opt-vis ${tone}" aria-hidden="true">
+    <span class="len-opt-swatch ${tone}" style="width:${w}rem"></span>
+    ${emo ? `<span class="len-opt-emo">${emo}</span>` : ''}
+  </span>`;
+}
+
+/** Wire tap-on-picture for long/short (not equal-ask) */
+function _wireLengthVisualClicks(root, q, team) {
+  if (!root || !q || q.type !== 'compareLength') return;
+  if (q.extra && q.extra.ask === 'eq') return; // 一樣長用下面掣
+  root.querySelectorAll('.len-tap[data-side]').forEach(el => {
+    const side = el.getAttribute('data-side');
+    if (side !== '1' && side !== '2') return;
+    const fire = () => Game.handleAnswer(team, side, el);
+    el.onclick = (e) => { e.preventDefault(); e.stopPropagation(); fire(); };
+    el.onkeydown = (e) => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fire(); }
+    };
+  });
 }
 
 /* ============== [2] 音訊 (Web Audio beeps) ============== */
@@ -5711,13 +5840,15 @@ const QuestionRenderer = {
     return QuestionRenderer['numeric'](q, team, area);
   },
 
-  // V3.6 cycle46: bars layout (compareLength) for normal difficulty
+  // V3.6 cycle46/73: bars layout (compareLength) — visual answers
   'bars'(q, team, area) {
     const visual = document.createElement('div');
     visual.className = 'sen-q-visual';
     visual.innerHTML = _lengthBarsHTML(q.extra || {}).html;
     area.appendChild(visual);
-    return QuestionRenderer['numeric'](q, team, area);
+    _wireLengthVisualClicks(visual, q, team);
+    _appendChoiceGrid(area, q, team, 'grid grid-cols-2 gap-2');
+    return true;
   },
 
   // V3.6 cycle46: seq-choice (orderAsc/Desc + ordering MC)
@@ -6477,19 +6608,28 @@ const UI = {
     if (!optsArea) return;
     optsArea.innerHTML = '';
     const LETTERS = ['A', 'B', 'C', 'D'];
+    // V3.6 cycle73: length → 圖選（色條+emoji），保留 A/B 手勢標
+    const isLen = q.type === 'compareLength';
     shuffled.forEach((opt, idx) => {
       const b = document.createElement('button');
-      b.className = 'sen-opt-btn';
+      b.className = 'sen-opt-btn' + (isLen ? ' len-vis-btn' : '');
       const letter = LETTERS[idx] || String(idx + 1);
       const val = (labels && labels[opt] !== undefined) ? String(labels[opt]) : String(opt);
-      b.innerHTML = `<span class="sen-opt-letter" aria-hidden="true">${letter}</span><span class="sen-opt-val"></span>`;
-      const valEl = b.querySelector('.sen-opt-val');
-      _paintOptionLabel(valEl, val);
+      if (isLen) {
+        b.innerHTML = `<span class="sen-opt-letter" aria-hidden="true">${letter}</span><span class="sen-opt-val">${_lengthOptVisualHTML(opt, q)}</span>`;
+      } else {
+        b.innerHTML = `<span class="sen-opt-letter" aria-hidden="true">${letter}</span><span class="sen-opt-val"></span>`;
+        const valEl = b.querySelector('.sen-opt-val');
+        _paintOptionLabel(valEl, val);
+      }
       b.setAttribute('aria-label', `${letter}. ${val}`);
       b.dataset.letter = letter;
       b.onclick = () => { Game.handleAnswer(t, opt, b); };
       optsArea.appendChild(b);
     });
+
+    // cycle73: 圖上直接撳黃／紫（長短題；一樣長用下面掣）
+    if (isLen && emojiEl) _wireLengthVisualClicks(emojiEl, q, t);
 
     // Auto TTS: solo only (dual = manual per-side 🔊 to avoid cross-talk)
     if (Game.settings.ttsEnabled && Game.settings.playLayout !== 'dual') {
