@@ -168,9 +168,13 @@ assert('ordering keypad hint',          src.includes('keypad：按正確順序')
 console.log('\n[T10] version');
 const v32 = (src.match(/v3\.2/g) || []).length;
 assert('v3.6 mentioned ≥ 4 times', (src.match(/v3\.6/g) || []).length >= 4);
-assert('header version v3.6',     /數學守護者：精準訓練版 v3\.6/.test(src));
-assert('title version v3.6',      src.includes('<title>數學守護者：精準訓練版 v3.6'));
-assert('menu subtitle v3.6',      src.includes('精準訓練版 v3.6 · Math Guardian'));
+assert('header version v3.6',     /數學合作學習遊戲 v3\.6/.test(src) || /數學合作學習遊戲/.test(src));
+assert('title version v3.6',      src.includes('<title>數學合作學習遊戲｜將軍澳培智學校</title>'));
+assert('menu branding school + rename',
+  src.includes('將軍澳培智學校') &&
+  src.includes('數學合作學習遊戲') &&
+  /pui_chi_logo/.test(src));
+assert('menu subtitle v3.6',      /v3\.6 · 課堂練習/.test(src));
 
 // =========== T11: V3.3 + V3.4 feature wirings ===========
 console.log('\n[T11] V3.3 + V3.4 features');

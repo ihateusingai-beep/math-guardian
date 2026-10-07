@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
-<!-- 數學守護者：精準訓練版 v3.6 (Math Guardian v3.6)
+<!-- 數學合作學習遊戲 v3.6 · 將軍澳培智學校
+     (Math Coop Learning Game / Math Guardian lineage)
      easy difficulty mode for moderate SEN.
      Stack: Tailwind CDN + vanilla JS, GitHub Pages deploy. -->
 <head>
@@ -8,7 +9,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="theme-color" content="#0b0d1a" />
-<title>數學守護者：精準訓練版 v3.6</title>
+<title>數學合作學習遊戲｜將軍澳培智學校</title>
 
 <script src="https://cdn.tailwindcss.com"></script>
 <script>
@@ -2540,15 +2541,28 @@
       🎵 BGM
     </button>
     <div class="text-center mb-4 mt-2">
-      <div class="flex justify-center items-end gap-3 mb-2">
-        <svg class="pixel troll-idle" style="width:56px;height:56px"><use href="#px-troll"/></svg>
-        <svg class="pixel" style="width:48px;height:48px"><use href="#px-castle"/></svg>
+      <!-- V3.6 cycle74: 將軍澳培智學校 branding -->
+      <div class="flex flex-col items-center gap-2 mb-3">
+        <img
+          class="school-logo"
+          src="https://www.puichi.edu.hk/it-school/php/webcms/files/upload/tinymce//1a__pui_chi_logo_png_1791177564.png"
+          alt="將軍澳培智學校"
+          width="72"
+          height="72"
+          decoding="async"
+          style="width:72px;height:72px;object-fit:contain;filter:drop-shadow(0 4px 12px rgba(0,0,0,0.35))"
+        />
+        <div class="text-base md:text-lg font-extrabold text-sky-100 tracking-wide">將軍澳培智學校</div>
       </div>
-      <h1 class="text-3xl md:text-5xl font-extrabold bg-gradient-to-r from-amber-300 via-pink-400 to-purple-400 bg-clip-text text-transparent">
-        數學守護者
+      <div class="flex justify-center items-end gap-3 mb-2" aria-hidden="true">
+        <svg class="pixel troll-idle" style="width:40px;height:40px"><use href="#px-troll"/></svg>
+        <svg class="pixel" style="width:36px;height:36px"><use href="#px-castle"/></svg>
+      </div>
+      <h1 class="text-2xl md:text-4xl font-extrabold bg-gradient-to-r from-amber-300 via-pink-400 to-purple-400 bg-clip-text text-transparent leading-tight">
+        數學合作學習遊戲
       </h1>
-      <p class="text-base md:text-xl text-purple-200 mt-1">精準訓練版 v3.6 · Math Guardian</p>
-      <p class="text-xs md:text-sm text-white/50 mt-1">課堂練習 · 雙隊遊戲 · Boss 戰役（老師）</p>
+      <p class="text-sm md:text-base text-purple-200 mt-1">v3.6 · 課堂練習 · 雙隊 · Boss</p>
+      <p class="text-xs md:text-sm text-white/50 mt-1">培智 · 數學科 · 合作學習</p>
     </div>
 
     <div class="w-full max-w-xl bg-white/5 backdrop-blur-md border border-white/10 rounded-3xl p-4 md:p-6 space-y-4 md:space-y-5 shadow-2xl mb-6">
@@ -3087,6 +3101,18 @@
     <div id="end-bg" style="position:absolute;inset:0;background-size:cover;background-position:center;filter:brightness(0.55);z-index:0;transition:background-image 0.5s;"></div>
     <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0.3),rgba(0,0,0,0.6));z-index:1;"></div>
     <div class="w-full max-w-lg bg-white/10 backdrop-blur-md border border-white/20 rounded-3xl p-6 shadow-2xl text-center relative" style="z-index:2;">
+      <div class="flex items-center justify-center gap-2 mb-2">
+        <img
+          class="school-logo-end"
+          src="https://www.puichi.edu.hk/it-school/php/webcms/files/upload/tinymce//1a__pui_chi_logo_png_1791177564.png"
+          alt="將軍澳培智學校"
+          width="40"
+          height="40"
+          decoding="async"
+          style="width:40px;height:40px;object-fit:contain"
+        />
+        <span class="text-sm font-bold text-sky-100">將軍澳培智學校 · 數學合作學習遊戲</span>
+      </div>
       <!-- P2-d: defeated boss portrait (replaces trophy icon on victory) -->
       <div id="end-icon" class="mb-3 flex justify-center" style="width:128px;height:128px;margin:0 auto;position:relative;">
         <svg id="end-icon-svg" class="pixel w-full h-full"><use href="#px-trophy"/></svg>
@@ -3094,8 +3120,8 @@
         <div id="end-medal" class="hidden end-medal" aria-hidden="true"></div>
       </div>
       <div id="end-medal-label" class="hidden end-medal-label text-amber-300"></div>
-      <h2 id="end-title" class="text-3xl font-extrabold mb-2">守護成功！</h2>
-      <p id="end-message" class="text-white/80 mb-4">兩隊同心協力，森林巨魔已被擊退！</p>
+      <h2 id="end-title" class="text-3xl font-extrabold mb-2">完成！</h2>
+      <p id="end-message" class="text-white/80 mb-4">兩隊同心協力，做得好！</p>
       <div id="end-stats" class="bg-black/30 rounded-2xl p-4 mb-4 text-left space-y-2"></div>
       <!-- P2-c: Achievement badges (unlocked only, fade-in stagger) -->
       <div id="end-badges" class="mb-4 flex justify-center gap-3 flex-wrap" style="font-size:0;line-height:0;"></div>
@@ -3289,7 +3315,7 @@
 <script>
 'use strict';
 /* =====================================================================
- *  Math Guardian v3 — single-file game
+ *  數學合作學習遊戲 v3 — single-file game (Math Guardian lineage)
  *  Sections:
  *    [1] 常數 / 工具
  *    [2] 音訊 (Web Audio beeps)
@@ -8443,19 +8469,19 @@ function _endTitleFor(victory) {
   if (Game.settings.win === 'time') {
     const castleAlive = Game.state.castle.left > 0 && Game.state.castle.right > 0;
     if (castleAlive) {
-      return { title: `時間到！守護成功 ${star(true)}`, msg: `在 ${Game.settings.minutes} 分鐘內成功守護城堡！`, icon: '🏆' };
+      return { title: `時間到！完成 ${star(true)}`, msg: `在 ${Game.settings.minutes} 分鐘內完成挑戰！`, icon: '🏆' };
     }
-    return { title: `時間到！城塔失守 ${star(false)}`, msg: '城堡倒塌了，下次再接再厲！', icon: '💔' };
+    return { title: `時間到！再試一次 ${star(false)}`, msg: '城堡倒塌了，下次再接再厲！', icon: '💔' };
   }
   if (victory) {
     const msg = Game.settings.team === 'coop'
-      ? '兩隊同心協力，森林巨魔已被擊退！'
+      ? '兩隊同心協力，做得好！'
       : tm.correct > tk.correct ? '法師隊答對最多 🎉'
       : tk.correct > tm.correct ? '騎士隊答對最多 🎉'
       : '兩隊平分秋色，平手！';
-    return { title: `守護成功！${star(true)}`, msg, icon: '🏆' };
+    return { title: `完成！${star(true)}`, msg, icon: '🏆' };
   }
-  return { title: `城塔失守 ${star(false)}`, msg: '下次一起更精準作答吧！', icon: '💔' };
+  return { title: `再試一次 ${star(false)}`, msg: '下次一起更精準作答吧！', icon: '💔' };
 }
 
 // DOM: 設 end-icon — always SVG sprite (AI_ASSETS removed); easy uses 金銀銅 medal
@@ -10164,12 +10190,12 @@ window.addEventListener('DOMContentLoaded', () => {
       if (params.get('end') === 'frost') {
         document.body.classList.add('theme-snow');
         Bosses.current = Bosses.list.find(b => b.id === 'frost-giant');
-        $('end-title').textContent = '❄ 守護成功！⭐⭐⭐';
+        $('end-title').textContent = '❄ 完成！⭐⭐⭐';
         $('end-message').textContent = '冰霜巨人已被擊退！';
       } else {
         document.body.classList.remove('theme-snow');
         Bosses.current = Bosses.list.find(b => b.id === 'forest-troll');
-        $('end-title').textContent = '🏆 守護成功！⭐⭐⭐';
+        $('end-title').textContent = '🏆 完成！⭐⭐⭐';
         $('end-message').textContent = '森林巨魔已被擊退！';
       }
       $('end-stats').innerHTML = `
@@ -10182,10 +10208,10 @@ window.addEventListener('DOMContentLoaded', () => {
       // showEndScreen 會 override title/msg 由 Game.settings 決定 (real data path)，
       // 我哋 override 入面 demo scenario 嘅文案（boss-killed message）
       if (params.get('end') === 'frost') {
-        $('end-title').textContent = '❄ 守護成功！⭐⭐⭐';
+        $('end-title').textContent = '❄ 完成！⭐⭐⭐';
         $('end-message').textContent = '冰霜巨人已被擊退！';
       } else {
-        $('end-title').textContent = '🏆 守護成功！⭐⭐⭐';
+        $('end-title').textContent = '🏆 完成！⭐⭐⭐';
         $('end-message').textContent = '森林巨魔已被擊退！';
       }
     }, 200);
