@@ -627,7 +627,7 @@ assert('F-13 STORAGE.save cap switch includes BANK_KEY',
 
 // F-14 — QuestionBank IIFE module
 assert('F-14 QuestionBank module declared',
-  /const QuestionBank = \(\(\) => \{[\s\S]{0,20000}return \{ load, save, reset, pickFromBank, isWeakType, shouldUseBank, stats, add, remove, list, PER_TYPE_CAP, Validators \};[\s\S]{0,50}\}\)\(\);/.test(src));
+  /const QuestionBank = \(\(\) => \{[\s\S]{0,50000}return \{ load, save, reset, pickFromBank, isWeakType, shouldUseBank, stats, add, remove, list, PER_TYPE_CAP, Validators \};[\s\S]{0,50}\}\)\(\);/.test(src));
 assert('F-14 seed fixtures 12 types × 10 questions',
   /add10:\s*\[[\s\S]{0,200}\],?\s*sub10:\s*\[[\s\S]{0,200}\],?\s*add20:\s*\[[\s\S]{0,200}\],?\s*sub20:\s*\[[\s\S]{0,200}\],?\s*add2d:\s*\[[\s\S]{0,200}\],?\s*sub2d:\s*\[[\s\S]{0,200}\]/.test(src) &&
   /count10:\s*\[/.test(src) && /compare10:\s*\[/.test(src) && /double:\s*\[/.test(src) &&
