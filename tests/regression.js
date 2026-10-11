@@ -1429,6 +1429,21 @@ assert('HT76-07 shared tap-pair path',
   /function _isTapPairCompare/.test(src) &&
   /_isTapPairCompare\(q\)/.test(src));
 
+// V3.6 cycle77: floating quick-start FAB on menu
+console.log('\n[T61] V3.6 audit cycle-77 (floating quick-start FAB)');
+assert('UI77-01 FAB button id present in HTML',
+  /id="btn-quick-start"/.test(src));
+assert('UI77-02 FAB CSS class with fixed position',
+  /\.btn-quick-start\s*\{[\s\S]{0,500}position:\s*fixed/.test(src));
+assert('UI77-03 FAB delegates to btn-easy-start click',
+  /btn-quick-start[\s\S]{0,200}btn-easy-start[\s\S]{0,40}\.click\(\)/.test(src));
+assert('UI77-04 FAB has aria-label',
+  /id="btn-quick-start"[\s\S]{0,200}aria-label="一鍵開始簡單練習"/.test(src));
+assert('UI77-05 FAB z-index above sticky (25)',
+  /\.btn-quick-start\s*\{[\s\S]{0,500}z-index:\s*3[0-9]/.test(src));
+assert('UI77-06 FAB sits inside #screen-menu section',
+  /<section id="screen-menu"[\s\S]{0,20000}id="btn-quick-start"[\s\S]{0,300}<\/section>/.test(src));
+
 // V3.6 cycle62: retro arena skins (ruler tug + bridge)
 console.log('\n[T47] V3.6 audit cycle-62 (retro arena)');
 assert('RETRO-01 arenaSkin setting + helper',
