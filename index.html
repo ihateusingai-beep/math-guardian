@@ -1063,7 +1063,7 @@
   /* V3.6 cycle67: sticky class start + identity fold + scope chips */
   .class-start-sticky {
     position: sticky;
-    bottom: 0;
+    bottom: 2.5rem; /* V3.6 cycle80: lift above site-footer */
     z-index: 25;
     margin-top: 0.5rem;
     padding: 0.65rem 0.55rem 0.75rem;
@@ -1108,6 +1108,27 @@
     .btn-quick-start { bottom: 5.5rem; padding: 0.7rem; }
     .btn-quick-start .quick-start-label { display: none; }
   }
+  /* V3.6 cycle80: school copyright footer (fixed bottom, all screens) */
+  .site-footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 20;
+    padding: 0.4rem 1rem;
+    background: rgba(15,23,42,0.78);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-top: 1px solid rgba(99,102,241,0.35);
+    text-align: center;
+    font-size: 0.72rem;
+    color: rgba(245,245,245,0.92);
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    pointer-events: auto;
+  }
+  /* V3.6 cycle80: padding utility so screen content clears fixed footer */
+  .footer-clear { padding-bottom: 2.5rem; }
   .class-start-preview {
     display: flex;
     align-items: center;
@@ -2742,7 +2763,7 @@
 <div id="app" class="relative" style="z-index:2;min-height:100vh;height:auto;overflow-x:hidden">
 
   <!-- ========== 開始畫面 ========== -->
-  <section id="screen-menu" class="flex flex-col items-center p-4 md:p-6" style="min-height:100vh;height:100vh;overflow-y:auto">
+  <section id="screen-menu" class="flex flex-col items-center p-4 md:p-6 footer-clear" style="min-height:100vh;height:100vh;overflow-y:auto">
     <!-- V3.6 cycle70: anytime BGM toggle (menu) -->
     <button type="button" id="btn-bgm-menu" class="btn btn-ghost text-sm py-2 px-3 btn-bgm-on fixed top-3 right-3 z-40" title="背景音樂" aria-pressed="true" aria-label="背景音樂 BGM 開關">
       🎵 BGM
@@ -3045,7 +3066,7 @@
   </section>
 
   <!-- ========== 遊戲畫面 ========== -->
-  <section id="screen-game" class="hidden flex flex-col p-3 md:p-5 gap-3" style="min-height:100vh;height:100vh;overflow-y:auto">
+  <section id="screen-game" class="hidden flex flex-col p-3 md:p-5 gap-3 footer-clear" style="min-height:100vh;height:100vh;overflow-y:auto">
 
     <!-- 頂部：boss + 控制 -->
     <header class="flex items-center justify-between gap-2 px-1">
@@ -3221,7 +3242,7 @@
   </section>
 
   <!-- ========== V3.6: 超簡遊戲畫面（簡單練習：單人 / 左右雙隊） ========== -->
-  <section id="screen-game-sen" class="hidden fixed inset-0 flex flex-col" style="background:#0f172a;z-index:50;">
+  <section id="screen-game-sen" class="hidden fixed inset-0 flex flex-col footer-clear" style="background:#0f172a;z-index:50;">
     <button id="sen-btn-back" class="sen-chrome-back text-white text-xl w-12 h-12 rounded-2xl bg-black/50 border border-white/20 flex items-center justify-center" aria-label="返回主選單">⬅</button>
     <button type="button" id="btn-bgm-sen" class="btn btn-ghost text-sm py-2 px-3 btn-bgm-on fixed top-3 right-3 z-[60]" title="背景音樂" aria-pressed="true" aria-label="背景音樂 BGM 開關">🎵</button>
     <!-- V3.6 cycle47/49: dual arena — versus 扯大欖 / coop 推船 + identity/scene -->
@@ -3314,7 +3335,7 @@
   </section>
 
   <!-- ========== 結束畫面 ========== -->
-  <section id="screen-end" class="hidden flex flex-col items-center p-4 md:p-6 relative" style="min-height:100vh;height:100vh;overflow-y:auto">
+  <section id="screen-end" class="hidden flex flex-col items-center p-4 md:p-6 relative footer-clear" style="min-height:100vh;height:100vh;overflow-y:auto">
     <!-- P2-a: AI generated end-screen background -->
     <div id="end-bg" style="position:absolute;inset:0;background-size:cover;background-position:center;filter:brightness(0.55);z-index:0;transition:background-image 0.5s;"></div>
     <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0.3),rgba(0,0,0,0.6));z-index:1;"></div>
@@ -10807,6 +10828,11 @@ document.addEventListener('keydown', (e) => {
   }
 });
 </script>
+
+<!-- V3.6 cycle80: school copyright footer (fixed bottom, all screens) -->
+<footer id="site-footer" class="site-footer" role="contentinfo">
+  Copyright © Tseung Kwan O Pui Chi School. All Rights Reserved.
+</footer>
 
 </body>
 </html>

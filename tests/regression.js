@@ -1478,6 +1478,25 @@ assert('PINKBLUE-06 snow theme override still intact',
   /body\.theme-snow\s*\{[\s\S]{0,2000}f0f9ff/.test(src) &&
   /--c-bg-deep:\s*#0a1729/.test(src));
 
+// V3.6 cycle80: school copyright footer (fixed bottom, all screens)
+console.log('\n[T64] V3.6 audit cycle-80 (school copyright footer)');
+assert('FT80-01 footer element present before </body>',
+  /id="site-footer"[\s\S]{0,200}Copyright\s*©\s*Tseung Kwan O Pui Chi School\.\s*All Rights Reserved\.[\s\S]{0,200}<\/body>/.test(src));
+assert('FT80-02 footer CSS fixed bottom with semi-transparent bg',
+  /\.site-footer\s*\{[\s\S]{0,500}position:\s*fixed[\s\S]{0,200}bottom:\s*0/.test(src) &&
+  /\.site-footer\s*\{[\s\S]{0,500}background:\s*rgba\(15,23,42/.test(src));
+assert('FT80-03 footer-clear utility defined',
+  /\.footer-clear\s*\{\s*padding-bottom:\s*2\.5rem/.test(src));
+assert('FT80-04 sticky lifted above footer (bottom: 2.5rem)',
+  /\.class-start-sticky\s*\{[\s\S]{0,300}bottom:\s*2\.5rem/.test(src));
+assert('FT80-05 all 4 screens have footer-clear class',
+  /id="screen-menu"[\s\S]{0,200}footer-clear/.test(src) &&
+  /id="screen-game"[\s\S]{0,200}footer-clear/.test(src) &&
+  /id="screen-game-sen"[\s\S]{0,200}footer-clear/.test(src) &&
+  /id="screen-end"[\s\S]{0,200}footer-clear/.test(src));
+assert('FT80-06 footer z-index below sticky/FAB but above body',
+  /\.site-footer\s*\{[\s\S]{0,500}z-index:\s*20/.test(src));
+
 // V3.6 cycle62: retro arena skins (ruler tug + bridge)
 console.log('\n[T47] V3.6 audit cycle-62 (retro arena)');
 assert('RETRO-01 arenaSkin setting + helper',
