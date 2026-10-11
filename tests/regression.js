@@ -1497,6 +1497,23 @@ assert('FT80-05 all 4 screens have footer-clear class',
 assert('FT80-06 footer z-index below sticky/FAB but above body',
   /\.site-footer\s*\{[\s\S]{0,500}z-index:\s*20/.test(src));
 
+// V3.6 cycle81: pink-blue text regression + SEN fade-in
+console.log('\n[T65] V3.6 audit cycle-81 (text contrast regression fix)');
+assert('CT81-01 school name uses dark slate (text-slate-800)',
+  /text-slate-800 tracking-wide">將軍澳培智學校</.test(src));
+assert('CT81-02 v3.6 subtitle uses dark slate-700',
+  /v3\.6 · 課堂練習 · 雙隊 · Boss[\s\S]{0,50}<\/p>/.test(src) &&
+  /text-slate-700 mt-1 font-semibold/.test(src));
+assert('CT81-03 培智 數學科 line uses dark slate-600',
+  /培智 · 數學科 · 合作學習[\s\S]{0,50}<\/p>/.test(src) &&
+  /text-slate-600 mt-1/.test(src));
+assert('CT81-04 title gradient upgraded to dark variants (amber-600 etc)',
+  /from-amber-600 via-pink-600 to-purple-700/.test(src));
+assert('CT81-05 sen-fade-in CSS keyframe present',
+  /\.sen-fade-in\s*\{[\s\S]{0,200}animation:\s*sen-screen-fade/.test(src));
+assert('CT81-06 SEN screen entry uses fade-in restart trick',
+  /senScreen\.classList\.remove\('sen-fade-in'\)[\s\S]{0,200}senScreen\.offsetWidth[\s\S]{0,200}senScreen\.classList\.add\('sen-fade-in'\)/.test(src));
+
 // V3.6 cycle62: retro arena skins (ruler tug + bridge)
 console.log('\n[T47] V3.6 audit cycle-62 (retro arena)');
 assert('RETRO-01 arenaSkin setting + helper',

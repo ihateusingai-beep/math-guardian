@@ -1129,6 +1129,12 @@
   }
   /* V3.6 cycle80: padding utility so screen content clears fixed footer */
   .footer-clear { padding-bottom: 2.5rem; }
+  /* V3.6 cycle81: SEN screen entrance fade-in (avoid abrupt pink-blue → dark switch) */
+  @keyframes sen-screen-fade {
+    0%   { opacity: 0; }
+    100% { opacity: 1; }
+  }
+  .sen-fade-in { animation: sen-screen-fade 220ms ease-out both; }
   .class-start-preview {
     display: flex;
     align-items: center;
@@ -2780,17 +2786,17 @@
           decoding="async"
           style="width:72px;height:72px;object-fit:contain;filter:drop-shadow(0 4px 12px rgba(0,0,0,0.35))"
         />
-        <div class="text-base md:text-lg font-extrabold text-sky-100 tracking-wide">將軍澳培智學校</div>
+        <div class="text-base md:text-lg font-extrabold text-slate-800 tracking-wide">將軍澳培智學校</div>
       </div>
       <div class="flex justify-center items-end gap-3 mb-2" aria-hidden="true">
         <svg class="pixel troll-idle" style="width:40px;height:40px"><use href="#px-troll"/></svg>
         <svg class="pixel" style="width:36px;height:36px"><use href="#px-castle"/></svg>
       </div>
-      <h1 class="text-2xl md:text-4xl font-extrabold bg-gradient-to-r from-amber-300 via-pink-400 to-purple-400 bg-clip-text text-transparent leading-tight">
+      <h1 class="text-2xl md:text-4xl font-extrabold bg-gradient-to-r from-amber-600 via-pink-600 to-purple-700 bg-clip-text text-transparent leading-tight drop-shadow-sm">
         數學合作學習遊戲
       </h1>
-      <p class="text-sm md:text-base text-purple-200 mt-1">v3.6 · 課堂練習 · 雙隊 · Boss</p>
-      <p class="text-xs md:text-sm text-white/50 mt-1">培智 · 數學科 · 合作學習</p>
+      <p class="text-sm md:text-base text-slate-700 mt-1 font-semibold">v3.6 · 課堂練習 · 雙隊 · Boss</p>
+      <p class="text-xs md:text-sm text-slate-600 mt-1">培智 · 數學科 · 合作學習</p>
     </div>
 
     <div class="w-full max-w-xl bg-white/5 backdrop-blur-md border border-white/10 rounded-3xl p-4 md:p-6 space-y-4 md:space-y-5 shadow-2xl mb-6">
@@ -8280,7 +8286,16 @@ function startGame() {
   // V3.6-SEN: easy mode uses ultra-simple screen, normal uses full game UI
   // (reuse isEasy from earlier in startGame — do NOT redeclare const)
   $('screen-game').classList.toggle('hidden', isEasy);
-  $('screen-game-sen').classList.toggle('hidden', !isEasy);
+  // V3.6 cycle81: SEN screen entrance fade-in (avoid abrupt pink-blue → dark switch)
+  const senScreen = $('screen-game-sen');
+  if (senScreen) {
+    senScreen.classList.toggle('hidden', !isEasy);
+    if (isEasy) {
+      senScreen.classList.remove('sen-fade-in');
+      void senScreen.offsetWidth; // restart animation
+      senScreen.classList.add('sen-fade-in');
+    }
+  }
   // V3.6-SEN: wire SEN screen controls on first entry
   if (isEasy) _wireSENScreen();
   if (isEasy) UI.applySENBoardLayout();
