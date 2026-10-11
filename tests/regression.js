@@ -1462,6 +1462,22 @@ assert('CT78-06 used in dashboard by-type label (答對率 by 題型)',
 assert('CT78-07 used in reset warning (重設後不可復原)',
   /class="text-xs text-muted-strong mt-2">提示：profile 存在 localStorage，重設後不可復原/.test(src));
 
+// V3.6 cycle79: pink → blue gradient brand theme
+console.log('\n[T63] V3.6 audit cycle-79 (pink-blue gradient theme)');
+assert('PINKBLUE-01 :root has pink top stop',
+  /--c-bg-deep:\s*#fce7f3/.test(src));
+assert('PINKBLUE-02 :root has fuchsia middle stop',
+  /--c-bg-mid:\s*#f5d0fe/.test(src));
+assert('PINKBLUE-03 :root has sky bottom stop',
+  /--c-bg-bright:\s*#bae6fd/.test(src));
+assert('PINKBLUE-04 html/body uses gradient via vars',
+  /html,\s*body\s*\{[\s\S]{0,500}linear-gradient\(180deg,\s*var\(--c-bg-deep\)[\s\S]{0,200}var\(--c-bg-mid\)[\s\S]{0,200}var\(--c-bg-bright\)/.test(src));
+assert('PINKBLUE-05 text-primary flipped to dark slate',
+  /--c-text-primary:\s*#1e293b/.test(src));
+assert('PINKBLUE-06 snow theme override still intact',
+  /body\.theme-snow\s*\{[\s\S]{0,2000}f0f9ff/.test(src) &&
+  /--c-bg-deep:\s*#0a1729/.test(src));
+
 // V3.6 cycle62: retro arena skins (ruler tug + bridge)
 console.log('\n[T47] V3.6 audit cycle-62 (retro arena)');
 assert('RETRO-01 arenaSkin setting + helper',

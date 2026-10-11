@@ -33,16 +33,17 @@
 <style>
   /* ============== Design Tokens (P0) ============== */
   :root {
-    /* Palette - 森林夜景 (預設) */
-    --c-bg-deep: #0b0d1a;
-    --c-bg-mid: #1a1338;
-    --c-bg-bright: #2d1b4e;
+    /* V3.6 cycle79: 學校粉藍色 brand (粉 → 藍 gradient) */
+    --c-bg-deep: #fce7f3;       /* pink-100 top */
+    --c-bg-mid: #f5d0fe;        /* fuchsia-200 middle */
+    --c-bg-bright: #bae6fd;     /* sky-200 bottom */
     --c-accent-amber: #fbbf24;
     --c-accent-cyan: #06b6d4;
     --c-accent-rose: #f43f5e;
     --c-accent-emerald: #10b981;
-    --c-text-primary: #f5f5f5;
-    --c-text-muted: rgba(245,245,245,0.7);
+    /* V3.6 cycle79: 粉藍底反轉 dark text default */
+    --c-text-primary: #1e293b;  /* slate-800 — light bg 對比 */
+    --c-text-muted: rgba(30,41,59,0.7);
     --c-knight: #3b82f6;
     --c-mage: #a855f7;
     --c-boss: #dc2626;
@@ -123,7 +124,8 @@
     -webkit-tap-highlight-color: transparent;
     overscroll-behavior: none;
     touch-action: manipulation;
-    background: var(--c-bg-deep);
+    /* V3.6 cycle79: 粉 → 藍 vertical gradient (預設 brand theme) */
+    background: linear-gradient(180deg, var(--c-bg-deep) 0%, var(--c-bg-mid) 50%, var(--c-bg-bright) 100%);
     color: var(--c-text-primary);
     font-family: 'Noto Sans TC', 'PingFang TC', system-ui, sans-serif;
     height: 100%;
