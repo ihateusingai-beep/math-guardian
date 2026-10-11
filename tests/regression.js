@@ -706,7 +706,7 @@ assert('R2 _closeTeacherModal restores focus to btn-teacher',
   /^function _closeTeacherModal\(\) \{[\s\S]{0,600}trigger\.focus\(\)/m.test(src));
 assert('R2 _wireTeacherPassword + _tryTeacherPwd helpers exist',
   /^function _wireTeacherPassword\(\) \{[\s\S]{0,300}_tryTeacherPwd\(\)/m.test(src) &&
-  /^function _tryTeacherPwd\(\) \{[\s\S]{0,400}TEACHER_PWD/m.test(src));
+  /^function _tryTeacherPwd\(\) \{[\s\S]{0,400}_teacherChallenge\.a/m.test(src));
 assert('R2 _pauseOverlayState + _showPauseOverlay Esc stack',
   /^const _pauseOverlayState = \{[\s\S]{0,1000}if \(teacherOpen\) return/m.test(src));
 assert('R2 _wireTeacherActions wires pause/resume/end + dashboard resets',
@@ -1526,6 +1526,33 @@ assert('BTN82-04 FAB guards against modal/onboarding double-trigger',
   /if \(document\.querySelector\(['"]\.onboarding-overlay,\s*\.modal-backdrop:not\(\.hidden\)['"]\)\) return;[\s\S]{0,100}btn-easy-start[\s\S]{0,30}\.click\(\)/.test(src));
 assert('BTN82-05 solo Boss mage badge logic fixed',
   /Game\.settings\.playLayout === 'solo' && !_isEasyMode\(\)[\s\S]{0,200}team === 'knight'/.test(src));
+
+// V3.6 cycle83: 3 new bosses + win-chain unlock + teacher challenge
+console.log('\n[T67] V3.6 audit cycle-83 (boss roster + teacher pwd)');
+assert('BOSS83-01 lava-giant sprite present',
+  /<symbol id="px-lava" viewBox="0 0 16 16">/.test(src));
+assert('BOSS83-02 shadow-dragon sprite present',
+  /<symbol id="px-shadow" viewBox="0 0 16 16">/.test(src));
+assert('BOSS83-03 crystal-golem sprite present',
+  /<symbol id="px-crystal" viewBox="0 0 16 16">/.test(src));
+assert('BOSS83-04 lava-giant registered in Bosses.list',
+  /id: 'lava-giant'[\s\S]{0,300}scene: 'lava'/.test(src));
+assert('BOSS83-05 shadow-dragon registered with unlockWins: 5',
+  /id: 'shadow-dragon'[\s\S]{0,300}unlockWins:\s*5/.test(src));
+assert('BOSS83-06 crystal-golem registered with unlockWins: 10',
+  /id: 'crystal-golem'[\s\S]{0,300}unlockWins:\s*10/.test(src));
+assert('BOSS83-07 onDefeat uses win-chain unlock',
+  /Profile\.data\.bossWins = winCount[\s\S]{0,500}unlockWins[\s\S]{0,200}<=\s*winCount/.test(src));
+assert('BOSS83-08 bossWins lazy-init in Profile.load',
+  /typeof this\.data\.bossWins !== 'number'[\s\S]{0,50}bossWins = 0/.test(src));
+assert('BOSS83-09 teacher challenge random math (no hardcoded pwd)',
+  /function _newTeacherChallenge\(\)[\s\S]{0,300}a \* b/.test(src) &&
+  /TEACHER_PWD/.test(src) === false);
+assert('BOSS83-10 _tryTeacherPwd checks _teacherChallenge.a',
+  /_teacherChallenge && v === _teacherChallenge\.a/.test(src));
+assert('BOSS83-11 teacher modal hint updated, hardcoded pwd text removed',
+  /id="teacher-pwd-hint"[\s\S]{0,300}答啱呢題先可以入/.test(src) &&
+  /eduteacher2026/.test(src) === false);
 
 // V3.6 cycle62: retro arena skins (ruler tug + bridge)
 console.log('\n[T47] V3.6 audit cycle-62 (retro arena)');
