@@ -735,7 +735,7 @@ assert('F-17 teacher modal bank type picker radiogroup',
 assert('F-17 teacher modal bank add form + button + status live region',
   /id="td-bank-add-form"[\s\S]{0,5000}id="td-bank-add-btn"[\s\S]{0,500}id="td-bank-status"[\s\S]{0,200}aria-live="polite"/.test(src));
 assert('F-17 teacher modal bank inventory section + count display',
-  /id="td-bank-inventory"[\s\S]{0,250000}QuestionBank\.PER_TYPE_CAP/.test(src));
+  /id="td-bank-inventory"[\s\S]{0,300000}QuestionBank\.PER_TYPE_CAP/.test(src));
 
 // =========== T26: V3.5 audit cycle-13 Mastered promote (adaptive state 整合) ===========
 console.log('\n[T26] V3.5 audit cycle-13 Mastered promote');
@@ -1436,7 +1436,7 @@ assert('UI77-01 FAB button id present in HTML',
 assert('UI77-02 FAB CSS class with fixed position',
   /\.btn-quick-start\s*\{[\s\S]{0,500}position:\s*fixed/.test(src));
 assert('UI77-03 FAB delegates to btn-easy-start click',
-  /btn-quick-start[\s\S]{0,200}btn-easy-start[\s\S]{0,40}\.click\(\)/.test(src));
+  /btn-quick-start[\s\S]{0,1500}btn-easy-start[\s\S]{0,100}\.click\(\)/.test(src));
 assert('UI77-04 FAB has aria-label',
   /id="btn-quick-start"[\s\S]{0,200}aria-label="一鍵開始簡單練習"/.test(src));
 assert('UI77-05 FAB z-index above sticky (25)',
@@ -1513,6 +1513,19 @@ assert('CT81-05 sen-fade-in CSS keyframe present',
   /\.sen-fade-in\s*\{[\s\S]{0,200}animation:\s*sen-screen-fade/.test(src));
 assert('CT81-06 SEN screen entry uses fade-in restart trick',
   /senScreen\.classList\.remove\('sen-fade-in'\)[\s\S]{0,200}senScreen\.offsetWidth[\s\S]{0,200}senScreen\.classList\.add\('sen-fade-in'\)/.test(src));
+
+// V3.6 cycle82: button state fixes (locked boss / FAB guard / solo badge)
+console.log('\n[T66] V3.6 audit cycle-82 (button state fixes)');
+assert('BTN82-01 locked boss button sets aria-disabled',
+  /if \(unlocked\)[\s\S]{0,500}else\s*\{[\s\S]{0,200}aria-disabled[\s\S]{0,100}true/.test(src));
+assert('BTN82-02 locked boss button has cursor not-allowed',
+  /btn\.style\.cursor\s*=\s*'not-allowed'/.test(src));
+assert('BTN82-03 locked boss button has title tooltip',
+  /setAttribute\('title',\s*`🔒/.test(src));
+assert('BTN82-04 FAB guards against modal/onboarding double-trigger',
+  /if \(document\.querySelector\(['"]\.onboarding-overlay,\s*\.modal-backdrop:not\(\.hidden\)['"]\)\) return;[\s\S]{0,100}btn-easy-start[\s\S]{0,30}\.click\(\)/.test(src));
+assert('BTN82-05 solo Boss mage badge logic fixed',
+  /Game\.settings\.playLayout === 'solo' && !_isEasyMode\(\)[\s\S]{0,200}team === 'knight'/.test(src));
 
 // V3.6 cycle62: retro arena skins (ruler tug + bridge)
 console.log('\n[T47] V3.6 audit cycle-62 (retro arena)');

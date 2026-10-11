@@ -6468,10 +6468,12 @@ const UI = {
     ultBtn.innerHTML = ready
       ? `<svg class="pixel icon-mini"><use href="#px-meteor"/></svg><span>釋放大絕！</span>`
       : `<svg class="pixel icon-mini"><use href="#px-meteor"/></svg><span>充能 ${t.energy}%</span>`;
-    // 作答中 badge
-    const active = (Game.settings.team === 'coop')
-      ? (Game.state.currentTeam === team)
-      : true;
+    // 作答中 badge — V3.6 cycle82 A5: solo Boss 只騎士作答, mage badge 要 hide
+    const active = (Game.settings.playLayout === 'solo' && !_isEasyMode())
+      ? (team === 'knight')
+      : (Game.settings.team === 'coop')
+        ? (Game.state.currentTeam === team)
+        : true;
     const badge = $(`${team}-active-badge`);
     badge.textContent = active ? '作答中' : '待命中';
     badge.className = `text-xs px-2 py-0.5 rounded-full ${active ? (team === 'knight' ? 'bg-blue-500/40 border border-blue-300/40' : 'bg-purple-500/40 border border-purple-300/40') : 'bg-white/10 border border-white/10 opacity-60'}`;
@@ -7881,7 +7883,11 @@ function setupMenu() {
   };
   // V3.6 cycle77: floating FAB delegates to btn-easy-start (same one-click flow)
   const quickStartFab = $('btn-quick-start');
-  if (quickStartFab) quickStartFab.onclick = () => { $('btn-easy-start').click(); };
+  if (quickStartFab) quickStartFab.onclick = () => {
+    // V3.6 cycle82 A4: guard against double-trigger while onboarding showing
+    if (document.querySelector('.onboarding-overlay, .modal-backdrop:not(.hidden)')) return;
+    $('btn-easy-start').click();
+  };
   // 題型（可多選，至少一個）— v3.1 dynamic picker via delegation
   renderTypePicker();
   renderRecommendChips();   // V3.5-cycle16: chips row
@@ -8083,6 +8089,12 @@ function renderBossSelect() {
           renderBossSelect();   // 重 render selected 樣式
         }
       };
+    } else {
+      // V3.6 cycle82 A2: locked boss button — cursor + aria-disabled + dim
+      btn.setAttribute('aria-disabled', 'true');
+      btn.style.cursor = 'not-allowed';
+      btn.style.opacity = '0.55';
+      btn.setAttribute('title', `🔒 ${boss.unlockHint || '未解鎖'} — 擊敗上一隻 Boss 解鎖`);
     }
     row.appendChild(btn);
   });
