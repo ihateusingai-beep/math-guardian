@@ -1054,6 +1054,10 @@
     box-shadow: 0 0 0 2px rgba(248,113,113,0.4);
     color: #fff !important;
   }
+  /* V3.6 cycle78: WCAG AA contrast utility for muted helper text */
+  .text-muted-strong {
+    color: rgba(245,245,245,0.85) !important;
+  }
   /* V3.6 cycle67: sticky class start + identity fold + scope chips */
   .class-start-sticky {
     position: sticky;
@@ -2909,7 +2913,7 @@
             <span id="easy-start-sub" class="text-xs opacity-80">單人 · 已選範疇 · 10 題</span>
           </span>
         </button>
-        <div id="diff-helper" class="text-xs text-white/55 text-center leading-relaxed mt-2">
+        <div id="diff-helper" class="text-xs text-muted-strong text-center leading-relaxed mt-2">
           簡單模式：跟題目範疇 · 10 題 · 大掣 A/B/C
         </div>
       </div>
@@ -2921,7 +2925,7 @@
 
       <div class="menu-section-card" style="border-color:rgba(248,113,113,0.35);background:rgba(127,29,29,0.18);">
         <div class="menu-section-title">⚔️ Boss 戰役 · 老師設定</div>
-        <p class="text-xs text-white/60 leading-relaxed">先揀單人／雙隊，再調 Boss 同題型。</p>
+        <p class="text-xs text-muted-strong leading-relaxed">先揀單人／雙隊，再調 Boss 同題型。</p>
         <div class="grid grid-cols-2 gap-3 mt-2" role="radiogroup" aria-label="Boss 玩法">
           <button type="button" class="opt-play-boss btn btn-ghost py-3 opt-selected" data-play="solo" aria-pressed="true">
             🧍 單人打王<br><span class="text-xs opacity-70">只開騎士板</span>
@@ -3024,7 +3028,7 @@
         <svg class="pixel icon-md"><use href="#px-castle"/></svg>
         開始守護戰役
       </button>
-      <div class="text-center text-xs text-white/60">提示：遊戲中右上角鎖頭 = 老師控制台</div>
+      <div class="text-center text-xs text-muted-strong">提示：遊戲中右上角鎖頭 = 老師控制台</div>
 
       </div><!-- /#menu-boss-panel -->
 
@@ -3352,7 +3356,7 @@
       <svg class="pixel icon-md"><use href="#px-castle"/></svg>
       老師控制台
     </h3>
-    <p class="text-sm text-white/60 mb-4">輸入老師密碼以暫停 / 控制遊戲</p>
+    <p class="text-sm text-muted-strong mb-4">輸入老師密碼以暫停 / 控制遊戲</p>
     <label for="teacher-pwd" class="sr-only">老師密碼</label>
     <input id="teacher-pwd" type="password" placeholder="密碼" autocomplete="off" class="w-full px-4 py-3 rounded-xl bg-black/40 border border-white/20 text-white mb-3" />
     <div id="teacher-pwd-error" class="hidden text-red-400 text-sm mb-3">❌ 密碼不對，請再試一次</div>
@@ -3380,7 +3384,7 @@
 
         <!-- Type error breakdown -->
         <div class="mb-3">
-          <div class="text-xs text-white/60 mb-1">答對率 by 題型 (本 session + 累計) + avg reaction</div>
+          <div class="text-xs text-muted-strong mb-1">答對率 by 題型 (本 session + 累計) + avg reaction</div>
           <div id="td-type-chart" class="space-y-1.5 text-xs">
             <!-- JS injects rows -->
           </div>
@@ -3502,7 +3506,7 @@
           </div>
         </div>
 
-        <p class="text-xs text-white/40 mt-2">提示：profile 存在 localStorage，重設後不可復原。</p>
+        <p class="text-xs text-muted-strong mt-2">提示：profile 存在 localStorage，重設後不可復原。</p>
       </div>
     </div>
 

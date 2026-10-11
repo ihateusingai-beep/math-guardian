@@ -1444,6 +1444,24 @@ assert('UI77-05 FAB z-index above sticky (25)',
 assert('UI77-06 FAB sits inside #screen-menu section',
   /<section id="screen-menu"[\s\S]{0,20000}id="btn-quick-start"[\s\S]{0,300}<\/section>/.test(src));
 
+// V3.6 cycle78: text contrast utility (WCAG AA)
+console.log('\n[T62] V3.6 audit cycle-78 (text contrast utility)');
+assert('CT78-01 utility class defined with WCAG-safe alpha',
+  /\.text-muted-strong\s*\{[\s\S]{0,200}rgba\(245,245,245,0\.85\)/.test(src));
+assert('CT78-02 used in diff-helper (簡單模式說明)',
+  /id="diff-helper" class="text-xs text-muted-strong/.test(src));
+assert('CT78-03 used in Boss track intro (先揀單人／雙隊)',
+  /先揀單人／雙隊，再調 Boss 同題型[\s\S]{0,30}<\/p>/.test(src) &&
+  /id="menu-boss-panel"[\s\S]{0,3000}class="text-xs text-muted-strong leading-relaxed"/.test(src));
+assert('CT78-04 used in 右上角鎖頭 hint',
+  /class="text-center text-xs text-muted-strong">提示：遊戲中右上角鎖頭 = 老師控制台/.test(src));
+assert('CT78-05 used in teacher modal intro (輸入老師密碼)',
+  /id="teacher-modal"[\s\S]{0,2000}class="text-sm text-muted-strong mb-4">輸入老師密碼以暫停/.test(src));
+assert('CT78-06 used in dashboard by-type label (答對率 by 題型)',
+  /class="text-xs text-muted-strong mb-1">答對率 by 題型/.test(src));
+assert('CT78-07 used in reset warning (重設後不可復原)',
+  /class="text-xs text-muted-strong mt-2">提示：profile 存在 localStorage，重設後不可復原/.test(src));
+
 // V3.6 cycle62: retro arena skins (ruler tug + bridge)
 console.log('\n[T47] V3.6 audit cycle-62 (retro arena)');
 assert('RETRO-01 arenaSkin setting + helper',
