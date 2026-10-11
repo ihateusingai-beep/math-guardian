@@ -1554,6 +1554,26 @@ assert('BOSS83-11 teacher modal hint updated, hardcoded pwd text removed',
   /id="teacher-pwd-hint"[\s\S]{0,300}答啱呢題先可以入/.test(src) &&
   /eduteacher2026/.test(src) === false);
 
+// V3.6 cycle84: haptic + streak fire + scene BGM
+console.log('\n[T68] V3.6 audit cycle-84 (haptic + streak + BGM)');
+assert('C3-01 _haptic helper defined with navigator.vibrate guard',
+  /function _haptic\(correct\)[\s\S]{0,300}navigator\.vibrate/.test(src));
+assert('C3-02 _haptic called in handleAnswer correct/wrong paths',
+  /_haptic\(true\);\s*\/\/ V3\.6 cycle84 C3/.test(src) &&
+  /_haptic\(false\);\s*\/\/ V3\.6 cycle84 C3/.test(src));
+assert('C4-01 _streakFireOverlay defined with milestone label',
+  /function _streakFireOverlay[\s\S]{0,800}連勝/.test(src));
+assert('C4-02 streak fire triggered at 3/5/10',
+  /s === 3 \|\| s === 5 \|\| s === 10/.test(src));
+assert('C4-03 streak-fire-pop keyframe CSS',
+  /@keyframes streak-fire-pop[\s\S]{0,500}transform: translate\(-50%, -50%\) scale\(1\.2\)/.test(src));
+assert('C5-01 BGM_PATTERNS table has 5 scenes',
+  /const BGM_PATTERNS = \{[\s\S]{0,1000}lava:[\s\S]{0,300}shadow:[\s\S]{0,300}crystal:/.test(src));
+assert('C5-02 setBGMScene exported from Audio module',
+  /startBGM, stopBGM, setBGMScene,/.test(src));
+assert('C5-03 startGame wires setBGMScene based on Bosses.current.scene',
+  /Audio\.setBGMScene && Bosses\.current[\s\S]{0,100}Audio\.setBGMScene\(Bosses\.current\.scene\)/.test(src));
+
 // V3.6 cycle62: retro arena skins (ruler tug + bridge)
 console.log('\n[T47] V3.6 audit cycle-62 (retro arena)');
 assert('RETRO-01 arenaSkin setting + helper',

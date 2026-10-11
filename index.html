@@ -1135,6 +1135,13 @@
     100% { opacity: 1; }
   }
   .sen-fade-in { animation: sen-screen-fade 220ms ease-out both; }
+  /* V3.6 cycle84 C4: streak fire overlay pop */
+  @keyframes streak-fire-pop {
+    0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.4) rotate(-8deg); }
+    20%  { opacity: 1; transform: translate(-50%, -50%) scale(1.2) rotate(3deg); }
+    80%  { opacity: 1; transform: translate(-50%, -50%) scale(1) rotate(0deg); }
+    100% { opacity: 0; transform: translate(-50%, -60%) scale(0.95) rotate(0deg); }
+  }
   .class-start-preview {
     display: flex;
     align-items: center;
@@ -4311,22 +4318,29 @@ const Audio = (() => {
       setTimeout(() => tone(baseFreq * mult, dur / steps, type, vol), t * 1000);
     }
   }
+// V3.6 cycle84 C5: scene-specific BGM patterns (forest/snow/lava/shadow/crystal)
+  const BGM_PATTERNS = {
+    forest:  { bass: [65, 65, 49, 49, 55, 55, 44, 44], arp: [131, 165, 196, 165, 110, 131, 165, 196, 165, 110], wave: 'triangle' },
+    snow:    { bass: [62, 62, 55, 55, 49, 49, 44, 44], arp: [110, 139, 175, 139, 98, 110, 139, 175, 139, 98],  wave: 'sine' },
+    lava:    { bass: [49, 41, 44, 37, 49, 41, 44, 37], arp: [98, 117, 156, 117, 82, 98, 117, 156, 117, 82],  wave: 'sawtooth' },
+    shadow:  { bass: [37, 33, 41, 33, 37, 33, 41, 33], arp: [74, 92, 110, 92, 62, 74, 92, 110, 92, 62],     wave: 'square' },
+    crystal: { bass: [65, 73, 82, 73, 65, 73, 82, 73], arp: [131, 156, 196, 156, 110, 131, 156, 196, 156, 110], wave: 'sine' },
+  };
+  let bgmScene = 'forest';
+  function setBGMScene(scene) { bgmScene = BGM_PATTERNS[scene] ? scene : 'forest'; }
 // 啟動 / 停止背景音樂（簡單 8-bit loop：bass + arp）
   function startBGM() {
     if (!canPlayBgm()) return;
     const c = ensure(); if (!c) return;
     if (bgmInterval) return;
-    // bass pattern: C C G G A A F F (I V vi IV pattern)
-    const bassPattern  = [65, 65, 49, 49, 55, 55, 44, 44]; // C2 C2 G1 G1 A1 F1 F1
-    const arpPattern   = [131, 165, 196, 165, 110, 131, 165, 196, 165, 110]; // Cm-ish
+    const pat = BGM_PATTERNS[bgmScene] || BGM_PATTERNS.forest;
     bgmStep = 0;
     bgmInterval = setInterval(() => {
       if (!canPlayBgm()) return;
-      const bass = bassPattern[bgmStep % bassPattern.length];
-      const arpN = arpPattern[bgmStep % arpPattern.length];
-      tone(bass * 4, 0.18, 'triangle', 0.10);          // bass
-      tone(arpN * 2, 0.12, 'square', 0.06);            // arp note
-      // subtle sub-bass when in coop
+      const bass = pat.bass[bgmStep % pat.bass.length];
+      const arpN = pat.arp[bgmStep % pat.arp.length];
+      tone(bass * 4, 0.18, pat.wave, 0.10);
+      tone(arpN * 2, 0.12, 'square', 0.06);
       if (bgmStep % 8 === 0) tone(33, 0.6, 'sine', 0.10);
       bgmStep++;
     }, bgmTempo * 1000);
@@ -4435,7 +4449,7 @@ const Audio = (() => {
       noise(0.04, 0.05, 1200);
     },
     // BGM
-    startBGM, stopBGM,
+    startBGM, stopBGM, setBGMScene,
     // 控制
     enable(b) {
       const wasMaster = channels.master;
@@ -6192,6 +6206,7 @@ const Game = {
       Game.state.teams[team].total++;
       if (correct) {
         Game.state.teams[team].correct++;
+        _haptic(true);  // V3.6 cycle84 C3
         Audio.correct && Audio.correct();
         // V3.6 cycle47: arena SFX + visual
         if (_isDualPlay()) {
@@ -6200,6 +6215,7 @@ const Game = {
         }
       } else {
         Game.state.teams[team].wrong++;
+        _haptic(false);  // V3.6 cycle84 C3
         Audio.wrong && Audio.wrong();
       }
       _recordAnswerStats(team, q, correct);
@@ -8432,6 +8448,8 @@ function startGame() {
 
   // 啟動 boss 自動攻擊（合作模式：每 8s 打一次左/右 castle；巔峰：每 12s 打隨機）
   Audio.prime();
+  // V3.6 cycle84 C5: scene-specific BGM (forest/snow/lava/shadow/crystal)
+  if (Audio.setBGMScene && Bosses.current) Audio.setBGMScene(Bosses.current.scene);
   Audio.startBGM();
     // V3.4-AUDIT2-FIX: clear visibilitychan
   _wasPlayingBGM = false;
@@ -8565,6 +8583,27 @@ function showInstantHint(team, q) {
 // R5: pure answer compare (array / number / string)
 // Returns { correct, debug? } — caller uses .correct only.
     // V3.5-AUDIT7-F03: ordering JSON.string
+// V3.6 cycle84 C4: streak milestone celebration overlay (fire emoji + count)
+function _streakFireOverlay(streakCount) {
+  const existing = document.getElementById('streak-fire');
+  if (existing) existing.remove();
+  const ov = document.createElement('div');
+  ov.id = 'streak-fire';
+  ov.style.cssText = 'position:fixed;left:50%;top:30%;transform:translate(-50%,-50%);z-index:90;pointer-events:none;text-align:center;animation:streak-fire-pop 1200ms cubic-bezier(0.34,1.56,0.64,1) both;';
+  const label = streakCount === 10 ? '10 連勝！太強喇！' : `${streakCount} 連勝！`;
+  ov.innerHTML = `<div style="font-size:5rem;line-height:1;filter:drop-shadow(0 0 24px rgba(251,146,60,0.8));">🔥</div><div style="margin-top:0.5rem;font-size:1.6rem;font-weight:900;color:#fef3c7;text-shadow:0 0 12px rgba(251,146,60,0.8), 2px 2px 0 #7f1d1d;">${label}</div>`;
+  document.body.appendChild(ov);
+  setTimeout(() => ov.remove(), 1300);
+}
+// correct = 1 短 pulse, wrong = 2 短 1 長 (distinct 不會混淆)
+function _haptic(correct) {
+  if (!navigator || !navigator.vibrate) return;
+  try {
+    if (correct) navigator.vibrate(20);
+    else navigator.vibrate([10, 50, 10, 50, 30]);
+  } catch (_) { /* vibrate API may be blocked by permissions */ }
+}
+
 function _compareAnswer(expected, actual, type) {
   if (Array.isArray(expected)) {
     const isOrdering = type === 'ordering';
@@ -8664,6 +8703,10 @@ function _recordAnswerStats(team, q, correct) {
   if (correct) Adaptive.checkMastery(team, q.type);   // V3.5-AUDIT14 ordering fix
   if (correct) {
     const s = (Profile.data.streakByType || {})[q.type] || 0;
+    // V3.6 cycle84 C4: streak fire overlay at milestone 3/5/10
+    if (s === 3 || s === 5 || s === 10) {
+      setTimeout(() => _streakFireOverlay(s), 500);
+    }
     if (s > 0 && s % 5 === 0) {
       setTimeout(() => FX.screenAlert(Compliment.pick('streak', s), '#a78bfa'), 800);
     }
