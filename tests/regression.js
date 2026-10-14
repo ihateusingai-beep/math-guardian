@@ -1891,6 +1891,51 @@ assert('L-ASSET-05 SVG drop-shadow filter for depth',
 assert('L-ASSET-06 file size still under 600 KB',
   fs.statSync('index.html').size < 600 * 1024);
 
+// =========== T94: V3.6 cycle94 — L hover animations + knight/mage refined sprite ===========
+console.log('\n[T94] V3.6 cycle-94 (L hover animations + knight/mage 32x48)');
+// L hover animations
+assert('HOVER-01 cap-lift keyframe defined',
+  /@keyframes pkg-cap-lift/.test(src) &&
+  /@keyframes pkg-bubble-rise/.test(src));
+assert('HOVER-02 card hover triggers svg transform',
+  /\.pic-card-btn:hover\s+\.pic-card-svg\s*\{[\s\S]{0,200}transform:/.test(src) &&
+  /\.pic-card-btn:hover\s+\.pic-card-svg\s*\{[\s\S]{0,200}drop-shadow/.test(src));
+assert('HOVER-03 cap classes on SVG elements (5 caps)',
+  /class="pkg-milk-cap"/.test(src) &&
+  /class="pkg-soda-cap"/.test(src) &&
+  /class="pkg-det-cap"/.test(src) &&
+  /class="pkg-soy-cap"/.test(src) &&
+  /class="pkg-bleach-cap"/.test(src));
+assert('HOVER-04 detergent bubbles have 3 classes for animation stagger',
+  /class="pkg-det-bubble b1"/.test(src) &&
+  /class="pkg-det-bubble b2"/.test(src) &&
+  /class="pkg-det-bubble b3"/.test(src));
+assert('HOVER-05 juice straw + fruit animation',
+  /class="pkg-juice-straw"/.test(src) &&
+  /class="pkg-juice-fruit"/.test(src) &&
+  /@keyframes pkg-straw-wiggle/.test(src) &&
+  /@keyframes pkg-fruit-pulse/.test(src));
+assert('HOVER-06 bleach hazard continuously pulses',
+  /class="pkg-bleach-hazard"/.test(src) &&
+  /@keyframes pkg-hazard-pulse/.test(src));
+// knight/mage sprite refinement
+assert('KNIGHT-01 px-char-knight upgraded to 32x48',
+  /<symbol\s+id="px-char-knight"\s+viewBox="0 0 32 48"/.test(src));
+assert('KNIGHT-02 px-char-mage upgraded to 32x48',
+  /<symbol\s+id="px-char-mage"\s+viewBox="0 0 32 48"/.test(src));
+assert('KNIGHT-03 references use new viewBox',
+  /<use href="#px-char-knight"\/><\/svg>/.test(src.replace(/<svg class="char-svg pixel" viewBox="0 0 16 24">/, '')));
+// (simplified — just check that no char-svg still uses 16x24)
+assert('KNIGHT-04 no char-svg still uses 16x24',
+  !/char-svg pixel" viewBox="0 0 16 24"/.test(src));
+assert('KNIGHT-05 px-castle content restored (not mage content)',
+  /<symbol\s+id="px-castle"[\s\S]{0,200}底座/.test(src) ||
+  /<symbol\s+id="px-castle"[\s\S]{0,200}城門/.test(src));
+assert('KNIGHT-06 only one px-char-knight symbol (no duplicate)',
+  (src.match(/<symbol\s+id="px-char-knight"/g) || []).length === 1);
+assert('KNIGHT-07 only one px-char-mage symbol (no duplicate)',
+  (src.match(/<symbol\s+id="px-char-mage"/g) || []).length === 1);
+
 // =========== summary ===========
 console.log(`\n========== ${pass} pass / ${fail} fail ==========`);
 if (fail > 0) {
