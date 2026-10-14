@@ -1800,6 +1800,36 @@ assert('CAP-12 normalize validates 4 options + items',
   /learnL' \|\| type === 'findLDrink' \|\| type === 'findLItem'/.test(src) &&
   /ex\.items\.length !== 4/.test(src));
 
+// =========== T90: V3.6 cycle90 — 粉藍場景 contrast 修正 ===========
+console.log('\n[T90] V3.6 cycle-90 (menu contrast: dark text on light bg)');
+assert('CONTRAST-01 menu-section-card uses light glassmorphism',
+  /menu-section-card\s*\{[\s\S]{0,400}background:\s*rgba\(255,255,255/.test(src));
+assert('CONTRAST-02 menu-section-title uses theme var (auto-flip)',
+  /menu-section-title\s*\{[\s\S]{0,200}color:\s*var\(--c-text-primary\)/.test(src));
+assert('CONTRAST-03 menu-section-sub uses theme var',
+  /menu-section-sub\s*\{[\s\S]{0,200}color:\s*var\(--c-text-primary\)/.test(src));
+assert('CONTRAST-04 opt-scope unselected has dark text (default theme)',
+  /opt-scope:not\(\.opt-selected\)\s*\{[\s\S]{0,400}color:\s*var\(--c-text-primary\)/.test(src));
+assert('CONTRAST-05 opt-scope.selected has dark text + amber bg',
+  /opt-scope\.opt-selected\s*\{[\s\S]{0,400}color:\s*#1e1b4b/.test(src) &&
+  /opt-scope\.opt-selected\s*\{[\s\S]{0,400}background:\s*rgba\(251,191,36/.test(src));
+assert('CONTRAST-06 opt-scope-preset uses theme var',
+  /opt-scope-preset\s*\{[\s\S]{0,400}color:\s*var\(--c-text-primary\)/.test(src));
+assert('CONTRAST-07 snow theme override restores dark menu',
+  /theme-snow\s+\.menu-section-card\s*\{[\s\S]{0,400}rgba\(15,23,42/.test(src) &&
+  /theme-snow\s+\.opt-scope\.opt-selected\s*\{[\s\S]{0,400}#fef3c7/.test(src));
+assert('CONTRAST-08 sen-opt-btn solid white bg + dark text',
+  /sen-opt-btn\s*\{[\s\S]{0,800}background:\s*#ffffff/.test(src) &&
+  /sen-opt-btn\s*\{[\s\S]{0,800}color:\s*#1e1b4b/.test(src));
+assert('CONTRAST-09 no raw text-white/N on menu labels (after bulk replace)',
+  // 喺 menu panel 範圍 text-white 唔應該出現 (除咗 boss panel 嘅深色 card 入面)
+  !/text-white\/40[^"]*/.test(src) && !/text-white\/50[^"]*/.test(src) && !/text-white\/60[^"]*/.test(src));
+assert('CONTRAST-10 mage h3 light text on dark card',
+  /法師隊 · Mages/.test(src) &&
+  /text-purple-100[\s\S]{0,500}法師隊 · Mages/.test(src));
+assert('CONTRAST-11 sen-q-count uses amber-200 on dark panel',
+  /sen-q-count-knight[\s\S]{0,200}text-amber-200/.test(src));
+
 // =========== summary ===========
 console.log(`\n========== ${pass} pass / ${fail} fail ==========`);
 if (fail > 0) {
