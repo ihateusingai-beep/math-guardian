@@ -1830,6 +1830,40 @@ assert('CONTRAST-10 mage h3 light text on dark card',
 assert('CONTRAST-11 sen-q-count uses amber-200 on dark panel',
   /sen-q-count-knight[\s\S]{0,200}text-amber-200/.test(src));
 
+// =========== T92: V3.6 cycle92 — risk fixes (lbl-tone-orange + preset toast + SEN_COPY invariant) ===========
+console.log('\n[T92] V3.6 cycle-92 (audit risk fixes)');
+// Risk 2 fix: lbl-tone-orange 之前漏咗
+assert('RISK2-01 lbl-tone-orange CSS defined (6 tones total)',
+  /\.lbl-tone-orange\s*\{/.test(src));
+assert('RISK2-02 all 6 lbl-tone variants present',
+  ['yellow','purple','blue','red','green','orange'].every(t => new RegExp(`\\.lbl-tone-${t}\\s*\\{`).test(src)));
+// Risk 1 fix: preset 切換有 toast
+assert('RISK1-01 preset click handler shows toast',
+  /_presetToast/.test(src) &&
+  /已切到 \$\{labelMap\[p\]/.test(src) &&
+  /_presetToast\(/.test(src));
+assert('RISK1-02 toast element has status role + auto-fade',
+  /t\.id\s*=\s*'preset-toast'/.test(src) &&
+  /setAttribute\(['"]role['"],\s*['"]status['"]\)/.test(src) &&
+  /opacity\s*=\s*'0'/.test(src));
+assert('RISK1-03 capacity preset label mapped',
+  /capacity:\s*'🧃 只容量'/.test(src));
+// Risk 3 fix: SEN_COPY silent fallthrough warns (1× per type)
+assert('RISK3-01 _senCopyText warns on missing entry',
+  /_senCopyText[\s\S]{0,400}console\.warn/.test(src) &&
+  /_senCopyText\._warned/.test(src));
+// Risk 3 fix: structural invariant — every TYPE_REGISTRY type id should be in SEN_COPY
+// 豁免：legacy math types (add10/sub10/...) 用 numeric layout，parts 入面已有算式 (e.g. "2 + 3 = ?")
+//      唔需要 SEN_COPY 因為 text 直接由 q.parts 拎；視覺唔受影響。
+const typeIdsArr = [...registrySrc.matchAll(/id:'([a-zA-Z0-9]+)'/g)].map(m => m[1]);
+const senCopyMatch = src.match(/const SEN_COPY\s*=\s*\{([\s\S]*?)\n\};/);
+const senCopyKeys = senCopyMatch ? [...senCopyMatch[1].matchAll(/^\s*([a-zA-Z0-9]+):\s*\{/gm)].map(m => m[1]) : [];
+const SEN_COPY_EXEMPT = ['add10','sub10','add20','sub20','add2d','sub2d','double'];
+const missingInSenCopy = typeIdsArr.filter(id => !senCopyKeys.includes(id) && !SEN_COPY_EXEMPT.includes(id));
+assert('RISK3-02 every non-exempt TYPE_REGISTRY id has SEN_COPY entry',
+  missingInSenCopy.length === 0,
+  `missing: ${missingInSenCopy.join(',') || '(none)'}`);
+
 // =========== summary ===========
 console.log(`\n========== ${pass} pass / ${fail} fail ==========`);
 if (fail > 0) {

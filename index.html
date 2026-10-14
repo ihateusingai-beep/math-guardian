@@ -2292,6 +2292,9 @@
   .option-btn.lbl-tone-red { color: #fca5a5 !important; text-shadow: 0 1px 0 #000, 0 0 10px rgba(248,113,113,0.35); font-weight: 900; }
   .sen-opt-val.lbl-tone-green,
   .option-btn.lbl-tone-green { color: #86efac !important; text-shadow: 0 1px 0 #000, 0 0 10px rgba(74,222,128,0.35); font-weight: 900; }
+  /* V3.6 cycle92: orange 之前漏咗 — 補返以防「橙」label 喺 option 唔 tint */
+  .sen-opt-val.lbl-tone-orange,
+  .option-btn.lbl-tone-orange { color: #fdba74 !important; text-shadow: 0 1px 0 #000, 0 0 10px rgba(251,146,60,0.4); font-weight: 900; }
   .sen-opt-val.lbl-tone-orange,
   .option-btn.lbl-tone-orange { color: #fdba74 !important; text-shadow: 0 1px 0 #000, 0 0 10px rgba(251,146,60,0.35); font-weight: 900; }
   /* color syllables inside label get extra punch */
@@ -6576,7 +6579,14 @@ const SEN_COPY = {
 function _senCopyText(q) {
   if (!q) return '';
   const c = SEN_COPY[q.type];
-  if (!c) return '';
+  if (!c) {
+    // V3.6 cycle92: silent fallthrough = 設計唔一致 warn once per type
+    if (typeof console !== 'undefined' && q.type && !_senCopyText._warned?.has(q.type)) {
+      (_senCopyText._warned ||= new Set()).add(q.type);
+      console.warn(`[SEN_COPY] missing entry for type="${q.type}" — fallback to q.extra.prompt / q.parts`);
+    }
+    return '';
+  }
   if (c.ttsFrom === 'extra.prompt') return (q.extra && q.extra.prompt) || c.text;
   return c.text;
 }
@@ -8268,10 +8278,11 @@ function setupMenu() {
     try { localStorage.setItem('mg2.scopes', JSON.stringify(Game.settings.scopes)); } catch (_) {}
     syncScopeUI();
   };
-  // V3.6 cycle67/76: scope presets 只數數 / 只長短 / 只高矮 / 全部
+  // V3.6 cycle67/76/92: scope presets 只數數 / 只長短 / 只高矮 / 只容量 / 全部
   document.querySelectorAll('.opt-scope-preset').forEach(btn => {
     btn.onclick = () => {
       const p = btn.dataset.scopePreset;
+      const labelMap = { count:'🔢 只數數', length:'📏 只長短', height:'↕️ 只高矮', capacity:'🧃 只容量', all:'✨ 全部' };
       if (p === 'count') Game.settings.scopes = ['count20'];
       else if (p === 'length') Game.settings.scopes = ['compareLength'];
       else if (p === 'height') Game.settings.scopes = ['compareHeight'];
@@ -8279,8 +8290,24 @@ function setupMenu() {
       else Game.settings.scopes = DEFAULT_SCOPES.slice();
       try { localStorage.setItem('mg2.scopes', JSON.stringify(Game.settings.scopes)); } catch (_) {}
       syncScopeUI();
+      _presetToast(`已切到 ${labelMap[p] || p} · ${Game.settings.scopes.length} 個範疇`);
     };
   });
+  // V3.6 cycle92: preset 切換短暫提示 (1.4s 後自動消失)
+  function _presetToast(msg) {
+    let t = $('preset-toast');
+    if (!t) {
+      t = document.createElement('div');
+      t.id = 'preset-toast';
+      t.setAttribute('role', 'status');
+      t.style.cssText = 'position:fixed;left:50%;top:1.2rem;transform:translateX(-50%);z-index:85;background:rgba(15,23,42,0.92);color:#fef3c7;padding:0.5rem 1.1rem;border-radius:9999px;font-weight:800;font-size:0.95rem;box-shadow:0 4px 16px rgba(0,0,0,0.3);pointer-events:none;opacity:0;transition:opacity 0.2s;';
+      document.body.appendChild(t);
+    }
+    t.textContent = msg;
+    t.style.opacity = '1';
+    if (t._clearTimer) clearTimeout(t._clearTimer);
+    t._clearTimer = setTimeout(() => { t.style.opacity = '0'; }, 1400);
+  }
   // restore scopes
   try {
     const raw = localStorage.getItem('mg2.scopes');
