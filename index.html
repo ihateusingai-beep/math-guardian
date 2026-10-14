@@ -554,7 +554,7 @@
   /* dual length: hide unit blocks to reduce clutter */
   .sen-board-dual .sen-bar-units { display: none; }
   .sen-board-dual .sen-bars { gap: 0.65rem; }
-  .sen-panel .sen-q-text { color: #fff; font-size: clamp(1.25rem, 3vw, 2rem); font-weight: 800; text-align: center; }
+  .sen-panel .sen-q-text { color: #fff; font-size: clamp(1.6rem, 4vw, 2.6rem); font-weight: 800; text-align: center; text-shadow: 0 2px 6px rgba(0,0,0,0.4); }
   .sen-panel .sen-options { width: 100%; max-width: 22rem; display: flex; flex-direction: column; gap: 0.6rem; }
   .sen-board-dual .sen-options { max-width: 100%; }
   /* V3.6 cycle45: length compare — explicit rem bars + unit blocks (no % collapse) */
@@ -1061,6 +1061,15 @@
     color: rgba(245,245,245,0.85) !important;
   }
   /* V3.6 cycle67: sticky class start + identity fold + scope chips */
+  /* V3.6 cycle88: 一鍵開始突出化 */
+  #btn-easy-start:hover {
+    box-shadow: 0 0 36px rgba(167,139,250,0.7), 0 4px 0 rgba(109,40,217,0.6) !important;
+    transform: translateY(-2px);
+  }
+  #btn-easy-start:active {
+    transform: translateY(2px);
+    box-shadow: 0 0 12px rgba(167,139,250,0.4), 0 2px 0 rgba(109,40,217,0.4) !important;
+  }
   .class-start-sticky {
     position: sticky;
     bottom: 2.5rem; /* V3.6 cycle80: lift above site-footer */
@@ -1385,6 +1394,27 @@
   .tts-btn:hover { background: rgba(255,255,255,0.22); transform: scale(1.05); }
   .tts-btn:active { transform: scale(0.95); }
   .tts-btn.speaking { background: #22c55e; border-color: #16a34a; animation: tts-pulse 1s infinite; }
+  /* V3.6 cycle88: SEN 超大 TTS 掣 */
+  .sen-panel .tts-btn {
+    min-width: 80px;
+    min-height: 48px;
+    padding: 6px 14px;
+    font-size: 1.2rem;
+    border-radius: 1rem;
+    background: rgba(34,197,94,0.25);
+    border: 2px solid rgba(34,197,94,0.5);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .sen-panel .tts-btn .tts-label {
+    font-size: 1.1rem;
+    font-weight: 700;
+  }
+  .sen-panel .tts-btn.speaking {
+    background: #22c55e;
+    border-color: #16a34a;
+  }
   @keyframes tts-pulse {
     0%, 100% { box-shadow: 0 0 0 0 rgba(34,197,94,0.5); }
     50%      { box-shadow: 0 0 0 6px rgba(34,197,94,0); }
@@ -2073,26 +2103,35 @@
     z-index: 1;
   }
   .knight-card, .mage-card { position: relative; }
-  /* V3.6-SEN: 超簡版面 */
+  /* V3.6-SEN: 超簡版面 — cycle88: 大掣强背景 */
   .sen-opt-btn {
     width: 100%;
-    min-height: 80px;
-    font-size: 2.5rem;
+    min-height: 110px;
+    font-size: 3rem;
     font-weight: 900;
-    border-radius: 1.5rem;
-    background: rgba(255,255,255,0.12);
-    border: 3px solid rgba(255,255,255,0.25);
+    border-radius: 1.75rem;
+    background: rgba(255,255,255,0.18);
+    border: 3px solid rgba(255,255,255,0.35);
+    box-shadow: 0 4px 0 rgba(0,0,0,0.25), 0 6px 16px rgba(0,0,0,0.2);
     color: #fff;
     cursor: pointer;
-    transition: transform 0.1s, background 0.15s;
-    padding: 1rem 1.25rem;
+    transition: transform 0.1s, background 0.15s, box-shadow 0.1s;
+    padding: 1.1rem 1.5rem;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 0.85rem;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.3);
   }
-  .sen-opt-btn:hover { background: rgba(255,255,255,0.2); transform: scale(1.02); }
-  .sen-opt-btn:active { transform: scale(0.97); }
+  .sen-opt-btn:hover {
+    background: rgba(255,255,255,0.28);
+    transform: scale(1.03);
+    box-shadow: 0 6px 0 rgba(0,0,0,0.25), 0 8px 20px rgba(0,0,0,0.25);
+  }
+  .sen-opt-btn:active {
+    transform: scale(0.97);
+    box-shadow: 0 2px 0 rgba(0,0,0,0.25), 0 3px 8px rgba(0,0,0,0.15);
+  }
   /* V3.6 cycle41: A/B/C gesture badges (render order) */
   .sen-opt-letter {
     flex-shrink: 0;
@@ -2138,10 +2177,13 @@
     max-width: 90vw;
     padding: 0 1rem;
   }
+  /* V3.6 cycle88: SEN feedback — 2s顯示 + 正/再試 stamp + 藍色安慰 */
   @keyframes sen-fb {
-    0%   { opacity: 1; }
-    70%  { opacity: 1; }
-    100% { opacity: 0; }
+    0%   { opacity: 0; transform: scale(0.8); }
+    15%  { opacity: 1; transform: scale(1.05); }
+    25%  { transform: scale(1); }
+    75%  { opacity: 1; }
+    100% { opacity: 0; transform: scale(1.05); }
   }
 </style>
 </head>
@@ -3048,13 +3090,13 @@
           <span id="class-start-preview-label" class="preview-label">單人·鋪路</span>
         </div>
         <div id="class-start-summary" class="sr-only">單人 · 已選範疇 · 10 題</div>
-        <button id="btn-easy-start" class="w-full btn text-white text-xl py-4 flex items-center justify-center gap-3"
-          style="background:linear-gradient(135deg,#a78bfa,#7c3aed);border:2px solid #c4b5fd;"
+        <button id="btn-easy-start" class="w-full btn text-white text-xl py-5 flex items-center justify-center gap-4"
+          style="background:linear-gradient(135deg,#a78bfa,#7c3aed);border:3px solid #c4b5fd;box-shadow:0 0 24px rgba(167,139,250,0.5),0 4px 0 rgba(109,40,217,0.6);font-size:1.15rem;"
           aria-label="一鍵開始簡單練習">
-          <span class="text-3xl">🌼</span>
+          <span class="text-4xl">🌼</span>
           <span>
-            <span class="block text-xl font-extrabold">簡單練習 · 一鍵開始</span>
-            <span id="easy-start-sub" class="text-xs opacity-80">單人 · 已選範疇 · 10 題</span>
+            <span class="block text-2xl font-extrabold" style="text-shadow:0 2px 8px rgba(0,0,0,0.3);">簡單練習 · 一鍵開始</span>
+            <span id="easy-start-sub" class="text-sm opacity-90">單人 · 已選範疇 · 10 題</span>
           </span>
         </button>
         <div id="diff-helper" class="text-xs text-muted-strong text-center leading-relaxed mt-2">
@@ -3272,7 +3314,7 @@
         <div id="knight-question-box" class="bg-black/40 rounded-2xl p-4 mt-2 min-h-[220px] flex flex-col items-center justify-center border-2 border-blue-400/20 relative">
           <div id="knight-q-label" class="text-xs text-blue-200 mb-2 flex items-center gap-1">
             <svg class="pixel icon-mini"><use href="#px-knight"/></svg>本題題目
-            <button id="knight-tts-btn" class="tts-btn ml-auto" aria-label="朗讀題目">🔊</button>
+            <button id="knight-tts-btn" class="tts-btn ml-auto" aria-label="朗讀題目"><span>🔊</span><span class="tts-label">朗讀</span></button>
           </div>
           <div id="knight-question-text" class="text-4xl md:text-5xl font-extrabold tracking-widest mb-4 text-center">按下面按鈕開始答題</div>
           <div id="knight-answer-area" class="w-full"></div>
@@ -3316,7 +3358,7 @@
         <div id="mage-question-box" class="bg-black/40 rounded-2xl p-4 mt-2 min-h-[220px] flex flex-col items-center justify-center border-2 border-purple-400/20 relative">
           <div id="mage-q-label" class="text-xs text-purple-200 mb-2 flex items-center gap-1">
             <svg class="pixel icon-mini"><use href="#px-mage"/></svg>本題題目
-            <button id="mage-tts-btn" class="tts-btn ml-auto" aria-label="朗讀題目">🔊</button>
+            <button id="mage-tts-btn" class="tts-btn ml-auto" aria-label="朗讀題目"><span>🔊</span><span class="tts-label">朗讀</span></button>
           </div>
           <div id="mage-question-text" class="text-4xl md:text-5xl font-extrabold tracking-widest mb-4 text-center">按下面按鈕開始答題</div>
           <div id="mage-answer-area" class="w-full"></div>
@@ -3425,6 +3467,7 @@
         <div class="sen-panel-head">
           <div id="sen-who-knight" class="text-amber-200 font-extrabold text-base md:text-lg">同學</div>
           <div class="flex items-center gap-2">
+            <div id="sen-q-count-knight" class="text-yellow-200 font-extrabold text-sm bg-white/10 rounded-lg px-2 py-1" style="min-width:3rem;text-align:center;">第 0 題</div>
             <div id="sen-correct-knight" class="text-green-300 font-extrabold text-xl">✅ 0</div>
             <div id="sen-wrong-knight" class="text-red-300 font-extrabold text-xl">❌ 0</div>
             <button id="sen-tts-knight" class="text-white text-xl w-11 h-11 rounded-xl bg-white/10 flex items-center justify-center" aria-label="朗讀左隊題目">🔊</button>
@@ -3441,6 +3484,7 @@
         <div class="sen-panel-head">
           <div id="sen-who-mage" class="text-amber-200 font-extrabold text-base md:text-lg">同學</div>
           <div class="flex items-center gap-2">
+            <div id="sen-q-count-mage" class="text-yellow-200 font-extrabold text-sm bg-white/10 rounded-lg px-2 py-1" style="min-width:3rem;text-align:center;">第 0 題</div>
             <div id="sen-correct-mage" class="text-green-300 font-extrabold text-xl">✅ 0</div>
             <div id="sen-wrong-mage" class="text-red-300 font-extrabold text-xl">❌ 0</div>
             <button id="sen-tts-mage" class="text-white text-xl w-11 h-11 rounded-xl bg-white/10 flex items-center justify-center" aria-label="朗讀右隊題目">🔊</button>
@@ -7267,16 +7311,19 @@ const UI = {
     if (!fb) return;
     if (fb._clearTimer) clearTimeout(fb._clearTimer);
     const hintHtml = (!correct && hintText)
-      ? `<div class="sen-hint-line">${escapeHTML(String(hintText))}</div>`
+      ? `<div class="sen-hint-line" style="font-size:1.6rem;margin-top:0.5rem;text-align:center;opacity:0.95;">${escapeHTML(String(hintText))}</div>`
       : '';
+    // V3.6 cycle88: correct = 綠底+正 / wrong = 藍底+再試（安慰語氣）
+    const bg = correct ? 'rgba(34,197,94,0.5)' : 'rgba(59,130,246,0.5)';
+    const stamp = correct ? '✅ 正！' : '💙 再試！';
     fb.innerHTML = `<div style="
       position:absolute;inset:0;
-      background:${correct ? 'rgba(34,197,94,0.35)' : 'rgba(239,68,68,0.35)'};
+      background:${bg};
       display:flex;flex-direction:column;align-items:center;justify-content:center;
-      z-index:6;pointer-events:none;font-size:5rem;
-      animation:sen-fb 0.8s forwards;
-    ">${correct ? '✅' : '❌'}${hintHtml}</div>`;
-    fb._clearTimer = setTimeout(() => { if (fb) fb.innerHTML = ''; }, correct ? 700 : 1100);
+      z-index:6;pointer-events:none;
+      animation:sen-fb 2s forwards;
+    "><div style="font-size:5.5rem;font-weight:900;line-height:1;text-shadow:0 3px 8px rgba(0,0,0,0.35);">${stamp}</div>${hintHtml}</div>`;
+    fb._clearTimer = setTimeout(() => { if (fb) fb.innerHTML = ''; }, correct ? 2000 : 2200);
   },
 
   markSENTeamDone(team) {
@@ -7299,8 +7346,10 @@ const UI = {
       const c = $(`sen-correct-${tm}`);
       const w = $(`sen-wrong-${tm}`);
       const who = $(`sen-who-${tm}`);
+      const qc = $(`sen-q-count-${tm}`);
       if (c) c.textContent = `✅ ${st.correct}`;
       if (w) w.textContent = `❌ ${st.wrong}`;
+      if (qc) qc.textContent = `第 ${st.total} 題`;
       if (who) {
         const side = dual ? (tm === 'knight' ? '⬅ ' : '➡ ') : '';
         who.textContent = side + (labels[tm] || '同學');
