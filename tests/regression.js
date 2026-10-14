@@ -1864,6 +1864,33 @@ assert('RISK3-02 every non-exempt TYPE_REGISTRY id has SEN_COPY entry',
   missingInSenCopy.length === 0,
   `missing: ${missingInSenCopy.join(',') || '(none)'}`);
 
+// =========== T93: V3.6 cycle93 — L 容量 SVG 包裝插畫 ===========
+console.log('\n[T93] V3.6 cycle-93 (L capacity SVG illustrations)');
+const symDefs = [...src.matchAll(/<symbol\s+id=\"(pkg-[a-z0-9-]+)\"\s+viewBox/g)].map(m=>m[1]);
+const expectedSvgs = ['pkg-milk-1l','pkg-soda-15l','pkg-juice-1l','pkg-detergent-1l','pkg-soysauce-1l','pkg-bleach-2l'];
+for (const id of expectedSvgs) {
+  assert(`  pkg svg[${id}] defined`, symDefs.includes(id));
+}
+assert('L-ASSET-01 L item pool has svgId for each entry',
+  /_lItemPool:\s*\[[\s\S]*?svgId:'pkg-milk-1l'/.test(src) &&
+  /_lItemPool:\s*\[[\s\S]*?svgId:'pkg-soda-15l'/.test(src) &&
+  /_lItemPool:\s*\[[\s\S]*?svgId:'pkg-juice-1l'/.test(src));
+assert('L-ASSET-02 renderer uses svgId when present',
+  /it\.svgId[\s\S]{0,200}<use href="#/i.test(src));
+assert('L-ASSET-03 SEN branch uses svgId',
+  /it\.svgId[\s\S]{0,200}<use href="#/i.test(src));
+// 2 個 match → 計 count
+const svgIdCount = (src.match(/it\.svgId\s*\?\s*[\s\S]{0,200}<use href="#/g) || []).length;
+assert('L-ASSET-02b renderer + SEN both have svgId rendering',
+  svgIdCount >= 2, `found ${svgIdCount} occurrences`);
+assert('L-ASSET-04 CSS .pic-card-svg sized 84x84 (polished look)',
+  /\.pic-card-svg\s*\{[\s\S]{0,200}width:\s*84px/.test(src) &&
+  /\.pic-card-svg\s*\{[\s\S]{0,200}height:\s*84px/.test(src));
+assert('L-ASSET-05 SVG drop-shadow filter for depth',
+  /\.pic-card-svg\s*\{[\s\S]{0,200}filter:\s*drop-shadow/.test(src));
+assert('L-ASSET-06 file size still under 600 KB',
+  fs.statSync('index.html').size < 600 * 1024);
+
 // =========== summary ===========
 console.log(`\n========== ${pass} pass / ${fail} fail ==========`);
 if (fail > 0) {

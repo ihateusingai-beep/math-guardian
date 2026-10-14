@@ -2207,6 +2207,17 @@
     color: #92400e;
     border-color: #f59e0b;
   }
+  /* V3.6 cycle93: SVG 包裝插畫 — 真實感 + 跨 OS 一致 */
+  .pic-card-svg {
+    width: 84px;
+    height: 84px;
+    display: block;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.15));
+  }
+  .pic-card-mini .pic-card-svg {
+    width: 60px;
+    height: 60px;
+  }
   /* SEN screen mini variant — 4 cards in emojiEl */
   .pic-grid-mini {
     display: grid;
@@ -2588,6 +2599,108 @@
       <rect x="6"  y="13" width="4"  height="1"  fill="#581c87"/>
       <rect x="5"  y="14" width="6"  height="1"  fill="#3b0764"/>
       <rect x="4"  y="15" width="8"  height="1"  fill="#3b0764"/>
+    </symbol>
+
+    <!-- V3.6 cycle93: L 容量真實包裝 SVG 插畫 (64x64 viewBox) -->
+    <symbol id="pkg-milk-1l" viewBox="0 0 64 64">
+      <!-- gable top -->
+      <path d="M14 6 L32 2 L50 6 L48 12 L16 12 Z" fill="#dbeafe" stroke="#1e3a8a" stroke-width="1.2"/>
+      <path d="M20 8 L22 12 M32 5 L32 12 M44 8 L42 12" stroke="#1e3a8a" stroke-width="0.8" fill="none"/>
+      <!-- carton body -->
+      <rect x="14" y="12" width="36" height="46" fill="#ffffff" stroke="#1e3a8a" stroke-width="1.5"/>
+      <rect x="14" y="12" width="36" height="6" fill="#bfdbfe"/>
+      <!-- cap -->
+      <rect x="26" y="2" width="12" height="4" rx="1" fill="#1e3a8a"/>
+      <!-- label -->
+      <rect x="18" y="22" width="28" height="22" fill="#eff6ff" stroke="#3b82f6" stroke-width="0.8"/>
+      <text x="32" y="34" text-anchor="middle" font-size="9" font-weight="900" fill="#1e3a8a" font-family="sans-serif">鮮奶</text>
+      <text x="32" y="42" text-anchor="middle" font-size="11" font-weight="900" fill="#dc2626" font-family="sans-serif">1L</text>
+      <!-- bottom shadow -->
+      <rect x="14" y="55" width="36" height="3" fill="#1e3a8a" opacity="0.2"/>
+    </symbol>
+
+    <symbol id="pkg-soda-15l" viewBox="0 0 64 64">
+      <!-- bottle cap -->
+      <rect x="28" y="2" width="8" height="5" fill="#16a34a"/>
+      <rect x="27" y="1" width="10" height="2" fill="#15803d"/>
+      <!-- bottle neck -->
+      <path d="M28 7 L26 12 L26 18 L38 18 L38 12 L36 7 Z" fill="#fef3c7" stroke="#a16207" stroke-width="0.8"/>
+      <!-- bottle body (PET, red) -->
+      <path d="M22 18 L42 18 L46 22 L46 56 Q46 60 42 60 L22 60 Q18 60 18 56 L18 22 Z" fill="#dc2626" stroke="#7f1d1d" stroke-width="1.2"/>
+      <!-- highlight -->
+      <path d="M22 22 L24 22 L24 50 L22 50 Z" fill="#fca5a5" opacity="0.6"/>
+      <!-- label wrap -->
+      <rect x="18" y="30" width="28" height="18" fill="#fef2f2" stroke="#7f1d1d" stroke-width="0.8"/>
+      <text x="32" y="40" text-anchor="middle" font-size="8" font-weight="900" fill="#7f1d1d" font-family="sans-serif">汽水</text>
+      <text x="32" y="46" text-anchor="middle" font-size="9" font-weight="900" fill="#dc2626" font-family="sans-serif">1.5L</text>
+    </symbol>
+
+    <symbol id="pkg-juice-1l" viewBox="0 0 64 64">
+      <!-- carton body (paper, orange) -->
+      <rect x="14" y="6" width="36" height="54" fill="#fed7aa" stroke="#c2410c" stroke-width="1.2"/>
+      <!-- top fold -->
+      <path d="M14 6 L32 2 L50 6 L48 10 L16 10 Z" fill="#fdba74" stroke="#c2410c" stroke-width="1"/>
+      <!-- straw -->
+      <rect x="36" y="0" width="3" height="8" fill="#fef3c7" stroke="#a16207" stroke-width="0.5"/>
+      <rect x="35" y="0" width="5" height="2" fill="#fef3c7" stroke="#a16207" stroke-width="0.5"/>
+      <!-- fruit illustration -->
+      <circle cx="22" cy="22" r="6" fill="#f97316"/>
+      <path d="M20 16 Q22 12 24 16" stroke="#16a34a" stroke-width="1.2" fill="none"/>
+      <!-- label -->
+      <rect x="18" y="34" width="28" height="20" fill="#fff7ed" stroke="#c2410c" stroke-width="0.8"/>
+      <text x="32" y="44" text-anchor="middle" font-size="8" font-weight="900" fill="#7c2d12" font-family="sans-serif">果汁</text>
+      <text x="32" y="50" text-anchor="middle" font-size="9" font-weight="900" fill="#c2410c" font-family="sans-serif">1L</text>
+    </symbol>
+
+    <symbol id="pkg-detergent-1l" viewBox="0 0 64 64">
+      <!-- cap (dark green) -->
+      <rect x="27" y="2" width="10" height="4" fill="#166534"/>
+      <!-- handle -->
+      <path d="M28 6 L28 12 L36 12 L36 6" stroke="#16a34a" stroke-width="1.5" fill="none"/>
+      <!-- bottle body (clear, green liquid) -->
+      <path d="M22 12 L42 12 L44 16 L44 56 Q44 60 40 60 L24 60 Q20 60 20 56 L20 16 Z" fill="#86efac" stroke="#15803d" stroke-width="1.2"/>
+      <!-- wave pattern (liquid surface) -->
+      <path d="M20 28 Q26 24 32 28 T44 28 L44 56 Q44 60 40 60 L24 60 Q20 60 20 56 Z" fill="#22c55e"/>
+      <!-- bubble highlights -->
+      <circle cx="26" cy="20" r="1.5" fill="#ffffff" opacity="0.7"/>
+      <circle cx="38" cy="22" r="1" fill="#ffffff" opacity="0.7"/>
+      <!-- label -->
+      <rect x="22" y="36" width="20" height="16" fill="#ffffff" stroke="#15803d" stroke-width="0.8"/>
+      <text x="32" y="44" text-anchor="middle" font-size="6" font-weight="900" fill="#14532d" font-family="sans-serif">洗潔精</text>
+      <text x="32" y="50" text-anchor="middle" font-size="8" font-weight="900" fill="#15803d" font-family="sans-serif">1L</text>
+    </symbol>
+
+    <symbol id="pkg-soysauce-1l" viewBox="0 0 64 64">
+      <!-- cap (dark red) -->
+      <rect x="27" y="2" width="10" height="3" fill="#7f1d1d"/>
+      <!-- neck -->
+      <path d="M28 5 L28 12 L36 12 L36 5" fill="#fde68a" stroke="#78350f" stroke-width="0.8"/>
+      <!-- bottle body (clear, dark liquid) -->
+      <path d="M22 12 L42 12 L44 18 L44 56 Q44 60 40 60 L24 60 Q20 60 20 56 L20 18 Z" fill="#451a03" stroke="#1c0701" stroke-width="1.2"/>
+      <!-- highlight -->
+      <path d="M22 18 L24 18 L24 50 L22 50 Z" fill="#78350f" opacity="0.5"/>
+      <!-- label -->
+      <rect x="22" y="26" width="20" height="24" fill="#fef3c7" stroke="#78350f" stroke-width="0.8"/>
+      <rect x="22" y="26" width="20" height="4" fill="#dc2626"/>
+      <text x="32" y="42" text-anchor="middle" font-size="6" font-weight="900" fill="#7c2d12" font-family="sans-serif">醬油</text>
+      <text x="32" y="48" text-anchor="middle" font-size="8" font-weight="900" fill="#dc2626" font-family="sans-serif">1L</text>
+    </symbol>
+
+    <symbol id="pkg-bleach-2l" viewBox="0 0 64 64">
+      <!-- cap -->
+      <rect x="27" y="2" width="10" height="3" fill="#1e40af"/>
+      <!-- handle (jug) -->
+      <path d="M48 14 L54 14 L54 28 L50 28" stroke="#1e40af" stroke-width="2" fill="none"/>
+      <!-- jug body (white/blue) -->
+      <path d="M16 12 L46 12 L48 16 L48 56 Q48 60 44 60 L18 60 Q14 60 14 56 L14 16 Z" fill="#ffffff" stroke="#1e3a8a" stroke-width="1.2"/>
+      <rect x="14" y="20" width="34" height="6" fill="#bfdbfe"/>
+      <!-- label -->
+      <rect x="18" y="30" width="26" height="22" fill="#eff6ff" stroke="#1e3a8a" stroke-width="0.8"/>
+      <text x="31" y="40" text-anchor="middle" font-size="7" font-weight="900" fill="#1e3a8a" font-family="sans-serif">漂白水</text>
+      <text x="31" y="48" text-anchor="middle" font-size="9" font-weight="900" fill="#1e40af" font-family="sans-serif">2L</text>
+      <!-- hazard mark -->
+      <path d="M24 50 L28 56 L32 50 Z" fill="#facc15" stroke="#a16207" stroke-width="0.5"/>
+      <text x="28" y="55" text-anchor="middle" font-size="4" font-weight="900" fill="#7c2d12" font-family="sans-serif">!</text>
     </symbol>
 
     <!-- 🧝 Knight Character (16x24) — 頭盔、披風、劍 -->
@@ -5384,16 +5497,16 @@ const Generators = {
     };
   },
   // V3.6 cycle89: 容量 (L) — life skills 觀察常見物品包裝
-  // 共享 L 物品池
+  // cycle93: L items 用 custom SVG (更真實、更 polished); non-L 維持 emoji
   _lItemPool: [
-    { emoji:'🥛', name:'鮮奶', pkg:'1L' },
-    { emoji:'🧃', name:'果汁', pkg:'1L' },
-    { emoji:'🧴', name:'洗潔精', pkg:'1L' },
-    { emoji:'🪣', name:'漂白水', pkg:'2L' },
-    { emoji:'🥤', name:'汽水', pkg:'1.5L' },
-    { emoji:'🧃', name:'豆漿', pkg:'1L' },
-    { emoji:'🍶', name:'醬油', pkg:'1L' },
-    { emoji:'🛢️', name:'油漆', pkg:'5L' },
+    { emoji:'🥛', svgId:'pkg-milk-1l',     name:'鮮奶',   pkg:'1L' },
+    { emoji:'🧃', svgId:'pkg-juice-1l',    name:'果汁',   pkg:'1L' },
+    { emoji:'🧴', svgId:'pkg-detergent-1l', name:'洗潔精', pkg:'1L' },
+    { emoji:'🪣', svgId:'pkg-bleach-2l',   name:'漂白水', pkg:'2L' },
+    { emoji:'🥤', svgId:'pkg-soda-15l',    name:'汽水',   pkg:'1.5L' },
+    { emoji:'🧃', svgId:'pkg-juice-1l',    name:'豆漿',   pkg:'1L' },
+    { emoji:'🍶', svgId:'pkg-soysauce-1l', name:'醬油',   pkg:'1L' },
+    { emoji:'🛢️', svgId:'pkg-bleach-2l',   name:'油漆',   pkg:'5L' },
   ],
   // 飲品池 (非 L) — 用嚟做 findLDrink 嘅 distractor
   _nonLDrinkPool: [
@@ -6784,9 +6897,12 @@ const QuestionRenderer = {
       const letter = LETTERS[idx] || String(idx + 1);
       const isL = /L$/.test(String(it.pkg || ''));
       const pkgClass = isL ? 'pic-card-pkg is-l' : 'pic-card-pkg';
+      const visual = it.svgId
+        ? `<svg class="pic-card-svg" viewBox="0 0 64 64" aria-hidden="true"><use href="#${it.svgId}"/></svg>`
+        : `<span class="pic-card-emoji" aria-hidden="true">${it.emoji || '📦'}</span>`;
       b.innerHTML = `
         <span class="sen-opt-letter" aria-hidden="true">${letter}</span>
-        <span class="pic-card-emoji" aria-hidden="true">${it.emoji || '📦'}</span>
+        ${visual}
         <span class="pic-card-name">${it.name || ''}</span>
         <span class="${pkgClass}">${it.pkg || ''}</span>
       `;
@@ -7532,12 +7648,16 @@ const UI = {
       if (textEl) textEl.textContent = _senCopyText(q) || '有幾多？';
     } else if ((q.type === 'learnL' || q.type === 'findLDrink' || q.type === 'findLItem') && emojiEl) {
       // V3.6 cycle89: SEN 容量 (L) — 4 個物品卡片放 emojiEl
+      // V3.6 cycle93: SVG 插畫優先；emoji 落 fallback
       emojiEl.classList.add('sen-q-visual');
       const items = (q.extra && Array.isArray(q.extra.items)) ? q.extra.items : [];
       const cards = items.slice(0, 4).map((it, idx) => {
         const letter = ['A','B','C','D'][idx] || String(idx+1);
         const isL = /L$/.test(String(it.pkg || ''));
-        return `<div class="pic-card-mini"><span class="sen-opt-letter" aria-hidden="true">${letter}</span><span class="pic-card-emoji" aria-hidden="true">${it.emoji || '📦'}</span><span class="pic-card-name">${it.name || ''}</span><span class="pic-card-pkg ${isL ? 'is-l' : ''}">${it.pkg || ''}</span></div>`;
+        const visual = it.svgId
+          ? `<svg class="pic-card-svg" viewBox="0 0 64 64" aria-hidden="true"><use href="#${it.svgId}"/></svg>`
+          : `<span class="pic-card-emoji" aria-hidden="true">${it.emoji || '📦'}</span>`;
+        return `<div class="pic-card-mini"><span class="sen-opt-letter" aria-hidden="true">${letter}</span>${visual}<span class="pic-card-name">${it.name || ''}</span><span class="pic-card-pkg ${isL ? 'is-l' : ''}">${it.pkg || ''}</span></div>`;
       }).join('');
       emojiEl.innerHTML = `<div class="pic-grid-mini" role="group" aria-label="4 個物品">${cards}</div>`;
       if (textEl) textEl.textContent = _senCopyText(q) || q.extra?.prompt || '邊個用 L?';
