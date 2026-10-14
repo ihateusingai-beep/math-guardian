@@ -38,8 +38,8 @@ const TYPE_REGISTRY_BLOCK = src.match(/const TYPE_REGISTRY\s*=\s*\{[\s\S]*?\n\};
 assert('TYPE_REGISTRY block present', !!TYPE_REGISTRY_BLOCK);
 const registrySrc = TYPE_REGISTRY_BLOCK ? TYPE_REGISTRY_BLOCK[0] : '';
 const typeIds = [...registrySrc.matchAll(/id:'([a-zA-Z0-9]+)'/g)].map(m => m[1]);
-const expectedIds = ['add10','sub10','add20','sub20','add2d','sub2d','count10','count1to3','groupAdd','compareGroup','compare10','double','whatTime','shapeMatch','ordering','count20','compareLength','compareHeight','orderAsc20','orderDesc20'];
-eq('20 type entries', typeIds.length, 20);
+const expectedIds = ['add10','sub10','add20','sub20','add2d','sub2d','count10','count1to3','groupAdd','compareGroup','compare10','double','whatTime','shapeMatch','ordering','count20','compareLength','compareHeight','orderAsc20','orderDesc20','learnL','findLDrink','findLItem'];
+eq('23 type entries', typeIds.length, 23);
 for (const id of expectedIds) assert(`  type[${id}] present`, typeIds.includes(id));
 assert('  no duplicate id', new Set(typeIds).size === typeIds.length);
 
@@ -1612,7 +1612,7 @@ assert('TRACK-04 menuTrack setting + syncMenuTrack',
 assert('TRACK-05 boss start stays on boss panel',
   /menu-boss-panel[\s\S]{0,8000}id="btn-start"/.test(src));
 assert('TRACK-06 class easy-start on class panel',
-  /menu-class-panel[\s\S]{0,8000}id="btn-easy-start"/.test(src));
+  /menu-class-panel[\s\S]{0,12000}id="btn-easy-start"/.test(src));
 assert('TRACK-07 section cards + opt-track',
   /menu-section-card/.test(src) &&
   (/opt-track\.opt-selected/.test(src) || /opt-track\[data-track="class"\]\.opt-selected/.test(src)));
@@ -1756,6 +1756,49 @@ assert('SOLOBOSS-03 startGame solo not force coop',
   /cycle71: solo Boss[\s\S]{0,200}team = 'versus'/.test(src));
 assert('SOLOBOSS-04 re-review solo uses knight',
   /playLayout !== 'dual'[\s\S]{0,80}'knight'[\s\S]{0,80}team === 'coop'/.test(src));
+
+// =========== T89: V3.6 cycle89 — 容量 (L) scope ===========
+console.log('\n[T89] V3.6 cycle-89 (容量 L: learnL / findLDrink / findLItem)');
+assert('CAP-01 type registry has 3 L scopes',
+  /learnL:.*?id:'learnL'/.test(src) &&
+  /findLDrink:.*?id:'findLDrink'/.test(src) &&
+  /findLItem:.*?id:'findLItem'/.test(src));
+assert('CAP-02 all 3 use pic-grid layout',
+  /learnL:[\s\S]{0,200}layout:'pic-grid'/.test(src) &&
+  /findLDrink:[\s\S]{0,200}layout:'pic-grid'/.test(src) &&
+  /findLItem:[\s\S]{0,200}layout:'pic-grid'/.test(src));
+assert('CAP-03 generators: learnL / findLDrink / findLItem',
+  /learnL\(\)\s*\{[\s\S]{0,80}_lPickMC\('learnL'\)/.test(src) &&
+  /findLDrink\(\)\s*\{[\s\S]{0,80}_lPickMC\('findLDrink'\)/.test(src) &&
+  /findLItem\(\)\s*\{[\s\S]{0,80}_lPickMC\('findLItem'\)/.test(src));
+assert('CAP-04 item pool includes L + non-L + distractor helper',
+  /_lItemPool:/.test(src) &&
+  /_nonLDrinkPool:/.test(src) &&
+  /_nonLItemPool:/.test(src) &&
+  /_pickDistractors/.test(src));
+assert('CAP-05 QuestionRenderer pic-grid handler',
+  /'pic-grid'\(q, team, area\)\s*\{[\s\S]{0,800}pic-card-btn/.test(src));
+assert('CAP-06 SEN screen pic-grid branch',
+  /q\.type === 'learnL' \|\| q\.type === 'findLDrink' \|\| q\.type === 'findLItem'/.test(src) &&
+  /pic-grid-mini/.test(src));
+assert('CAP-07 CSS pic-card-btn + is-l variant',
+  /\.pic-card-btn\s*\{/.test(src) &&
+  /\.pic-card-pkg\.is-l/.test(src));
+assert('CAP-08 home scope catalog includes 3 L scopes',
+  /id: 'learnL'/.test(src) &&
+  /id: 'findLDrink'/.test(src) &&
+  /id: 'findLItem'/.test(src));
+assert('CAP-09 default scopes include 3 L scopes',
+  /scopes:\s*\[[^\]]*'learnL'[^\]]*'findLDrink'[^\]]*'findLItem'/.test(src));
+assert('CAP-10 capacity preset',
+  /data-scope-preset="capacity"/.test(src) &&
+  /'capacity'[\s\S]{0,80}Game\.settings\.scopes = \['learnL', 'findLDrink', 'findLItem'\]/.test(src));
+assert('CAP-11 hint text mentions L + answer pkg',
+  /pic-grid[\s\S]{0,200}answerPkg/.test(src) &&
+  /用 L/.test(src));
+assert('CAP-12 normalize validates 4 options + items',
+  /learnL' \|\| type === 'findLDrink' \|\| type === 'findLItem'/.test(src) &&
+  /ex\.items\.length !== 4/.test(src));
 
 // =========== summary ===========
 console.log(`\n========== ${pass} pass / ${fail} fail ==========`);

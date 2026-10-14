@@ -2132,6 +2132,108 @@
     transform: scale(0.97);
     box-shadow: 0 2px 0 rgba(0,0,0,0.25), 0 3px 8px rgba(0,0,0,0.15);
   }
+  /* V3.6 cycle89: pic-grid — 4 個物品卡片 (容量 L 題) */
+  .pic-grid-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.6rem;
+    margin-top: 0.5rem;
+  }
+  .pic-card-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.2rem;
+    padding: 0.6rem 0.4rem;
+    min-height: 140px;
+    background: linear-gradient(180deg, #fffbeb 0%, #fde68a 100%);
+    border: 3px solid #f59e0b;
+    border-radius: 1rem;
+    color: #1e1b4b;
+    cursor: pointer;
+    box-shadow: 0 4px 0 #b45309, 0 6px 12px rgba(0,0,0,0.18);
+    transition: transform 0.1s, box-shadow 0.1s;
+    text-align: center;
+    position: relative;
+  }
+  .pic-card-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 0 #b45309, 0 8px 16px rgba(0,0,0,0.22); }
+  .pic-card-btn:active { transform: translateY(2px) scale(0.98); box-shadow: 0 2px 0 #b45309, 0 3px 6px rgba(0,0,0,0.18); }
+  .pic-card-btn .pic-card-emoji { font-size: 3rem; line-height: 1; }
+  .pic-card-btn .pic-card-name { font-size: 1.05rem; font-weight: 700; }
+  .pic-card-btn .pic-card-pkg {
+    display: inline-block;
+    padding: 0.15rem 0.6rem;
+    border-radius: 0.5rem;
+    font-size: 1.1rem;
+    font-weight: 900;
+    background: #e2e8f0;
+    color: #1e293b;
+    border: 2px solid #94a3b8;
+  }
+  .pic-card-btn .pic-card-pkg.is-l {
+    background: #fef3c7;
+    color: #92400e;
+    border-color: #f59e0b;
+  }
+  /* SEN screen mini variant — 4 cards in emojiEl */
+  .pic-grid-mini {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem;
+    width: 100%;
+  }
+  .pic-card-mini {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.15rem;
+    padding: 0.5rem 0.3rem;
+    background: linear-gradient(180deg, #fffbeb 0%, #fde68a 100%);
+    border: 3px solid #f59e0b;
+    border-radius: 0.9rem;
+    color: #1e1b4b;
+    text-align: center;
+    position: relative;
+    min-height: 90px;
+  }
+  .pic-card-mini .pic-card-emoji { font-size: 2.2rem; line-height: 1; }
+  .pic-card-mini .pic-card-name { font-size: 0.9rem; font-weight: 700; }
+  .pic-card-mini .pic-card-pkg {
+    display: inline-block;
+    padding: 0.1rem 0.45rem;
+    border-radius: 0.4rem;
+    font-size: 0.95rem;
+    font-weight: 900;
+    background: #e2e8f0;
+    color: #1e293b;
+    border: 2px solid #94a3b8;
+  }
+  .pic-card-mini .pic-card-pkg.is-l {
+    background: #fef3c7;
+    color: #92400e;
+    border-color: #f59e0b;
+  }
+  .pic-grid-legend {
+    display: flex;
+    justify-content: center;
+    gap: 0.6rem;
+    padding: 0.4rem;
+  }
+  .pic-grid-legend-item {
+    width: 2.4rem;
+    height: 2.4rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 9999px;
+    background: #fef3c7;
+    color: #92400e;
+    font-weight: 900;
+    font-size: 1.2rem;
+    border: 2px solid #f59e0b;
+  }
   /* V3.6 cycle41: A/B/C gesture badges (render order) */
   .sen-opt-letter {
     flex-shrink: 0;
@@ -3061,6 +3163,7 @@
           <button type="button" class="opt-scope-preset" data-scope-preset="count">🔢 只數數</button>
           <button type="button" class="opt-scope-preset" data-scope-preset="length">📏 只長短</button>
           <button type="button" class="opt-scope-preset" data-scope-preset="height">↕️ 只高矮</button>
+          <button type="button" class="opt-scope-preset" data-scope-preset="capacity">🧃 只容量</button>
           <button type="button" class="opt-scope-preset" data-scope-preset="all">✨ 全部</button>
         </div>
         <div id="scope-picker" class="grid grid-cols-2 gap-3" role="group" aria-label="題目範疇">
@@ -3079,8 +3182,17 @@
           <button type="button" class="opt-scope btn btn-ghost opt-selected py-3 text-left" data-scope="orderDesc20" aria-pressed="true">
             📉 倒序·跟住<br><span class="text-xs opacity-70">邊個跟住</span>
           </button>
+          <button type="button" class="opt-scope btn btn-ghost opt-selected py-3 text-left" data-scope="learnL" aria-pressed="true">
+            🧃 學用 L<br><span class="text-xs opacity-70">觀察包裝學 L</span>
+          </button>
+          <button type="button" class="opt-scope btn btn-ghost opt-selected py-3 text-left" data-scope="findLDrink" aria-pressed="true">
+            🥛 找 L 飲品<br><span class="text-xs opacity-70">邊支用 L?</span>
+          </button>
+          <button type="button" class="opt-scope btn btn-ghost opt-selected py-3 text-left" data-scope="findLItem" aria-pressed="true">
+            🪣 找 L 物品<br><span class="text-xs opacity-70">邊件用 L?</span>
+          </button>
         </div>
-        <div id="scope-helper" class="menu-section-sub">已選 5 個範疇 · 撳掣可開關（最少 1 個）</div>
+        <div id="scope-helper" class="menu-section-sub">已選 8 個範疇 · 撳掣可開關（最少 1 個）</div>
       </div>
 
       <!-- V3.6 cycle67: sticky 開始（摘要合併入掣；上面大 emoji 預覽） -->
@@ -4901,15 +5013,22 @@ const TYPE_REGISTRY = {
   compareHeight: { id:'compareHeight', label:'高矮比較', emoji:'📏', difficulty:1, category:'math', icon:null, mode:['choice'], layout:'height', desc:'邊個高／矮' },
   orderAsc20: { id:'orderAsc20', label:'1-20 順序', emoji:'📈', difficulty:1, category:'math', icon:null, mode:['choice'], layout:'seq-choice', desc:'兩數後邊個跟住（細→大）' },
   orderDesc20: { id:'orderDesc20', label:'1-20 倒序', emoji:'📉', difficulty:1, category:'math', icon:null, mode:['choice'], layout:'seq-choice', desc:'兩數後邊個跟住（大→細）' },
+  // V3.6 cycle89: 容量 (L) — life skills 觀察常見物品包裝
+  learnL: { id:'learnL', label:'學用 L', emoji:'🧃', difficulty:1, category:'life', icon:null, mode:['choice'], layout:'pic-grid', desc:'觀察包裝學 L' },
+  findLDrink: { id:'findLDrink', label:'找 L 飲品', emoji:'🥛', difficulty:1, category:'life', icon:null, mode:['choice'], layout:'pic-grid', desc:'邊支飲品用 L?' },
+  findLItem: { id:'findLItem', label:'找 L 物品', emoji:'🪣', difficulty:1, category:'life', icon:null, mode:['choice'], layout:'pic-grid', desc:'邊件物品用 L?' },
 };
 
-// V3.6 cycle44/76: home scope catalog (1 scope = 1 type)
+// V3.6 cycle44/76/89: home scope catalog (1 scope = 1 type)
 const SCOPE_CATALOG = [
   { id: 'count20', label: '數數 1–10', emoji: '🔢' },
   { id: 'compareLength', label: '長短比較', emoji: '📏' },
   { id: 'compareHeight', label: '高矮比較', emoji: '↕️' },
   { id: 'orderAsc20', label: '順序·跟住', emoji: '📈' },
   { id: 'orderDesc20', label: '倒序·跟住', emoji: '📉' },
+  { id: 'learnL', label: '學用 L', emoji: '🧃' },
+  { id: 'findLDrink', label: '找 L 飲品', emoji: '🥛' },
+  { id: 'findLItem', label: '找 L 物品', emoji: '🪣' },
 ];
 const DEFAULT_SCOPES = SCOPE_CATALOG.map(s => s.id);
 
@@ -5230,6 +5349,90 @@ const Generators = {
       displayNums,
     };
   },
+  // V3.6 cycle89: 容量 (L) — life skills 觀察常見物品包裝
+  // 共享 L 物品池
+  _lItemPool: [
+    { emoji:'🥛', name:'鮮奶', pkg:'1L' },
+    { emoji:'🧃', name:'果汁', pkg:'1L' },
+    { emoji:'🧴', name:'洗潔精', pkg:'1L' },
+    { emoji:'🪣', name:'漂白水', pkg:'2L' },
+    { emoji:'🥤', name:'汽水', pkg:'1.5L' },
+    { emoji:'🧃', name:'豆漿', pkg:'1L' },
+    { emoji:'🍶', name:'醬油', pkg:'1L' },
+    { emoji:'🛢️', name:'油漆', pkg:'5L' },
+  ],
+  // 飲品池 (非 L) — 用嚟做 findLDrink 嘅 distractor
+  _nonLDrinkPool: [
+    { emoji:'🥤', name:'汽水罐', pkg:'330mL' },
+    { emoji:'🧃', name:'紙包奶', pkg:'250mL' },
+    { emoji:'🧃', name:'紙包果汁', pkg:'200mL' },
+    { emoji:'💧', name:'水樽', pkg:'600mL' },
+    { emoji:'🧋', name:'珍珠奶茶', pkg:'1杯' },
+    { emoji:'🍵', name:'紙包檸檬茶', pkg:'250mL' },
+  ],
+  // 一般物品池 (非 L) — 用嚟做 findLItem 嘅 distractor
+  _nonLItemPool: [
+    { emoji:'🍎', name:'蘋果', pkg:'1個' },
+    { emoji:'🥚', name:'雞蛋', pkg:'1隻' },
+    { emoji:'🍞', name:'麵包', pkg:'1個' },
+    { emoji:'🥕', name:'紅蘿蔔', pkg:'1條' },
+    { emoji:'🍚', name:'米', pkg:'1kg' },
+    { emoji:'🧂', name:'鹽', pkg:'500g' },
+    { emoji:'🍬', name:'糖果', pkg:'100g' },
+    { emoji:'🥩', name:'牛肉', pkg:'1kg' },
+  ],
+  // 從 pool 抽 3 個唔重複 (避開 avoidItem)
+  _pickDistractors(pool, n, avoidItem) {
+    const out = [];
+    const candidates = pool.filter(x => x !== avoidItem);
+    let guard = 0;
+    while (out.length < n && guard++ < 40) {
+      const cand = candidates[randInt(0, candidates.length - 1)];
+      if (!out.includes(cand)) out.push(cand);
+    }
+    return out;
+  },
+  // 4 選 1 L item：1 個 L + 3 個 distractor
+  _lPickMC(type) {
+    const lPool = Generators._lItemPool;
+    const dPool = (type === 'findLDrink') ? Generators._nonLDrinkPool : Generators._nonLItemPool;
+    const lItem = lPool[randInt(0, lPool.length - 1)];
+    const distractors = Generators._pickDistractors(dPool, 3);
+    // 保證 distractor 唔會同 L item 重複
+    const filtered = distractors.filter(d => d.name !== lItem.name);
+    while (filtered.length < 3) filtered.push(dPool[randInt(0, dPool.length - 1)]);
+    const items = shuffle([lItem, ...filtered.slice(0, 3)]);
+    const ansIdx = items.findIndex(x => x === lItem);
+    const LETTERS = ['1', '2', '3', '4'];
+    const prompt = (type === 'findLItem') ? '邊件用 L?'
+      : (type === 'findLDrink') ? '邊支飲品用 L?'
+      : '邊個用 L?';
+    return {
+      parts: [prompt],
+      answer: LETTERS[ansIdx],
+      type,
+      options: LETTERS,
+      optionLabels: items.reduce((m, it, i) => { m[LETTERS[i]] = it.pkg; return m; }, {}),
+      extra: {
+        items: items.map(it => ({ emoji: it.emoji, name: it.name, pkg: it.pkg })),
+        answerPkg: lItem.pkg,
+        answerName: lItem.name,
+        prompt,
+      },
+    };
+  },
+  // V3.6 cycle89: 學 L — 觀察包裝學 L
+  learnL() {
+    return Generators._lPickMC('learnL');
+  },
+  // V3.6 cycle89: 找 L 飲品
+  findLDrink() {
+    return Generators._lPickMC('findLDrink');
+  },
+  // V3.6 cycle89: 找 L 物品
+  findLItem() {
+    return Generators._lPickMC('findLItem');
+  },
 };
 
 // V3.6 cycle46: repair bank fixtures that spoil answers / miss choice options
@@ -5402,6 +5605,18 @@ function _normalizeBankQuestion(type, mode, q, reg) {
     } else {
       q.options = q.options.map(String);
     }
+  } else if (type === 'learnL' || type === 'findLDrink' || type === 'findLItem') {
+    // V3.6 cycle89: 容量 (L) — 4 選 1 L item, validate shape
+    const ans = String(q.answer || '');
+    if (!/^[1-4]$/.test(ans)) return null;
+    if (!Array.isArray(q.options) || q.options.length !== 4) return null;
+    if (!q.optionLabels || typeof q.optionLabels !== 'object') return null;
+    const ex = q.extra || {};
+    if (!Array.isArray(ex.items) || ex.items.length !== 4) {
+      // 冇 items → reject，generator 會重生
+      return null;
+    }
+    q.parts = [ex.prompt || q.parts?.[0] || '邊個用 L?'];
   } else if (type === 'count10' || type === 'count20' || type === 'count1to3') {
     // bank often packs "🍎🍎🍎= ?" in one part → split + rebuild visual stem
     const n = Number(q.answer);
@@ -5444,7 +5659,7 @@ const QuestionGen = (() => {
         reg.layout === 'parts-emoji' || reg.layout === 'sym-button' ||
         reg.layout === 'clock' || reg.layout === 'order' || reg.layout === 'shape' ||
         reg.layout === 'bars' || reg.layout === 'height' || reg.layout === 'seq-choice' ||
-        reg.layout === 'numeric'
+        reg.layout === 'pic-grid' || reg.layout === 'numeric'
       );
       if (bankUsable) q = bankQ;
     }
@@ -5462,6 +5677,7 @@ const QuestionGen = (() => {
       else if (reg.layout === 'bars') q = Generators.compareLength();
       else if (reg.layout === 'height') q = Generators.compareHeight();
       else if (reg.layout === 'seq-choice') q = Generators[type](mode);
+      else if (reg.layout === 'pic-grid') q = Generators[type]();
       else q = Generators.numeric(type, mode);
     }
     // legacy compat: 舊 code 讀 q.text
@@ -6115,7 +6331,7 @@ const Game = {
     playerLabel: '同學',        // display name e.g. 🐱 小貓
     playerIdRight: null,        // dual right team
     playerLabelRight: '同學',
-    scopes: ['count20', 'compareLength', 'compareHeight', 'orderAsc20', 'orderDesc20'], // V3.6 cycle44/76
+    scopes: ['count20', 'compareLength', 'compareHeight', 'orderAsc20', 'orderDesc20', 'learnL', 'findLDrink', 'findLItem'], // V3.6 cycle44/76/89
     arenaSkin: 'retro',             // V3.6 cycle62: 'classic' | 'retro' (ruler tug / bridge)
     soloMode: 'bridge',             // V3.6 cycle65: solo mini-game 'boat' | 'bridge' | 'ruler'
     menuTrack: 'class',             // V3.6 cycle63: 'class' 課堂 | 'boss' 戰役
@@ -6502,6 +6718,40 @@ const QuestionRenderer = {
     visual.innerHTML = _heightPairHTML(q.extra || {}).html;
     area.appendChild(visual);
     _wireLengthVisualClicks(visual, q, team);
+    return true;
+  },
+
+  // V3.6 cycle89: pic-grid — 4 個物品卡片 (emoji + 包裝 label)，找 L 嗰個
+  'pic-grid'(q, team, area) {
+    const items = (q.extra && Array.isArray(q.extra.items)) ? q.extra.items : [];
+    if (items.length < 2) return false;
+    const opts = q.options || ['1','2','3','4'];
+    const LETTERS = ['A', 'B', 'C', 'D'];
+    const grid = document.createElement('div');
+    grid.className = 'pic-grid-row';
+    grid.setAttribute('role', 'group');
+    grid.setAttribute('aria-label', '答案選項');
+    items.slice(0, 4).forEach((it, idx) => {
+      const opt = String(opts[idx] || (idx + 1));
+      const b = document.createElement('button');
+      b.className = 'pic-card-btn';
+      b.setAttribute('type', 'button');
+      const letter = LETTERS[idx] || String(idx + 1);
+      const isL = /L$/.test(String(it.pkg || ''));
+      const pkgClass = isL ? 'pic-card-pkg is-l' : 'pic-card-pkg';
+      b.innerHTML = `
+        <span class="sen-opt-letter" aria-hidden="true">${letter}</span>
+        <span class="pic-card-emoji" aria-hidden="true">${it.emoji || '📦'}</span>
+        <span class="pic-card-name">${it.name || ''}</span>
+        <span class="${pkgClass}">${it.pkg || ''}</span>
+      `;
+      b.setAttribute('aria-label', `${letter}. ${it.name || ''} ${it.pkg || ''}`);
+      b.dataset.letter = letter;
+      b.dataset.opt = opt;
+      b.onclick = () => Game.handleAnswer(team, opt, b);
+      grid.appendChild(b);
+    });
+    area.appendChild(grid);
     return true;
   },
 
@@ -7235,6 +7485,17 @@ const UI = {
       emojiEl.classList.add('sen-q-visual');
       emojiEl.innerHTML = _countVisualHTML(q).html;
       if (textEl) textEl.textContent = _senCopyText(q) || '有幾多？';
+    } else if ((q.type === 'learnL' || q.type === 'findLDrink' || q.type === 'findLItem') && emojiEl) {
+      // V3.6 cycle89: SEN 容量 (L) — 4 個物品卡片放 emojiEl
+      emojiEl.classList.add('sen-q-visual');
+      const items = (q.extra && Array.isArray(q.extra.items)) ? q.extra.items : [];
+      const cards = items.slice(0, 4).map((it, idx) => {
+        const letter = ['A','B','C','D'][idx] || String(idx+1);
+        const isL = /L$/.test(String(it.pkg || ''));
+        return `<div class="pic-card-mini"><span class="sen-opt-letter" aria-hidden="true">${letter}</span><span class="pic-card-emoji" aria-hidden="true">${it.emoji || '📦'}</span><span class="pic-card-name">${it.name || ''}</span><span class="pic-card-pkg ${isL ? 'is-l' : ''}">${it.pkg || ''}</span></div>`;
+      }).join('');
+      emojiEl.innerHTML = `<div class="pic-grid-mini" role="group" aria-label="4 個物品">${cards}</div>`;
+      if (textEl) textEl.textContent = _senCopyText(q) || q.extra?.prompt || '邊個用 L?';
     } else if (q.parts) {
       const { emojiParts, textTokens } = _splitPartsEmojiText(q.parts);
       if (emojiEl) {
@@ -7281,21 +7542,39 @@ const UI = {
     const labels = q.optionLabels;
     const shuffled = shuffle(opts);
     if (!optsArea) return;
+    // V3.6 cycle89: pic-grid cards are themselves clickable in emojiEl — skip separate A/B/C/D
+    const isPicGrid = (q.type === 'learnL' || q.type === 'findLDrink' || q.type === 'findLItem');
     optsArea.innerHTML = '';
-    const LETTERS = ['A', 'B', 'C', 'D'];
-    shuffled.forEach((opt, idx) => {
-      const b = document.createElement('button');
-      b.className = 'sen-opt-btn';
-      const letter = LETTERS[idx] || String(idx + 1);
-      const val = (labels && labels[opt] !== undefined) ? String(labels[opt]) : String(opt);
-      b.innerHTML = `<span class="sen-opt-letter" aria-hidden="true">${letter}</span><span class="sen-opt-val"></span>`;
-      const valEl = b.querySelector('.sen-opt-val');
-      _paintOptionLabel(valEl, val);
-      b.setAttribute('aria-label', `${letter}. ${val}`);
-      b.dataset.letter = letter;
-      b.onclick = () => { Game.handleAnswer(t, opt, b); };
-      optsArea.appendChild(b);
-    });
+    if (isPicGrid) {
+      // 喺 optsArea 顯示純文字 ABCD legend，畀學生對應
+      const legend = document.createElement('div');
+      legend.className = 'pic-grid-legend';
+      legend.setAttribute('role', 'group');
+      legend.setAttribute('aria-label', '字母對應');
+      const LETTERS = ['A', 'B', 'C', 'D'];
+      LETTERS.forEach((L) => {
+        const span = document.createElement('span');
+        span.className = 'pic-grid-legend-item';
+        span.textContent = L;
+        legend.appendChild(span);
+      });
+      optsArea.appendChild(legend);
+    } else {
+      const LETTERS = ['A', 'B', 'C', 'D'];
+      shuffled.forEach((opt, idx) => {
+        const b = document.createElement('button');
+        b.className = 'sen-opt-btn';
+        const letter = LETTERS[idx] || String(idx + 1);
+        const val = (labels && labels[opt] !== undefined) ? String(labels[opt]) : String(opt);
+        b.innerHTML = `<span class="sen-opt-letter" aria-hidden="true">${letter}</span><span class="sen-opt-val"></span>`;
+        const valEl = b.querySelector('.sen-opt-val');
+        _paintOptionLabel(valEl, val);
+        b.setAttribute('aria-label', `${letter}. ${val}`);
+        b.dataset.letter = letter;
+        b.onclick = () => { Game.handleAnswer(t, opt, b); };
+        optsArea.appendChild(b);
+      });
+    }
 
     // Auto TTS: solo only (dual = manual per-side 🔊 to avoid cross-talk)
     if (Game.settings.ttsEnabled && Game.settings.playLayout !== 'dual') {
@@ -7608,7 +7887,8 @@ function setupMenu() {
     // V3.6 cycle64/65: one-line start summary
     const n = (Game.settings.scopes && Game.settings.scopes.length) || 4;
     const scopeNames = {
-      count20: '數數', compareLength: '長短', compareHeight: '高矮', orderAsc20: '順序', orderDesc20: '倒序'
+      count20: '數數', compareLength: '長短', compareHeight: '高矮', orderAsc20: '順序', orderDesc20: '倒序',
+      learnL: '學L', findLDrink: '找L飲', findLItem: '找L物'
     };
     const scopeBits = (Game.settings.scopes || []).map(id => scopeNames[id] || id).filter(Boolean);
     const scopeTxt = scopeBits.length ? scopeBits.join('+') : `${n}範疇`;
@@ -7917,6 +8197,7 @@ function setupMenu() {
       s === 'count20' ? 'count' :
       s === 'compareLength' ? 'length' :
       s === 'compareHeight' ? 'height' :
+      s === 'learnL,findLDrink,findLItem' ? 'capacity' :
       (s === DEFAULT_SCOPES.slice().sort().join(',')) ? 'all' :
       null;
     document.querySelectorAll('.opt-scope-preset').forEach(btn => {
@@ -7959,6 +8240,7 @@ function setupMenu() {
       if (p === 'count') Game.settings.scopes = ['count20'];
       else if (p === 'length') Game.settings.scopes = ['compareLength'];
       else if (p === 'height') Game.settings.scopes = ['compareHeight'];
+      else if (p === 'capacity') Game.settings.scopes = ['learnL', 'findLDrink', 'findLItem'];
       else Game.settings.scopes = DEFAULT_SCOPES.slice();
       try { localStorage.setItem('mg2.scopes', JSON.stringify(Game.settings.scopes)); } catch (_) {}
       syncScopeUI();
@@ -8606,6 +8888,10 @@ function showInstantHint(team, q) {
     hint = `💡 答案係${labelMap[q.answer] || q.answer}`;
   } else if (reg && reg.layout === 'order') {
     hint = `💡 正確順序：${q.answer.join(' < ')}`;
+  } else if (reg && reg.layout === 'pic-grid') {
+    // V3.6 cycle89: 容量 (L) — 提示邊個用 L
+    const ex = q.extra || {};
+    hint = `💡 ${ex.answerName || '答案'}${ex.answerPkg ? `（${ex.answerPkg}）` : ''} 用 L`;
   } else {
     hint = `💡 答案係 ${q.answer}`;
   }
