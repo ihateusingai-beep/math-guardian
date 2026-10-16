@@ -1980,6 +1980,34 @@ assert('VIS-18 snow theme override for opt-* unselected',
 assert('VIS-19 review empty msg text-amber-100/70 (was text-slate-600)',
   /text-amber-100[\s\S]{0,200}目前沒有待重練題目/.test(src));
 
+// =========== T96: V3.6 cycle96 — Deploy + Plausible analytics ===========
+console.log('\n[T96] V3.6 cycle-96 (deploy + analytics)');
+assert('DEPLOY-01 Plausible analytics script tag in <head>',
+  /<script\s+defer\s+data-domain="[^"]+"\s+src="https:\/\/plausible\.io\/js\/script\.tagged-events\.js"><\/script>/.test(src));
+assert('DEPLOY-02 plausible() queue shim defined',
+  /window\.plausible\s*=\s*window\.plausible\s*\|\|\s*function\(\)\s*\{/.test(src));
+assert('DEPLOY-03 game_start event fired in startGame',
+  /plausible\('game_start'/.test(src) &&
+  /scopes:.*Game\.settings\.scopes/.test(src));
+assert('DEPLOY-04 game_end event fired in endGame',
+  /plausible\('game_end'/.test(src) &&
+  /victory:\s*victory\s*\?\s*1\s*:\s*0/.test(src));
+assert('DEPLOY-05 game_end includes duration_sec',
+  /duration_sec:/.test(src));
+assert('DEPLOY-06 OG meta tags (title + description + type)',
+  /<meta\s+property="og:title"/.test(src) &&
+  /<meta\s+property="og:description"/.test(src) &&
+  /<meta\s+property="og:type"\s+content="website"/.test(src));
+assert('DEPLOY-07 CNAME file present',
+  fs.existsSync('CNAME') && /[a-z0-9.-]+\.[a-z]{2,}/i.test(fs.readFileSync('CNAME', 'utf8').trim()));
+assert('DEPLOY-08 DEPLOY.md present with custom domain instructions',
+  fs.existsSync('DEPLOY.md') &&
+  /Custom Domain Setup/.test(fs.readFileSync('DEPLOY.md', 'utf8')));
+assert('DEPLOY-09 DEPLOY.md mentions Plausible',
+  /Plausible/i.test(fs.readFileSync('DEPLOY.md', 'utf8')));
+assert('DEPLOY-10 file size still under 600 KB',
+  fs.statSync('index.html').size < 600 * 1024);
+
 // =========== summary ===========
 console.log(`\n========== ${pass} pass / ${fail} fail ==========`);
 if (fail > 0) {

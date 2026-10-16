@@ -10,6 +10,13 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="theme-color" content="#0b0d1a" />
 <title>數學合作學習遊戲｜將軍澳培智學校</title>
+<meta name="description" content="為中度智障學生設計嘅數學合作學習遊戲 — 數數、長短、高矮、順序、容量 (L) 練習；單人/雙隊打王" />
+<meta property="og:title" content="數學合作學習遊戲｜將軍澳培智學校" />
+<meta property="og:description" content="中度智障 SEN 學生數學練習遊戲：4 個 easy scope + Boss 戰役，跨 OS 一致 SVG 教材" />
+<meta property="og:type" content="website" />
+<!-- V3.6 cycle96: Plausible analytics (privacy-friendly, no cookies) — placeholder domain 改去實際部署 domain -->
+<script defer data-domain="mathguardian.kencheng.dev" src="https://plausible.io/js/script.tagged-events.js"></script>
+<script>window.plausible = window.plausible || function() { (window.plausible.q = window.plausible.q || []).push(arguments) }</script>
 
 <script src="https://cdn.tailwindcss.com"></script>
 <script>
@@ -8899,13 +8906,21 @@ function startGame() {
     renderTypePicker();
     renderRecommendChips();   // V3.5-cycle16: sync chips
   }
-    // V3.5-AUDIT8-F10: 新局 reset quota flag 
+    // V3.5-AUDIT8-F10: 新局 reset quota flag
   Snapshot._resetQuotaFlag();
-    // V3.4-AUDIT5: TTS cancel on startGame 
+    // V3.4-AUDIT5: TTS cancel on startGame
   TTS.cancel();
   // P1-A: 記住開始時間
   Game.state.startedAt = Date.now();
   Game.state.endedAt = 0;
+  // V3.6 cycle96: Plausible analytics — game start event
+  if (typeof plausible === 'function') {
+    plausible('game_start', { props: {
+      scopes: (Game.settings.scopes || []).join(','),
+      play: Game.settings.playLayout,
+      difficulty: Game.settings.difficulty,
+    } });
+  }
     // V3.4-AUDIT2-FIX: reset timer state fl
   Game.state._startAt = 0;
   Game.state._frostTickAt = 0;
@@ -9597,6 +9612,18 @@ function endGame(victory) {
   Snapshot.clear();
   Profile.data.sessionsPlayed += 1;
   Profile.save();
+  // V3.6 cycle96: Plausible analytics — game_end event with outcome + scope + duration
+  if (typeof plausible === 'function') {
+    const dur = Math.round((Game.state.endedAt - Game.state.startedAt) / 1000);
+    plausible('game_end', { props: {
+      victory: victory ? 1 : 0,
+      scopes: (Game.settings.scopes || []).join(','),
+      play: Game.settings.playLayout,
+      duration_sec: dur,
+      correct: (Game.state.correctKnight || 0) + (Game.state.correctMage || 0),
+      wrong: (Game.state.wrongKnight || 0) + (Game.state.wrongMage || 0),
+    } });
+  }
   // 解鎖下隻 boss (P1-C)
   if (victory) Bosses.onDefeat();
   if (victory) {
