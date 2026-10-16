@@ -1936,6 +1936,50 @@ assert('KNIGHT-06 only one px-char-knight symbol (no duplicate)',
 assert('KNIGHT-07 only one px-char-mage symbol (no duplicate)',
   (src.match(/<symbol\s+id="px-char-mage"/g) || []).length === 1);
 
+// =========== T95: V3.6 cycle95 — visual 大執 (end screen / modal / opt-* unselected / done-mask) ===========
+console.log('\n[T95] V3.6 cycle-95 (visual overhaul: dark text on dark bg fix)');
+assert('VIS-01 end-screen card bg-slate-900 (dark, not translucent white)',
+  /id="screen-end"[\s\S]{0,2000}bg-slate-900\/80/.test(src));
+assert('VIS-02 end-title text-white (was text-amber-700 invisible)',
+  /id="end-title"[^>]*text-white/.test(src));
+assert('VIS-03 end-message text-amber-100 (was text-slate-700 invisible)',
+  /id="end-message"[^>]*text-amber-100/.test(src));
+assert('VIS-04 end-medal-label text-amber-200 (was text-amber-700 invisible)',
+  /id="end-medal-label"[^>]*text-amber-200/.test(src));
+assert('VIS-05 end-stats bg-slate-800/70 dark container',
+  /id="end-stats"[^>]*bg-slate-800/.test(src));
+assert('VIS-06 teacher-modal-title text-amber-300 (was text-amber-700 muted)',
+  /id="teacher-modal-title"[^>]*text-amber-300/.test(src));
+assert('VIS-07 td-sessions/td-bosses/td-mastered text-amber-300 (was text-amber-700)',
+  /id="td-sessions"[^>]*text-amber-300/.test(src) &&
+  /id="td-bosses"[^>]*text-amber-300/.test(src) &&
+  /id="td-mastered"[^>]*text-amber-300/.test(src));
+assert('VIS-08 td-hints text-amber-100 (was text-slate-600 invisible on dark)',
+  /id="td-hints"[^>]*text-amber-100/.test(src));
+assert('VIS-09 sen-done-knight span text-amber-200 (was text-slate-700 on dark mask)',
+  /sen-done-knight[\s\S]{0,200}text-amber-200/.test(src));
+assert('VIS-10 sen-done-mage span text-amber-200',
+  /sen-done-mage[\s\S]{0,200}text-amber-200/.test(src));
+assert('VIS-11 review-title text-amber-200 (was text-amber-700 on bg-black/20)',
+  /id="review-title"[^>]*text-amber-200/.test(src));
+assert('VIS-12 btn-clear-review text-amber-100 (was text-slate-700)',
+  /id="btn-clear-review"[^>]*text-amber-100/.test(src));
+assert('VIS-13 opt-track:not(.opt-selected) dark text on light bg',
+  /\.opt-track:not\(\.opt-selected\)[\s\S]{0,200}var\(--c-text-primary\)/.test(src));
+assert('VIS-14 opt-play:not(.opt-selected) dark text',
+  /\.opt-play:not\(\.opt-selected\)[\s\S]{0,200}var\(--c-text-primary\)/.test(src));
+assert('VIS-15 opt-solo-skin:not(.opt-selected) dark text',
+  /\.opt-solo-skin:not\(\.opt-selected\)[\s\S]{0,200}var\(--c-text-primary\)/.test(src));
+assert('VIS-16 opt-mode:not(.opt-selected) dark text',
+  /\.opt-mode:not\(\.opt-selected\)[\s\S]{0,200}var\(--c-text-primary\)/.test(src));
+assert('VIS-17 opt-bridge:not(.opt-selected) dark text',
+  /\.opt-bridge:not\(\.opt-selected\)[\s\S]{0,200}var\(--c-text-primary\)/.test(src));
+assert('VIS-18 snow theme override for opt-* unselected',
+  /\.theme-snow\s+\.opt-track:not\(\.opt-selected\)[\s\S]{0,200}#f0f9ff/.test(src) &&
+  /\.theme-snow\s+\.opt-mode:not\(\.opt-selected\)[\s\S]{0,200}#f0f9ff/.test(src));
+assert('VIS-19 review empty msg text-amber-100/70 (was text-slate-600)',
+  /text-amber-100[\s\S]{0,200}目前沒有待重練題目/.test(src));
+
 // =========== summary ===========
 console.log(`\n========== ${pass} pass / ${fail} fail ==========`);
 if (fail > 0) {

@@ -1026,6 +1026,25 @@
     background: rgba(15,23,42,0.45) !important;
     border-color: rgba(255,255,255,0.18) !important;
   }
+  /* V3.6 cycle95: 全 opt-* (track / play / solo-skin / mode / bridge) unselected — dark text on light bg */
+  .opt-track:not(.opt-selected),
+  .opt-play:not(.opt-selected),
+  .opt-solo-skin:not(.opt-selected),
+  .opt-mode:not(.opt-selected),
+  .opt-bridge:not(.opt-selected) {
+    color: var(--c-text-primary) !important;
+    background: rgba(255,255,255,0.45) !important;
+    border-color: rgba(30,41,59,0.25) !important;
+  }
+  .theme-snow .opt-track:not(.opt-selected),
+  .theme-snow .opt-play:not(.opt-selected),
+  .theme-snow .opt-solo-skin:not(.opt-selected),
+  .theme-snow .opt-mode:not(.opt-selected),
+  .theme-snow .opt-bridge:not(.opt-selected) {
+    color: #f0f9ff !important;
+    background: rgba(15,23,42,0.45) !important;
+    border-color: rgba(255,255,255,0.18) !important;
+  }
   .sen-fb {
     position: absolute; inset: 0;
     pointer-events: none;
@@ -3710,16 +3729,16 @@
     </div>
 
     <!-- 重練區 -->
-    <div class="bg-black/20 border border-amber-300/30 rounded-2xl p-3">
+    <div class="bg-black/30 border border-amber-300/30 rounded-2xl p-3">
       <div class="flex items-center justify-between mb-2">
-        <h3 id="review-title" class="font-bold text-amber-700 text-sm flex items-center gap-2">
+        <h3 id="review-title" class="font-bold text-amber-200 text-sm flex items-center gap-2">
           <svg class="pixel icon-mini"><use href="#px-target"/></svg>
           重練區 🔁
         </h3>
-        <button id="btn-clear-review" class="btn-sm bg-white/10 hover:bg-white/20 text-xs text-slate-700 hover:text-slate-900 border border-white/10">清空</button>
+        <button id="btn-clear-review" class="btn-sm bg-white/15 hover:bg-white/25 text-xs text-amber-100 hover:text-white border border-white/20">清空</button>
       </div>
       <div id="review-list" class="flex flex-wrap gap-2">
-        <span class="text-xs text-slate-600">（目前沒有待重練題目）</span>
+        <span class="text-xs text-amber-100/70">（目前沒有待重練題目）</span>
       </div>
     </div>
 
@@ -3813,7 +3832,7 @@
         <div id="sen-q-text-knight" class="sen-q-text"></div>
         <div id="sen-options-knight" class="sen-options"></div>
         <div id="sen-feedback-knight" class="sen-fb"></div>
-        <div id="sen-done-knight" class="sen-done-mask hidden">✅ 完成！<br><span class="text-base font-bold text-slate-700">等另一邊…</span></div>
+        <div id="sen-done-knight" class="sen-done-mask hidden">✅ 完成！<br><span class="text-base font-bold text-amber-200">等另一邊…</span></div>
       </div>
       <!-- 右 = mage（dual only） -->
       <div id="sen-panel-mage" class="sen-panel sen-panel-mage" data-team="mage">
@@ -3830,17 +3849,18 @@
         <div id="sen-q-text-mage" class="sen-q-text"></div>
         <div id="sen-options-mage" class="sen-options"></div>
         <div id="sen-feedback-mage" class="sen-fb"></div>
-        <div id="sen-done-mage" class="sen-done-mask hidden">✅ 完成！<br><span class="text-base font-bold text-slate-700">等另一邊…</span></div>
+        <div id="sen-done-mage" class="sen-done-mask hidden">✅ 完成！<br><span class="text-base font-bold text-amber-200">等另一邊…</span></div>
       </div>
     </div>
   </section>
 
   <!-- ========== 結束畫面 ========== -->
+  <!-- V3.6 cycle95: 完賽畫面 — 暗底加白光 box + 全部用 light text (text-white/text-amber-200/text-sky-100) -->
   <section id="screen-end" class="hidden flex flex-col items-center p-4 md:p-6 relative footer-clear" style="min-height:100vh;height:100vh;overflow-y:auto">
     <!-- P2-a: AI generated end-screen background -->
     <div id="end-bg" style="position:absolute;inset:0;background-size:cover;background-position:center;filter:brightness(0.55);z-index:0;transition:background-image 0.5s;"></div>
     <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0.3),rgba(0,0,0,0.6));z-index:1;"></div>
-    <div class="w-full max-w-lg bg-white/10 backdrop-blur-md border border-white/20 rounded-3xl p-6 shadow-2xl text-center relative" style="z-index:2;">
+    <div class="w-full max-w-lg bg-slate-900/80 backdrop-blur-md border-2 border-amber-300/40 rounded-3xl p-6 shadow-2xl text-center relative" style="z-index:2;color:#f0f9ff;">
       <div class="flex items-center justify-center gap-2 mb-2">
         <img
           class="school-logo-end"
@@ -3851,7 +3871,7 @@
           decoding="async"
           style="width:40px;height:40px;object-fit:contain"
         />
-        <span class="text-sm font-bold text-sky-700">將軍澳培智學校 · 數學合作學習遊戲</span>
+        <span class="text-sm font-bold text-amber-200">將軍澳培智學校 · 數學合作學習遊戲</span>
       </div>
       <!-- P2-d: defeated boss portrait (replaces trophy icon on victory) -->
       <div id="end-icon" class="mb-3 flex justify-center" style="width:128px;height:128px;margin:0 auto;position:relative;">
@@ -3859,10 +3879,10 @@
         <img id="end-boss-portrait" class="hidden" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;image-rendering:pixelated;" alt="">
         <div id="end-medal" class="hidden end-medal" aria-hidden="true"></div>
       </div>
-      <div id="end-medal-label" class="hidden end-medal-label text-amber-700"></div>
-      <h2 id="end-title" class="text-3xl font-extrabold mb-2">完成！</h2>
-      <p id="end-message" class="text-slate-700 mb-4">兩隊同心協力，做得好！</p>
-      <div id="end-stats" class="bg-black/30 rounded-2xl p-4 mb-4 text-left space-y-2"></div>
+      <div id="end-medal-label" class="hidden end-medal-label text-amber-200"></div>
+      <h2 id="end-title" class="text-3xl font-extrabold mb-2 text-white" style="text-shadow:0 2px 8px rgba(0,0,0,0.6);">完成！</h2>
+      <p id="end-message" class="text-amber-100 mb-4 text-base" style="text-shadow:0 1px 4px rgba(0,0,0,0.5);">兩隊同心協力，做得好！</p>
+      <div id="end-stats" class="bg-slate-800/70 border border-amber-300/20 rounded-2xl p-4 mb-4 text-left space-y-2 text-amber-50"></div>
       <!-- P2-c: Achievement badges (unlocked only, fade-in stagger) -->
       <div id="end-badges" class="mb-4 flex justify-center gap-3 flex-wrap" style="font-size:0;line-height:0;"></div>
       <div class="grid grid-cols-2 gap-3">
@@ -3876,7 +3896,7 @@
 <!-- ========== 老師密碼 modal ========== -->
 <div id="teacher-modal" class="hidden fixed inset-0 z-50 modal-backdrop items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="teacher-modal-title">
   <div class="bg-slate-900 border border-white/15 rounded-3xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-    <h3 id="teacher-modal-title" class="text-xl font-bold mb-2 text-amber-700 flex items-center gap-2">
+    <h3 id="teacher-modal-title" class="text-xl font-bold mb-2 text-amber-300 flex items-center gap-2">
       <svg class="pixel icon-md"><use href="#px-castle"/></svg>
       老師控制台
     </h3>
@@ -3900,11 +3920,11 @@
 
         <!-- Profile summary -->
         <div id="td-profile" class="text-sm space-y-1 mb-3">
-          <div>累計 sessions: <span id="td-sessions" class="font-bold text-amber-700">—</span></div>
-          <div>解鎖 bosses: <span id="td-bosses" class="font-bold text-amber-700">—</span></div>
-          <div>已用 hints (預留): <span id="td-hints" class="font-bold text-slate-600">0</span></div>
+          <div>累計 sessions: <span id="td-sessions" class="font-bold text-amber-300">—</span></div>
+          <div>解鎖 bosses: <span id="td-bosses" class="font-bold text-amber-300">—</span></div>
+          <div>已用 hints (預留): <span id="td-hints" class="font-bold text-amber-100">0</span></div>
           <div>系統自動降難度次數: <span id="td-downgrades" class="font-bold text-orange-300">—</span></div>
-          <div>已精通題型: <span id="td-mastered" class="font-bold text-amber-700" title="達到 ≥ 90% 命中率且 ≥ 8 樣本嘅題型">—</span></div>
+          <div>已精通題型: <span id="td-mastered" class="font-bold text-amber-300" title="達到 ≥ 90% 命中率且 ≥ 8 樣本嘅題型">—</span></div>
         </div>
 
         <!-- Type error breakdown -->
@@ -7361,7 +7381,7 @@ const UI = {
     const prevCount = list.children.length;
     list.innerHTML = '';
     if (Game.state.review.length === 0) {
-      list.innerHTML = '<span class="text-xs text-slate-600">（目前沒有待重練題目）</span>';
+      list.innerHTML = '<span class="text-xs text-amber-100/70">（目前沒有待重練題目）</span>';
       return;
     }
     Game.state.review.forEach((q, idx) => {
