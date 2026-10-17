@@ -54,6 +54,23 @@
     --c-knight: #3b82f6;
     --c-mage: #a855f7;
     --c-boss: #dc2626;
+    /* V3.6 cycle97: Semantic tokens — auto-flip with .theme-snow
+       用法:
+         .text-on-light   (dark text 喺 light card) ← default theme
+         .text-on-dark    (light text 喺 dark card)  ← 雪山場景、modal、end-screen
+         .bg-card-light / .bg-card-dark
+         .border-light / .border-dark
+       Theme 切換 (.theme-snow) 自動翻轉, 唔再每處手動 */
+    --c-text-on-light: #1e293b;            /* dark slate (default 粉藍場景) */
+    --c-text-on-light-muted: #475569;     /* medium slate */
+    --c-text-on-dark: #f0f9ff;             /* light sky (暗場景) */
+    --c-text-on-dark-muted: rgba(240,249,255,0.7);
+    --c-bg-card-light: #ffffff;
+    --c-bg-card-light-translucent: rgba(255,255,255,0.55);
+    --c-bg-card-dark: #1e293b;
+    --c-bg-card-dark-translucent: rgba(15,23,42,0.55);
+    --c-border-light: rgba(30,41,59,0.18);
+    --c-border-dark: rgba(255,255,255,0.18);
     /* Radius / shadow / transition */
     --radius-sm: 8px;
     --radius-md: 12px;
@@ -74,9 +91,36 @@
     --c-accent-cyan: #bae6fd;
     --c-accent-rose: #60a5fa;
     --c-text-primary: #f0f9ff;
+    /* V3.6 cycle97: 雪山場景 — light card 變暗 card, 反轉 text/bg */
+    --c-text-on-light: #f0f9ff;            /* 雪山場景 card 變暗, text 變淺 */
+    --c-text-on-light-muted: rgba(240,249,255,0.7);
+    --c-text-on-dark: #1e293b;
+    --c-text-on-dark-muted: rgba(30,41,59,0.7);
+    --c-bg-card-light: #1e293b;
+    --c-bg-card-light-translucent: rgba(15,23,42,0.55);
+    --c-bg-card-dark: #ffffff;
+    --c-bg-card-dark-translucent: rgba(255,255,255,0.55);
+    --c-border-light: rgba(255,255,255,0.18);
+    --c-border-dark: rgba(30,41,59,0.25);
   }
   /* P1-D 雪山場景：直接用 body 嘅 background 渲染（CSS gradient + linear-gradient layers），
      唔靠 SVG layer — 確保揀咗雪山 boss 時整個 page 嘅背景即時轉色，無 z-index 衝突 */
+  /* V3.6 cycle97: Semantic utility classes — 取代散落 raw color (text-amber-700, text-slate-600 etc.)
+     用法:
+       <span class="text-on-light">Dark text 喺 light card (粉藍場景 default)</span>
+       <span class="text-on-dark">Light text 喺 dark card (modal / end screen / snow)</span>
+     Theme 切換自動翻轉, 唔再手動改 color */
+  .text-on-light       { color: var(--c-text-on-light); }
+  .text-on-light-muted { color: var(--c-text-on-light-muted); }
+  .text-on-dark        { color: var(--c-text-on-dark); }
+  .text-on-dark-muted  { color: var(--c-text-on-dark-muted); }
+  .bg-card-light       { background: var(--c-bg-card-light); }
+  .bg-card-light-translucent { background: var(--c-bg-card-light-translucent); }
+  .bg-card-dark        { background: var(--c-bg-card-dark); }
+  .bg-card-dark-translucent  { background: var(--c-bg-card-dark-translucent); }
+  .border-light        { border-color: var(--c-border-light); }
+  .border-dark         { border-color: var(--c-border-dark); }
+
   body.theme-snow {
     background:
       /* 飄雪粒子（用 1px radial dot 多點散佈近似） */
@@ -1033,24 +1077,17 @@
     background: rgba(15,23,42,0.45) !important;
     border-color: rgba(255,255,255,0.18) !important;
   }
-  /* V3.6 cycle95: 全 opt-* (track / play / solo-skin / mode / bridge) unselected — dark text on light bg */
+  /* V3.6 cycle97: 全 opt-* (track / play / solo-skin / mode / bridge / scope) unselected — 統一用 design tokens
+     改用 .text-on-light / .bg-card-light-translucent / .border-light → snow theme 自動翻轉, 唔再 override */
   .opt-track:not(.opt-selected),
   .opt-play:not(.opt-selected),
   .opt-solo-skin:not(.opt-selected),
   .opt-mode:not(.opt-selected),
-  .opt-bridge:not(.opt-selected) {
-    color: var(--c-text-primary) !important;
-    background: rgba(255,255,255,0.45) !important;
-    border-color: rgba(30,41,59,0.25) !important;
-  }
-  .theme-snow .opt-track:not(.opt-selected),
-  .theme-snow .opt-play:not(.opt-selected),
-  .theme-snow .opt-solo-skin:not(.opt-selected),
-  .theme-snow .opt-mode:not(.opt-selected),
-  .theme-snow .opt-bridge:not(.opt-selected) {
-    color: #f0f9ff !important;
-    background: rgba(15,23,42,0.45) !important;
-    border-color: rgba(255,255,255,0.18) !important;
+  .opt-bridge:not(.opt-selected),
+  .opt-scope:not(.opt-selected) {
+    color: var(--c-text-on-light) !important;
+    background: var(--c-bg-card-light-translucent) !important;
+    border-color: var(--c-border-light) !important;
   }
   .sen-fb {
     position: absolute; inset: 0;
@@ -1253,9 +1290,9 @@
     font-weight: 800 !important;
     padding: 0.35rem 0.65rem !important;
     border-radius: 999px !important;
-    border: 1px solid var(--c-text-primary) !important;
-    background: rgba(255,255,255,0.5) !important;
-    color: var(--c-text-primary) !important;
+    border: 1px solid var(--c-border-light) !important;
+    background: var(--c-bg-card-light-translucent) !important;
+    color: var(--c-text-on-light) !important;
   }
   .opt-scope-preset.opt-selected {
     border-color: #34d399 !important;
@@ -1273,11 +1310,11 @@
     margin-bottom: 0.15rem;
   }
   .menu-section-card {
-    border: 1px solid rgba(30,41,59,0.18);
+    border: 1px solid var(--c-border-light);
     border-radius: 1.25rem;
     padding: 0.85rem 0.9rem;
-    background: rgba(255,255,255,0.55);
-    color: var(--c-text-primary);
+    background: var(--c-bg-card-light-translucent);
+    color: var(--c-text-on-light);
   }
   .menu-section-title {
     font-size: 0.8rem;

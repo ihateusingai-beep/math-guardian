@@ -1813,8 +1813,8 @@ assert('CONTRAST-04 opt-scope unselected has dark text (default theme)',
 assert('CONTRAST-05 opt-scope.selected has dark text + amber bg',
   /opt-scope\.opt-selected\s*\{[\s\S]{0,400}color:\s*#1e1b4b/.test(src) &&
   /opt-scope\.opt-selected\s*\{[\s\S]{0,400}background:\s*rgba\(251,191,36/.test(src));
-assert('CONTRAST-06 opt-scope-preset uses theme var',
-  /opt-scope-preset\s*\{[\s\S]{0,400}color:\s*var\(--c-text-primary\)/.test(src));
+assert('CONTRAST-06 opt-scope-preset uses theme var (cycle97: design token)',
+  /opt-scope-preset\s*\{[\s\S]{0,400}color:\s*var\(--c-text-on-light\)/.test(src));
 assert('CONTRAST-07 snow theme override restores dark menu',
   /theme-snow\s+\.menu-section-card\s*\{[\s\S]{0,400}rgba\(15,23,42/.test(src) &&
   /theme-snow\s+\.opt-scope\.opt-selected\s*\{[\s\S]{0,400}#fef3c7/.test(src));
@@ -1964,19 +1964,18 @@ assert('VIS-11 review-title text-amber-200 (was text-amber-700 on bg-black/20)',
   /id="review-title"[^>]*text-amber-200/.test(src));
 assert('VIS-12 btn-clear-review text-amber-100 (was text-slate-700)',
   /id="btn-clear-review"[^>]*text-amber-100/.test(src));
-assert('VIS-13 opt-track:not(.opt-selected) dark text on light bg',
-  /\.opt-track:not\(\.opt-selected\)[\s\S]{0,200}var\(--c-text-primary\)/.test(src));
-assert('VIS-14 opt-play:not(.opt-selected) dark text',
-  /\.opt-play:not\(\.opt-selected\)[\s\S]{0,200}var\(--c-text-primary\)/.test(src));
-assert('VIS-15 opt-solo-skin:not(.opt-selected) dark text',
-  /\.opt-solo-skin:not\(\.opt-selected\)[\s\S]{0,200}var\(--c-text-primary\)/.test(src));
-assert('VIS-16 opt-mode:not(.opt-selected) dark text',
-  /\.opt-mode:not\(\.opt-selected\)[\s\S]{0,200}var\(--c-text-primary\)/.test(src));
-assert('VIS-17 opt-bridge:not(.opt-selected) dark text',
-  /\.opt-bridge:not\(\.opt-selected\)[\s\S]{0,200}var\(--c-text-primary\)/.test(src));
-assert('VIS-18 snow theme override for opt-* unselected',
-  /\.theme-snow\s+\.opt-track:not\(\.opt-selected\)[\s\S]{0,200}#f0f9ff/.test(src) &&
-  /\.theme-snow\s+\.opt-mode:not\(\.opt-selected\)[\s\S]{0,200}#f0f9ff/.test(src));
+assert('VIS-13 opt-track:not(.opt-selected) uses design token',
+  /\.opt-track:not\(\.opt-selected\)[\s\S]{0,200}var\(--c-text-on-light\)/.test(src));
+assert('VIS-14 opt-play:not(.opt-selected) uses design token',
+  /\.opt-play:not\(\.opt-selected\)[\s\S]{0,200}var\(--c-text-on-light\)/.test(src));
+assert('VIS-15 opt-solo-skin:not(.opt-selected) uses design token',
+  /\.opt-solo-skin:not\(\.opt-selected\)[\s\S]{0,200}var\(--c-text-on-light\)/.test(src));
+assert('VIS-16 opt-mode:not(.opt-selected) uses design token',
+  /\.opt-mode:not\(\.opt-selected\)[\s\S]{0,200}var\(--c-text-on-light\)/.test(src));
+assert('VIS-17 opt-bridge:not(.opt-selected) uses design token',
+  /\.opt-bridge:not\(\.opt-selected\)[\s\S]{0,200}var\(--c-text-on-light\)/.test(src));
+assert('VIS-18 opt-* unselected uses design token (auto-flip with theme)',
+  /opt-(track|play|solo-skin|mode|bridge|scope):not\(\.opt-selected\)\s*\{[\s\S]{0,200}var\(--c-text-on-light\)/.test(src));
 assert('VIS-19 review empty msg text-amber-100/70 (was text-slate-600)',
   /text-amber-100[\s\S]{0,200}目前沒有待重練題目/.test(src));
 
@@ -2007,6 +2006,56 @@ assert('DEPLOY-09 DEPLOY.md mentions Plausible',
   /Plausible/i.test(fs.readFileSync('DEPLOY.md', 'utf8')));
 assert('DEPLOY-10 file size still under 600 KB',
   fs.statSync('index.html').size < 600 * 1024);
+
+// =========== T97: V3.6 cycle97 — Wave 1 design system (semantic tokens) ===========
+console.log('\n[T97] V3.6 cycle-97 (Wave 1: CSS variables for auto theme-flip)');
+// Semantic tokens defined in :root
+assert('T97-01 design tokens defined in :root (text-on-light, text-on-dark, bg-card-light, bg-card-dark, border-light, border-dark)',
+  /--c-text-on-light:\s*#1e293b/.test(src) &&
+  /--c-text-on-dark:\s*#f0f9ff/.test(src) &&
+  /--c-bg-card-light:\s*#ffffff/.test(src) &&
+  /--c-bg-card-dark:\s*#1e293b/.test(src) &&
+  /--c-border-light:\s*rgba\(30,\s*41,\s*59/.test(src) &&
+  /--c-border-dark:\s*rgba\(255,\s*255,\s*255/.test(src));
+// Snow theme override flips text-on-light to LIGHT (so cards on light bg get light text)
+assert('T97-02 .theme-snow overrides text-on-light to LIGHT (#f0f9ff)',
+  /\.theme-snow\s*\{[\s\S]{0,400}--c-text-on-light:\s*#f0f9ff/.test(src));
+assert('T97-03 .theme-snow overrides text-on-dark to DARK (#1e293b)',
+  /\.theme-snow\s*\{[\s\S]{0,400}--c-text-on-dark:\s*#1e293b/.test(src));
+// Utility classes exist
+assert('T97-04 utility classes defined (.text-on-light, .text-on-dark, .bg-card-light, .bg-card-dark, .border-light, .border-dark)',
+  /\.text-on-light\s*\{\s*color:\s*var\(--c-text-on-light\)/.test(src) &&
+  /\.text-on-dark\s*\{\s*color:\s*var\(--c-text-on-dark\)/.test(src) &&
+  /\.bg-card-light\s*\{\s*background:\s*var\(--c-bg-card-light\)/.test(src) &&
+  /\.bg-card-dark\s*\{\s*background:\s*var\(--c-bg-card-dark\)/.test(src) &&
+  /\.border-light\s*\{\s*border-color:\s*var\(--c-border-light\)/.test(src) &&
+  /\.border-dark\s*\{\s*border-color:\s*var\(--c-border-dark\)/.test(src));
+// Critical places refactored to use tokens
+assert('T97-05 .menu-section-card uses tokens (light translucent bg + light border)',
+  /\.menu-section-card\s*\{[\s\S]{0,200}var\(--c-bg-card-light-translucent\)/.test(src) &&
+  /\.menu-section-card\s*\{[\s\S]{0,200}var\(--c-border-light\)/.test(src));
+assert('T97-06 .opt-scope-preset uses tokens',
+  /\.opt-scope-preset\s*\{[\s\S]{0,300}var\(--c-text-on-light\)/.test(src) &&
+  /\.opt-scope-preset\s*\{[\s\S]{0,300}var\(--c-bg-card-light-translucent\)/.test(src));
+assert('T97-07 5 opt-* types (track/play/solo-skin/mode/bridge/scope) share single design token block',
+  /opt-(track|play|solo-skin|mode|bridge|scope):not\(\.opt-selected\)\s*\{[\s\S]{0,300}var\(--c-text-on-light\)/.test(src));
+// Smoke test: extract largest script and run node --check (catches syntax errors)
+const sc = (() => {
+  const re = /<script>([\s\S]*?)<\/script>/g;
+  let m, biggest = '';
+  while ((m = re.exec(src)) !== null) if (m[1].length > biggest.length) biggest = m[1];
+  return biggest;
+})();
+fs.writeFileSync('/tmp/mg97.js', sc);
+const { execSync } = require('child_process');
+let syntaxOk = false;
+try { execSync('node --check /tmp/mg97.js', { stdio: 'pipe' }); syntaxOk = true; } catch (e) {}
+assert('T97-08 largest <script> passes node --check (no syntax errors after refactor)', syntaxOk);
+// Architecture review followup
+assert('T97-09 docs/ARCHITECTURE_REVIEW.md exists with Wave 1 plan',
+  fs.existsSync('docs/ARCHITECTURE_REVIEW.md') &&
+  /Wave 1/.test(fs.readFileSync('docs/ARCHITECTURE_REVIEW.md', 'utf8')) &&
+  /design tokens/i.test(fs.readFileSync('docs/ARCHITECTURE_REVIEW.md', 'utf8')));
 
 // =========== summary ===========
 console.log(`\n========== ${pass} pass / ${fail} fail ==========`);

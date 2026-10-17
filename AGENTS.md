@@ -37,6 +37,32 @@ Vanilla JS + Tailwind CDN, no build, GitHub Pages.
 - Student UI: **no** stigma「SEN」label; MC **A/B/C** badges by **render order**
 - `startGame`/resume helpers must be **module scope** (not nested in `setupMenu`)
 
+## Design system (v3.6 cycle97)
+
+**Use semantic utility classes — not raw color.**
+
+| Token | Default (粉藍) | Snow theme | 用途 |
+|---|---|---|---|
+| `--c-text-on-light` | `#1e293b` (dark) | `#f0f9ff` (light) | 暗 text 喺淺 card |
+| `--c-text-on-dark` | `#f0f9ff` (light) | `#1e293b` (dark) | 淺 text 喺暗 card |
+| `--c-bg-card-light-translucent` | `rgba(255,255,255,0.55)` | `rgba(15,23,42,0.55)` | 淺 card 半透明 |
+| `--c-border-light` | `rgba(30,41,59,0.18)` | `rgba(255,255,255,0.18)` | 淺 border |
+
+**Apply via utility classes** (auto-flip with theme):
+- `class="text-on-light"` / `text-on-dark` / `text-on-light-muted` / `text-on-dark-muted`
+- `class="bg-card-light-translucent"` / `bg-card-dark-translucent`
+- `class="border-light"` / `border-dark`
+
+**Do NOT** use raw `text-amber-700` / `text-slate-700` — they don't flip with theme. See cycle 95 history.
+
+**Already-migrated**:
+- `.menu-section-card` (cycle97)
+- `.opt-scope-preset` (cycle97)
+- `.opt-track/.opt-play/.opt-solo-skin/.opt-mode/.opt-bridge/.opt-scope` unselected (cycle97)
+- end-screen, teacher modal, review section, sen-done-mask (cycle95 — uses raw colors still, future cycle should migrate to tokens)
+
+**Refactor roadmap**: see `docs/ARCHITECTURE_REVIEW.md` (cycle96).
+
 ## Architecture ground truth (v3.6)
 
 ### Easy main path
