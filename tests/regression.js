@@ -2057,6 +2057,44 @@ assert('T97-09 docs/ARCHITECTURE_REVIEW.md exists with Wave 1 plan',
   /Wave 1/.test(fs.readFileSync('docs/ARCHITECTURE_REVIEW.md', 'utf8')) &&
   /design tokens/i.test(fs.readFileSync('docs/ARCHITECTURE_REVIEW.md', 'utf8')));
 
+// =========== T98: V3.6 cycle98 — debug + missing badge symbols fix ===========
+console.log('\n[T98] V3.6 cycle-98 (debug: 5 missing badge symbols fixed + symbol integrity)');
+// 5 badge symbols that were missing — must now exist (cycle98 fix)
+assert('T98-01 px-badge-star defined (was missing in cycle 90+)',
+  /<symbol\s+id="px-badge-star"\s+viewBox/.test(src));
+assert('T98-02 px-badge-shield defined',
+  /<symbol\s+id="px-badge-shield"\s+viewBox/.test(src));
+assert('T98-03 px-badge-leaf defined',
+  /<symbol\s+id="px-badge-leaf"\s+viewBox/.test(src));
+assert('T98-04 px-badge-hat defined',
+  /<symbol\s+id="px-badge-hat"\s+viewBox/.test(src));
+assert('T98-05 px-badge-book defined',
+  /<symbol\s+id="px-badge-book"\s+viewBox/.test(src));
+// L capacity SVG illustrations
+['pkg-milk-1l','pkg-soda-15l','pkg-juice-1l','pkg-detergent-1l','pkg-soysauce-1l','pkg-bleach-2l'].forEach(s => {
+  assert(`T98-L pkg svg[${s}] defined`, new RegExp(`<symbol[^>]+id="${s}"`).test(src));
+});
+// Symbol integrity: all literal <use href="#xxx"> must have matching <symbol id="xxx">
+const syms = [...src.matchAll(/<symbol\s+id="([^"]+)"/g)].map(m=>m[1]);
+const defIds = new Set(syms);
+// Strip out template-literal refs (they're dynamic, e.g. ${b.symbol})
+const literalUses = [...src.matchAll(/<use\s+href="#([a-z][\w-]*)"/g)].map(m=>m[1]);
+const literalUnique = [...new Set(literalUses)];
+const missingSyms = literalUnique.filter(u => !defIds.has(u));
+assert('T98-06 zero missing <symbol> references (no broken icons)',
+  missingSyms.length === 0,
+  `missing: ${missingSyms.join(',') || '(none)'}`);
+// Balanced tags
+const openSym = (src.match(/<symbol\s+id=/g) || []).length;
+const closeSym = (src.match(/<\/symbol>/g) || []).length;
+assert('T98-07 <symbol> open/close balanced', openSym === closeSym);
+const openDiv = (src.match(/<div[\s>]/g) || []).length;
+const closeDiv = (src.match(/<\/div>/g) || []).length;
+assert('T98-08 <div> open/close balanced', openDiv === closeDiv);
+// Largest script syntax check
+assert('T98-09 largest <script> passes node --check (no syntax errors)',
+  syntaxOk);
+
 // =========== summary ===========
 console.log(`\n========== ${pass} pass / ${fail} fail ==========`);
 if (fail > 0) {
