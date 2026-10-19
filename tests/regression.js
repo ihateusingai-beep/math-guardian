@@ -2095,6 +2095,27 @@ assert('T98-08 <div> open/close balanced', openDiv === closeDiv);
 assert('T98-09 largest <script> passes node --check (no syntax errors)',
   syntaxOk);
 
+// =========== T99: V3.6 cycle99 — orderAsc20/orderDesc20 真實 arithmetic sequence fix ===========
+console.log('\n[T99] V3.6 cycle-99 (debug: orderAsc/Desc20 random → arithmetic)');
+// cycle55 舊版: _nextInSeq 揾 3 random numbers 1-20, sort, 然後當 arithmetic
+// 結果: stem 兩個 number 無關係, 答案唔合理 (e.g. [8,12,?] 揾 18 但 16 = 8+4 才是對)
+// 修正: 真嘅 arithmetic sequence start, start+d, start+2d
+assert('T99-01 _nextInSeq generates arithmetic sequence (not random)',
+  /_nextInSeq\(dir\)\s*\{[\s\S]{0,200}const d = randInt\(1, 3\)/.test(src));
+assert('T99-02 orderAsc20 calls _nextInSeq with asc direction',
+  /orderAsc20\(\)\s*\{[\s\S]{0,100}_nextInSeq\(['"]asc['"]\)/.test(src));
+assert('T99-03 orderDesc20 calls _nextInSeq with desc direction',
+  /orderDesc20\(\)\s*\{[\s\S]{0,100}_nextInSeq\(['"]desc['"]\)/.test(src));
+assert('T99-04 answer constrained to 1-20 (Math.max(1, Math.min(20, ...)))',
+  /Math\.max\(1, Math\.min\(20,\s*answer\s*\+\s*opts\.size\)\)/.test(src));
+assert('T99-05 asc start range: 1 to 18-2d (ensures start+2d ≤ 20)',
+  /dir === ['"]asc['"][\s\S]{0,200}1,\s*18\s*-\s*2\s*\*\s*d/.test(src));
+assert('T99-06 desc end range: 1+2d to 20 (ensures end-2d ≥ 1)',
+  /dir === ['"]desc['"][\s\S]{0,300}1\s*\+\s*2\s*\*\s*d,\s*20/.test(src));
+assert('T99-07 cycle99 comment documented the bug',
+  /cycle55 舊版用 3 random numbers/.test(src) ||
+  /cycle99:.*順序.*真嘅 arithmetic sequence/.test(src));
+
 // =========== summary ===========
 console.log(`\n========== ${pass} pass / ${fail} fail ==========`);
 if (fail > 0) {
