@@ -5489,12 +5489,11 @@ const Generators = {
     return { parts: [g1, ' + ', g2, ' = ?'], answer: group * 2, type:'double' };
   },
   // 時鐘整點 — 題幹唔洩答案；choice 預先生 4 選
+  // V3.6 cycle102: 用 _pickRandomDistinct helper (dedup inline pattern)
   whatTime() {
     const hour = randInt(1, 12);
-    const opts = new Set([hour]);
-    let guard = 0;
-    while (opts.size < 4 && guard++ < 30) opts.add(randInt(1, 12));
-    const options = shuffle([...opts]);
+    const distractors = Generators._pickRandomDistinct(3, 1, 12, [], 30);
+    const options = shuffle([hour, ...distractors]);
     const optionLabels = {};
     options.forEach(h => { optionLabels[h] = `${h} 點`; });
     return {
@@ -5660,6 +5659,21 @@ const Generators = {
   // 修正: 用真 arithmetic sequence, 確保 stem 兩數有公差
   // V3.6 cycle100: 提取 _seqFill3 helper (3-tier fill, 防 padding 迴圈 infinite loop),
   //                _nextInSeq 顯式 throw on invalid dir (防 NaN 污染)
+  // V3.6 cycle102: 提取 _pickRandomDistinct helper (dedup 3 sites: whatTime,
+  //                _normalizeBankQuestion whatTime, _normalizeBankQuestion order)
+  _pickRandomDistinct(count, rangeMin, rangeMax, exclude = [], iterCap = 40) {
+    // 由 [rangeMin, rangeMax] 抽最多 count 個 unique random int,
+    // 排除 exclude 內嘅值。IterCap 防 infinite loop。
+    // Returns array length ≤ count; 不足 caller 自己 pad。
+    const ex = exclude instanceof Set ? exclude : new Set(exclude);
+    const out = [];
+    let g = 0;
+    while (out.length < count && g++ < iterCap) {
+      const v = randInt(rangeMin, rangeMax);
+      if (!ex.has(v) && !out.includes(v)) out.push(v);
+    }
+    return out;
+  },
   _seqFill3(stem, answer) {
     // 3-tier fill, 每次都 bounded, 必 terminate:
     //   tier 1: random pool (40 tries)
@@ -5846,10 +5860,9 @@ function _normalizeBankQuestion(type, mode, q, reg) {
     q.answer = hour;
     q.parts = ['幾點鐘？'];
     if (!q.options || q.options.length < 2) {
-      const opts = new Set([hour]);
-      let g = 0;
-      while (opts.size < 4 && g++ < 30) opts.add(randInt(1, 12));
-      q.options = shuffle([...opts]);
+      // V3.6 cycle102: use _pickRandomDistinct helper (dedup inline pattern)
+      const distractors = Generators._pickRandomDistinct(3, 1, 12, [], 30);
+      q.options = shuffle([hour, ...distractors]);
     }
     q.optionLabels = Object.assign({}, q.optionLabels || {});
     q.options.forEach(h => {
@@ -5977,13 +5990,9 @@ function _normalizeBankQuestion(type, mode, q, reg) {
     q.answer = ans;
     q.parts = [`${stem.join('  ·  ')}  ·  ？`];
     if (!q.options || q.options.length < 2) {
-      const opts = new Set([Number(ans)]);
-      let g = 0;
-      while (opts.size < 3 && g++ < 30) {
-        const d = randInt(1, 20);
-        if (!stem.includes(d)) opts.add(d);
-      }
-      q.options = shuffle([...opts]).map(String);
+      // V3.6 cycle102: use _pickRandomDistinct helper (dedup inline pattern)
+      const distractors = Generators._pickRandomDistinct(2, 1, 20, [...stem, Number(ans)], 30);
+      q.options = shuffle([Number(ans), ...distractors]).map(String);
     } else {
       q.options = q.options.map(String);
     }

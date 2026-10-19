@@ -2144,6 +2144,27 @@ assert('T100-08 _nextInSeq delegates option generation to _seqFill3',
 assert('T100-09 cycle100 comment documents refactor rationale',
   /cycle100:\s*提取\s*_seqFill3\s*helper|cycle100.*防 padding 迴圈 infinite loop/.test(src));
 
+// =========== T102: V3.6 cycle102 — _pickRandomDistinct helper (dedup 3 sites) ===========
+console.log('\n[T102] V3.6 cycle-102 (refactor: extract option-distractor helper)');
+// whatTime / _normalizeBankQuestion whatTime / orderAsc/Desc20 三個 site 都係同 pattern:
+// "build Set, fill with randInt from range, dedup". cycle102 提取 _pickRandomDistinct helper。
+assert('T102 _pickRandomDistinct helper exists with bounded loop',
+  /_pickRandomDistinct\(count,\s*rangeMin,\s*rangeMax,\s*exclude\s*=\s*\[\],\s*iterCap\s*=\s*40\)\s*\{[\s\S]{0,400}g\+\+\s*<\s*iterCap/.test(src));
+assert('T102 _pickRandomDistinct excludes given values (ex.has check)',
+  /ex\.has\(v\)/.test(src));
+assert('T102 _pickRandomDistinct also dedups within result',
+  /!out\.includes\(v\)/.test(src));
+assert('T102 whatTime uses _pickRandomDistinct helper (3 distractors from 1-12)',
+  /whatTime\(\)\s*\{[\s\S]{0,300}_pickRandomDistinct\(3,\s*1,\s*12/.test(src));
+assert('T102 _normalizeBankQuestion whatTime uses helper',
+  /shuffle\(\[hour,\s*\.\.\.distractors\]\)/.test(src));
+assert('T102 _normalizeBankQuestion orderAsc/Desc20 uses helper (2 distractors, stem excluded)',
+  /_pickRandomDistinct\(2,\s*1,\s*20,\s*\[\.\.\.stem,\s*Number\(ans\)\]/.test(src));
+assert('T102 cycle102 comment documents refactor rationale',
+  /cycle102:\s*提取\s*_pickRandomDistinct|cycle102.*dedup.*inline pattern/.test(src));
+assert('T102 _pickRandomDistinct param order is (count, rangeMin, rangeMax, exclude, iterCap)',
+  /_pickRandomDistinct\(\s*count,\s*rangeMin,\s*rangeMax,\s*exclude\s*=\s*\[\],\s*iterCap\s*=\s*40\s*\)/.test(src));
+
 // =========== summary ===========
 console.log(`\n========== ${pass} pass / ${fail} fail ==========`);
 if (fail > 0) {
