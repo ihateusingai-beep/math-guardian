@@ -7,7 +7,9 @@ Vanilla JS + Tailwind CDN, no build, GitHub Pages.
 ## Setup
 
 - Open `index.html` or `python3 -m http.server 8000`
-- Tests: `node tests/regression.js` → **463 pass / 0 fail** (cycle 53–59)
+- Tests:
+  - `node tests/regression.js` → **743 pass / 0 fail** (structural regex lock-in, cycle 53–100)
+  - `node tests/generator-audit.js` → **4493 pass / 0 fail** (functional truth-table, cycle 101+)
 - No lint / typecheck / build
 - Live: https://ihateusingai-beep.github.io/math-guardian/
 
@@ -33,7 +35,11 @@ Vanilla JS + Tailwind CDN, no build, GitHub Pages.
 
 - Every behavior change lands a matching assertion in `tests/regression.js`
 - Assertions = source regex only (no DOM)
-- File budget: `index.html` raw **&lt; 600 KB**
+- File budget: `index.html` raw **< 600 KB** (current: ~522 KB)
+- **Functional truth-table** (`tests/generator-audit.js`) catches arithmetic / math correctness
+  bugs that regex tests cannot see (e.g. cycle55 orderAsc/Desc20 random-as-arithmetic).
+  Runs all 23 generators x 30 trials with deterministic randInt -- catches infinite loops,
+  out-of-range values, broken arithmetic invariants.
 - Student UI: **no** stigma「SEN」label; MC **A/B/C** badges by **render order**
 - `startGame`/resume helpers must be **module scope** (not nested in `setupMenu`)
 
