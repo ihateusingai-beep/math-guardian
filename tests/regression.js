@@ -2100,21 +2100,49 @@ console.log('\n[T99] V3.6 cycle-99 (debug: orderAsc/Desc20 random → arithmetic
 // cycle55 舊版: _nextInSeq 揾 3 random numbers 1-20, sort, 然後當 arithmetic
 // 結果: stem 兩個 number 無關係, 答案唔合理 (e.g. [8,12,?] 揾 18 但 16 = 8+4 才是對)
 // 修正: 真嘅 arithmetic sequence start, start+d, start+2d
-assert('T99-01 _nextInSeq generates arithmetic sequence (not random)',
-  /_nextInSeq\(dir\)\s*\{[\s\S]{0,200}const d = randInt\(1, 3\)/.test(src));
+// cycle100: refactor — d = randInt 移到 _nextInSeq function body (仍然存在),
+//          clamp 邏輯入咗 _seqFill3 tier 2/3, 唔再用 opts.size anchor
+assert('T99-01 _nextInSeq still generates arithmetic sequence with d = randInt(1, 3)',
+  /_nextInSeq\(dir\)\s*\{[\s\S]{0,400}randInt\(1,\s*3\)/.test(src));
 assert('T99-02 orderAsc20 calls _nextInSeq with asc direction',
   /orderAsc20\(\)\s*\{[\s\S]{0,100}_nextInSeq\(['"]asc['"]\)/.test(src));
 assert('T99-03 orderDesc20 calls _nextInSeq with desc direction',
   /orderDesc20\(\)\s*\{[\s\S]{0,100}_nextInSeq\(['"]desc['"]\)/.test(src));
-assert('T99-04 answer constrained to 1-20 (Math.max(1, Math.min(20, ...)))',
-  /Math\.max\(1, Math\.min\(20,\s*answer\s*\+\s*opts\.size\)\)/.test(src));
+assert('T99-04 option generation bounded to [1,20] (Math.max/Math.min clamp)',
+  /Math\.max\(1,\s*Math\.min\(20,/.test(src));
 assert('T99-05 asc start range: 1 to 18-2d (ensures start+2d ≤ 20)',
-  /dir === ['"]asc['"][\s\S]{0,200}1,\s*18\s*-\s*2\s*\*\s*d/.test(src));
+  /dir === ['"]asc['"][\s\S]{0,300}1,\s*18\s*-\s*2\s*\*\s*d/.test(src));
 assert('T99-06 desc end range: 1+2d to 20 (ensures end-2d ≥ 1)',
-  /dir === ['"]desc['"][\s\S]{0,300}1\s*\+\s*2\s*\*\s*d,\s*20/.test(src));
+  /1\s*\+\s*2\s*\*\s*d,\s*20/.test(src));
 assert('T99-07 cycle99 comment documented the bug',
   /cycle55 舊版用 3 random numbers/.test(src) ||
   /cycle99:.*順序.*真嘅 arithmetic sequence/.test(src));
+
+// =========== T100: V3.6 cycle100 — _seqFill3 helper + invalid-dir guard ===========
+console.log('\n[T100] V3.6 cycle-100 (debug: padding infinite loop + invalid-dir NaN)');
+// cycle99 嘅 padding `while (opts.size < 3) opts.add(...)` 無 guard
+// 若 `answer + opts.size` 已喺 set 內, opts.add 不變 size → infinite loop
+// fix: extract _seqFill3 3-tier helper, 每 tier 都 bounded (40/10/20)
+// 同時: 無效 dir (e.g. 'ASC' typo) 會 fall-through asc, start = undefined → NaN
+// fix: 顯式 throw on invalid dir
+assert('T100-01 _seqFill3 helper exists with 3-tier fill',
+  /_seqFill3\(stem,\s*answer\)\s*\{[\s\S]{0,800}tier 1|tier 2|tier 3/.test(src));
+assert('T100-02 _seqFill3 tier 1 (random pool) bounded by g++ < 40',
+  /while\s*\(opts\.size\s*<\s*3\s*&&\s*g\+\+\s*<\s*40\)/.test(src));
+assert('T100-03 _seqFill3 tier 2 (sequential offset) bounded by p++ < 10',
+  /while\s*\(opts\.size\s*<\s*3\s*&&\s*p\+\+\s*<\s*10\)/.test(src));
+assert('T100-04 _seqFill3 tier 3 (brute-force scan) bounded by n <= 20',
+  /while\s*\(opts\.size\s*<\s*3\s*&&\s*n\s*<=\s*20\)/.test(src));
+assert('T100-05 _seqFill3 tier 2 dedups via opts.has() check',
+  /!opts\.has\(v\)/.test(src));
+assert('T100-06 _nextInSeq throws on invalid dir (防 NaN 污染)',
+  /_nextInSeq\(dir\)[\s\S]{0,300}throw new Error/.test(src));
+assert('T100-07 _nextInSeq dir guard checks both asc and desc',
+  /dir !== ['"]asc['"]\s*&&\s*dir !== ['"]desc['"]/.test(src));
+assert('T100-08 _nextInSeq delegates option generation to _seqFill3',
+  /Generators\._seqFill3\(stem,\s*answer\)/.test(src));
+assert('T100-09 cycle100 comment documents refactor rationale',
+  /cycle100:\s*提取\s*_seqFill3\s*helper|cycle100.*防 padding 迴圈 infinite loop/.test(src));
 
 // =========== summary ===========
 console.log(`\n========== ${pass} pass / ${fail} fail ==========`);

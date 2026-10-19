@@ -5658,46 +5658,52 @@ const Generators = {
   // cycle55 舊版用 3 random numbers, sorted, 但 random 數字無 arithmetic 關係
   // → 學生睇 [8, 12, ?] 揀 18 唔合理 (應該 16 = 8+4)
   // 修正: 用真 arithmetic sequence, 確保 stem 兩數有公差
-  _nextInSeq(dir) {
-    // dir 'asc' | 'desc'
-    // cycle99: 公差 1-3, 起點 1-5 (asc) / 16-20 (desc) 確保第三個值 1-20 內
-    const d = randInt(1, 3);
-    let start;
-    if (dir === 'asc') {
-      // start, start+d, start+2d 全部 1-20 → start+2d ≤ 20 → start ≤ 18
-      start = randInt(1, 18 - 2 * d);
-    } else if (dir === 'desc') {
-      // 倒序: end, end-d, end-2d 全部 1-20 → end-2d ≥ 1 → end ≥ 1+2d
-      // stem 顯示 [end, end-d], answer = end-2d
-      const end = randInt(1 + 2 * d, 20);
-      const seq = [end, end - d, end - 2 * d];
-      const stem = [seq[0], seq[1]];
-      const answer = seq[2];
-      const opts = new Set([answer]);
-      let g = 0;
-      while (opts.size < 3 && g++ < 40) {
-        const c = randInt(1, 20);
-        if (!stem.includes(c) && c !== answer) opts.add(c);
-      }
-      while (opts.size < 3) opts.add(Math.max(1, Math.min(20, answer + opts.size))); // pad safe
-      return {
-        stem,
-        answer: String(answer),
-        options: shuffle([...opts]).map(String).slice(0, 3),
-        displayNums: stem,
-      };
-    }
-    // asc
-    const seq = [start, start + d, start + 2 * d];
-    const stem = [seq[0], seq[1]];
-    const answer = seq[2];
+  // V3.6 cycle100: 提取 _seqFill3 helper (3-tier fill, 防 padding 迴圈 infinite loop),
+  //                _nextInSeq 顯式 throw on invalid dir (防 NaN 污染)
+  _seqFill3(stem, answer) {
+    // 3-tier fill, 每次都 bounded, 必 terminate:
+    //   tier 1: random pool (40 tries)
+    //   tier 2: sequential offset (10 tries, dedup + stem-exclusion)
+    //   tier 3: brute-force scan 1..20 (一定搵到 3 個 unique)
     const opts = new Set([answer]);
     let g = 0;
     while (opts.size < 3 && g++ < 40) {
       const c = randInt(1, 20);
       if (!stem.includes(c) && c !== answer) opts.add(c);
     }
-    while (opts.size < 3) opts.add(Math.max(1, Math.min(20, answer + opts.size))); // pad safe
+    let p = 0, off = 1;
+    while (opts.size < 3 && p++ < 10) {
+      const v = Math.max(1, Math.min(20, answer + off));
+      if (!opts.has(v) && !stem.includes(v)) opts.add(v);
+      off++;
+    }
+    let n = 1;
+    while (opts.size < 3 && n <= 20) {
+      if (!stem.includes(n) && n !== answer) opts.add(n);
+      n++;
+    }
+    return opts;
+  },
+  _nextInSeq(dir) {
+    // dir 'asc' | 'desc' — explicit guard 防 NaN 污染
+    if (dir !== 'asc' && dir !== 'desc') {
+      throw new Error('_nextInSeq: invalid dir "' + dir + '" (expected asc | desc)');
+    }
+    // 公差 1-3, 全部 3 terms 必須喺 [1, 20]
+    const d = randInt(1, 3);
+    let seq;
+    if (dir === 'asc') {
+      // start, start+d, start+2d 全部 1-20 → start+2d ≤ 20 → start ≤ 18-2d
+      const start = randInt(1, 18 - 2 * d);
+      seq = [start, start + d, start + 2 * d];
+    } else {
+      // 倒序: end, end-d, end-2d 全部 1-20 → end-2d ≥ 1 → end ≥ 1+2d
+      const end = randInt(1 + 2 * d, 20);
+      seq = [end, end - d, end - 2 * d];
+    }
+    const stem = [seq[0], seq[1]];
+    const answer = seq[2];
+    const opts = Generators._seqFill3(stem, answer);
     return {
       stem,
       answer: String(answer),
