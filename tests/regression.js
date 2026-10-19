@@ -673,7 +673,7 @@ assert('F-18 Adaptive heuristic — medium < 0.9 threshold',
 assert('F-19 renderTypePicker consults Adaptive.topRecommendations',
   /Adaptive\.topRecommendations\('knight',\s*3\)[\s\S]{0,200}recSet/.test(src));
 assert('F-19 opt-recommended class applied in renderTypePicker',
-  /aria-label="自動推薦"[\s\S]{0,600}opt-recommended'/.test(src));
+  /aria-hidden="true"[^>]*>✨<\/span>'[\s\S]{0,600}opt-recommended'/.test(src));
 assert('F-19 CSS rule for opt-recommended highlight',
   /#type-picker \.opt-recommended\s*\{[\s\S]{0,200}border-color:\s*rgba\(251, 191, 36/.test(src));
 
@@ -758,8 +758,8 @@ assert('F-19 Adaptive.suggestNextType bumps mastered to priority=5',
   /if \(this\.isMastered\(typeId\)\) \{[\s\S]{0,200}priority = 5/.test(src));
 
 // F-20 — type-picker UI badge + CSS + aria
-assert('F-20 renderTypePicker shows ⭐ mastered badge + aria-label',
-  /isMastered\(reg\.id\)[\s\S]{0,500}text-amber-400[\s\S]{0,200}已精通/.test(src));
+assert('F-20 renderTypePicker shows ⭐ mastered badge (cycle103: aria-hidden, parent button 已有 aria-label)',
+  /isMastered\(reg\.id\)[\s\S]{0,700}text-amber-400[\s\S]{0,200}已精通/.test(src));
 assert('F-20 CSS rule for opt-mastered highlight exists',
   /#type-picker \.opt-mastered \{[\s\S]{0,400}border-color:\s*rgba\(251, 191, 36, 0\.85\)/.test(src));
 
@@ -2164,6 +2164,32 @@ assert('T102 cycle102 comment documents refactor rationale',
   /cycle102:\s*提取\s*_pickRandomDistinct|cycle102.*dedup.*inline pattern/.test(src));
 assert('T102 _pickRandomDistinct param order is (count, rangeMin, rangeMax, exclude, iterCap)',
   /_pickRandomDistinct\(\s*count,\s*rangeMin,\s*rangeMax,\s*exclude\s*=\s*\[\],\s*iterCap\s*=\s*40\s*\)/.test(src));
+
+// =========== T103: V3.6 cycle103 — a11y violations fix + permanent linter ===========
+console.log('\n[T103] V3.6 cycle-103 (a11y: span aria-label 改 aria-hidden + permanent linter)');
+// memory rule 14 common violation: <span aria-label="..."> without role
+// span has no native semantics, so screen readers ignore aria-label without role
+// Fix: 改用 aria-hidden="true" (badges are decorative — parent button 嘅 aria-label 已 contain 推薦/精通 info)
+const spanAriaLabelMatches = src.match(/<span[^>]*aria-label[^>]*>/g) || [];
+assert('T103 no <span aria-label> violations remain (was 2)',
+  spanAriaLabelMatches.length === 0,
+  `found ${spanAriaLabelMatches.length}: ${spanAriaLabelMatches.slice(0, 3).join('; ')}`);
+// Both fixed badges use aria-hidden instead
+assert('T103 recBadge uses aria-hidden not aria-label',
+  /recBadge\s*=\s*isRecommended\s*\?\s*'<span[^>]*aria-hidden="true"[^>]*>\u2728<\/span>'/.test(src));
+assert('T103 masteredBadge uses aria-hidden not aria-label',
+  /masteredBadge\s*=\s*isMastered\s*\?\s*'<span[^>]*aria-hidden="true"[^>]*>\u2b50<\/span>'/.test(src));
+// Existing aria-label on divs always paired with role (memory rule 14 invariant)
+const divAriaLabelNoRole = (src.match(/<div[^>]*aria-label[^>]*>/g) || [])
+  .filter(s => !/role=/.test(s));
+assert('T103 no <div aria-label> without role (sanity)',
+  divAriaLabelNoRole.length === 0,
+  `found ${divAriaLabelNoRole.length}: ${divAriaLabelNoRole.slice(0, 3).join('; ')}`);
+// Buttons with opt-disabled state should expose aria-pressed (existing pattern)
+const optBtnWithPressed = (src.match(/<button[^>]*aria-pressed/g) || []).length;
+assert('T103 ≥10 buttons with aria-pressed (a11y for selected states)',
+  optBtnWithPressed >= 10,
+  `found ${optBtnWithPressed}`);
 
 // =========== summary ===========
 console.log(`\n========== ${pass} pass / ${fail} fail ==========`);

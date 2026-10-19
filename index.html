@@ -6571,9 +6571,10 @@ function renderTypePicker() {
     const isMastered = (typeof Adaptive !== 'undefined') ? Adaptive.isMastered(reg.id) : false;
     const icon = reg.icon ? `<svg class="pixel icon-md mr-1"><use href="#${reg.icon}"/></svg>` : `<span class="text-xl mr-1">${reg.emoji}</span>`;
     const diffIcon = reg.difficulty === 1 ? '🌱' : reg.difficulty === 2 ? '🌿' : '🌳';
-    const recBadge = isRecommended ? '<span class="ml-1 text-xs text-amber-700" aria-label="自動推薦" title="自動推薦">✨</span>' : '';
+    // V3.6 cycle103: aria-hidden 取代 aria-label (badges 視覺裝飾, parent aria-label 已含 info)
+    const recBadge = isRecommended ? '<span class="ml-1 text-xs text-amber-700" aria-hidden="true" title="自動推薦">✨</span>' : '';
     // V3.5-AUDIT14: mastered 標記 — 金色 ⭐ + 標題
-    const masteredBadge = isMastered ? '<span class="ml-1 text-xs text-amber-400 font-bold" aria-label="已精通" title="已精通 — 系統保護唔再自動降級">⭐</span>' : '';
+    const masteredBadge = isMastered ? '<span class="ml-1 text-xs text-amber-400 font-bold" aria-hidden="true" title="已精通 — 系統保護唔再自動降級">⭐</span>' : '';
     return `<button class="opt-type btn btn-ghost text-left flex items-center ${selected ? 'opt-selected' : ''} ${isRecommended ? 'opt-recommended' : ''} ${isMastered ? 'opt-mastered' : ''}" data-type="${reg.id}" title="${reg.desc}${isRecommended ? '（自動推薦）' : ''}${isMastered ? '（已精通）' : ''}" aria-pressed="${selected}" aria-label="${reg.label}，難度 ${reg.difficulty === 1 ? '一' : reg.difficulty === 2 ? '二' : '三'}，${selected ? '已選' : '未選'}${isRecommended ? '，自動推薦' : ''}${isMastered ? '，已精通' : ''}">
       ${icon}
       <span class="flex-1 text-sm">${reg.label}</span>
