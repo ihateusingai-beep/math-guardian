@@ -2191,6 +2191,28 @@ assert('T103 ≥10 buttons with aria-pressed (a11y for selected states)',
   optBtnWithPressed >= 10,
   `found ${optBtnWithPressed}`);
 
+// =========== T105: V3.6 cycle105 — audio runtime bug fixes (B1/B2/B3) ===========
+console.log('\n[T105] V3.6 cycle-105 (debug: 3 audio runtime bugs — tick/beep/bgmInterval)');
+// cycle104 audit 發現嘅 3 個真 runtime bug, 同一個根因:
+// Audio module 嘅 public surface 同 call sites 脫節, 冇任何嘢 check 佢哋夾唔夾得順.
+//   B1: Audio.tick()       called @6643  → not exported → TypeError
+//   B2: Audio.beep(440,.08) called @10160 → not exported → TypeError
+//   B3: Audio.bgmInterval read @11771    → not exported → always undefined
+//       → BGM 切走 tab 之後永遠唔會恢復
+// Fix: export tick / beep / isPlaying(). 永久 cross-check 喺 tests/audio-audit.js.
+assert('T105 B1 fixed: Audio exports tick (call site @6643)',
+  /^\s*tick\s*:\s*\(\)\s*=>/m.test(src));
+assert('T105 B2 fixed: Audio exports beep with (freq, dur) signature',
+  /^\s*beep\s*:\s*\(freq\s*=\s*440,\s*dur\s*=\s*0\.08\)\s*=>/m.test(src));
+assert('T105 B3 fixed: Audio exports isPlaying() accessor',
+  /isPlaying\(\)\s*\{\s*return\s*!!\s*bgmInterval;\s*\}/.test(src));
+assert('T105 B3 fixed: visibilitychange handler uses Audio.isPlaying()',
+  /_wasPlayingBGM\s*=\s*Audio\.isPlaying\(\)/.test(src));
+assert('T105 B3 fixed: no external Audio.bgmInterval access remains',
+  !/\bAudio\.bgmInterval\b/.test(src));
+assert('T105 cycle105 comment documents the three bug fixes',
+  /cycle105:\s*之前讀未 export 嘅 bgmInterval|cycle105:\s*呢兩個之前被 call 但冇 export/.test(src));
+
 // =========== summary ===========
 console.log(`\n========== ${pass} pass / ${fail} fail ==========`);
 if (fail > 0) {

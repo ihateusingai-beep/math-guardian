@@ -20,9 +20,9 @@ specific ways that this review found and verified:
 
 | # | Finding | Severity | Status |
 |---|---|---|---|
-| B1 | `Audio.tick()` called at `index.html:6643` but never exported → runtime `TypeError` | 🔴 P0 | **Verified live, unfixed** |
-| B2 | `Audio.beep(440, 0.08)` called at `index.html:10160` but never exported → runtime `TypeError` | 🔴 P0 | **Verified live, unfixed** |
-| B3 | `Audio.bgmInterval` read at `index.html:11771` but never exported → always `undefined` → **background music never resumes** after the tab is backgrounded | 🔴 P0 | **Verified live, unfixed** |
+| B1 | `Audio.tick()` called at `index.html:6643` but never exported → runtime `TypeError` | 🔴 P0 | ✅ **FIXED in cycle 105** |
+| B2 | `Audio.beep(440, 0.08)` called at `index.html:10160` but never exported → runtime `TypeError` | 🔴 P0 | ✅ **FIXED in cycle 105** |
+| B3 | `Audio.bgmInterval` read at `index.html:11771` but never exported → always `undefined` → **background music never resumes** after the tab is backgrounded | 🔴 P0 | ✅ **FIXED in cycle 105** |
 | A1 | `masterGain` declared at `index.html:4762` and never used — there is no master gain node, no volume control, and no ducking capability | 🟠 P1 | Verified, unfixed |
 | A2 | `Audio.countdown` is exported but has zero call sites — the "last 10 seconds" timer has no sound | 🟠 P1 | Verified, unfixed |
 | A3 | BGM is driven by `setInterval(180ms)` and SFX by `setTimeout` chains — timer-based, not sample-accurate; drifts and jitters | 🟠 P1 | Verified, unfixed |
@@ -33,11 +33,24 @@ specific ways that this review found and verified:
 | A8 | No voice limit, no node pooling, no node reuse — every SFX allocates fresh oscillator/gain/filter nodes | 🟡 P2 | Verified, unfixed |
 | A9 | No offline support, no service worker, no web app manifest — the game cannot be used in a classroom with flaky Wi-Fi | 🟡 P2 | Verified, unfixed |
 
-The proposed changes in §24 are deliberately small. The two highest-leverage
-items are **fixing the three runtime bugs** (about 6 lines) and **adding one
-automated cross-check test** that would have caught all three (§24.2) — the same
-"regex tests cannot see behaviour" gap that `tests/generator-audit.js` closed
-for question generation in cycle 101.
+### Update — cycle 105 (2026-10-24)
+
+The two highest-leverage items in this review were **fixing the three runtime
+bugs** and **adding one automated cross-check test** that catches all three.
+**Both shipped in cycle 105:**
+
+- `Audio.tick` and `Audio.beep` are now exported; `Audio.isPlaying()` replaces
+  the private `bgmInterval` read at the `visibilitychange` handler.
+- `tests/audio-audit.js` cross-checks every `Audio.*` and `TTS.*` call site
+  against the module's exported members, asserts every exported SFX produces at
+  least one voice, and asserts the three specific bugs stay fixed. It reports
+  **12 pass / 0 fail**, and a meta-test confirmed it fails (6 assertions) when
+  all three bugs are reintroduced.
+
+Everything else in this document remains a proposal. The remaining tracked P1
+items (`masterGain` dead code, `Audio.countdown` never wired, `noise()`
+per-call buffer churn) are surfaced by `tests/audio-audit.js` as reported
+metrics so they stay visible without failing the gate.
 
 ---
 
@@ -221,7 +234,7 @@ Wi-Fi.
 | School logo 404 | `<img>` fails | Broken-image icon inside a 72×72 box; `alt` text shown instead |
 | Tailwind CDN unreachable | `<script>` fails, page renders unstyled | **Severe** — the entire layout depends on Tailwind utilities |
 | Plausible unreachable | `defer` script fails silently | Analytics lost, no player impact |
-| `Audio.tick()` / `Audio.beep()` (B1/B2) | `TypeError` thrown inside the handler | **Uncaught error in console**; the UI state change already applied, so the player still sees the intended result, but the handler aborts before its final statement |
+| `Audio.tick()` / `Audio.beep()` (B1/B2) | ✅ **Fixed in cycle 105** — both are now exported | The intended sound now plays; no uncaught error |
 
 **There is no player-facing error surface for any media failure.** For a
 moderate-ID SEN audience this is a real risk: a student on a locked-down school
@@ -236,12 +249,15 @@ iPad with no Cantonese voice installed gets silence and no explanation.
 | `tests/regression.js` | 110 | Source-regex (structural) | "the `TTS` module exists", "`Audio.setChannel` is exported", "TTS karaoke wiring", "`prefers-reduced-motion` disables `.tts-tok` transition" |
 | `tests/generator-audit.js` | 0 | Functional | — (question generation only) |
 
-**Verified gap**: `grep -c 'tick:' tests/regression.js` → `0`;
+**Verified gap (as of cycle 104)**: `grep -c 'tick:' tests/regression.js` → `0`;
 `'beep:'` → `0`; `'bgmInterval'` → `0`. **None of the three confirmed runtime
-bugs is covered by any assertion.** The existing `AUDIT2-B3` assertions only
-check that the variable `_wasPlayingBGM` is *declared* (`index.html` test line
-252) and *reset* (line 256) — they never check that the value it is assigned
-from is actually resolvable.
+bugs was covered by any assertion.** The existing `AUDIT2-B3` assertions only
+check that the variable `_wasPlayingBGM` is *declared* (test line 252) and
+*reset* (line 256) — they never check that the value it is assigned from is
+actually resolvable.
+
+**Closed in cycle 105** by `tests/audio-audit.js` (12 assertions) plus 6
+T105 regex lock-ins in `tests/regression.js`.
 
 **No profiling harness exists.** No `AudioContext` node counters, no
 performance marks, no memory snapshots, no CPU sampling.
@@ -255,9 +271,10 @@ testing, no automated visual regression.
 
 ## 2. Current problems, ranked
 
-### 🔴 P0 — Runtime failures
+### 🔴 P0 — Runtime failures  ✅ **all three fixed in cycle 105**
 
-**P0-1 · `Audio.tick()` is called but not exported** — `index.html:6643`
+**P0-1 · `Audio.tick()` is called but not exported** — `index.html:6643`  
+✅ *Fixed in cycle 105 — `tick` is now exported.*
 
 ```js
 // index.html:6643 — inside the recommend-chip click handler
@@ -273,7 +290,8 @@ correctly, but the handler aborts and an uncaught `TypeError` reaches the
 console. The intended sound was a light confirmation blip for "recommendation
 chip toggled".
 
-**P0-2 · `Audio.beep(440, 0.08)` is called but not exported** — `index.html:10160`
+**P0-2 · `Audio.beep(440, 0.08)` is called but not exported** — `index.html:10160`  
+✅ *Fixed in cycle 105 — `beep` is now exported.*
 
 ```js
 // index.html:10155-10162 — mobile long-press review reveal
@@ -291,7 +309,8 @@ The answer **is** revealed (the class is added before the throw), but `lpBtn`
 is never cleared, leaving a stale reference. The intended sound is a
 confirmation blip for "answer revealed".
 
-**P0-3 · `Audio.bgmInterval` is read but not exported** — `index.html:11771`
+**P0-3 · `Audio.bgmInterval` is read but not exported** — `index.html:11771`  
+✅ *Fixed in cycle 105 — replaced by an exported `Audio.isPlaying()` accessor.*
 
 ```js
 // index.html:11768-11777 — visibilitychange handler
@@ -948,15 +967,23 @@ any that do not resolve.
 **Expected output (verified against the current tree):**
 
 ```
-Audio IIFE exported (31): attack attackSting boatRow bossDefeat bossEnraged
-bossHit castle castleHitHeavy click correct countdown defeat enable
-energyTick freeze getChannels hpTick isBgmOn isEnabled prime reviewAdd
-setBGMScene setChannel startBGM stopBGM tugPull ultimate victory wrong
+Audio IIFE exported (32): attack attackSting beep boatRow bossDefeat
+bossEnraged bossHit castle castleHitHeavy click correct countdown defeat
+enable energyTick freeze getChannels hpTick isBgmOn isEnabled isPlaying
+prime reviewAdd setBGMScene setChannel startBGM stopBGM tick tugPull
+ultimate victory wrong
 
-X 2 call site(s) reference a NON-EXPORTED method:
-   Audio.tick(...)  -> index.html:6643
-   Audio.beep(...)  -> index.html:10160
+OK every Audio.* call site resolves to an exported method
 ```
+
+**This check is now permanently enforced** by `tests/audio-audit.js`
+(12 assertions, cycle 105+). It also covers `Audio.<prop>` reads (which is
+what caught B3), `TTS.*` call sites, and asserts that every exported SFX
+actually produces a voice.
+
+**Meta-test (verified):** reintroducing all three bugs makes the audit report
+**6 failures** with precise line numbers; restoring them returns it to
+**12 pass / 0 fail**.
 
 ### 9.4 Static verification of B3
 
@@ -999,7 +1026,7 @@ grep -c 'bgmInterval' tests/regression.js       # -> 0
 
 Ordered by value ÷ risk. Everything in P0 and P1 is deliberately small.
 
-### 10.1 P0 — Fix the three runtime bugs (~6 lines, 1 cycle)
+### 10.1 P0 — Fix the three runtime bugs (~6 lines, 1 cycle)  ✅ **SHIPPED in cycle 105**
 
 | # | Change | Location |
 |---|---|---|
@@ -1022,7 +1049,7 @@ manual test confirms BGM resumes after a tab switch; the manual test confirms
 the recommendation chip and the long-press reveal produce sound with no
 console error.
 
-### 10.2 P0 — Add the automated cross-check test (~60 lines, 1 cycle)
+### 10.2 P0 — Add the automated cross-check test (~60 lines, 1 cycle)  ✅ **SHIPPED in cycle 105**
 
 Create `tests/audio-audit.js`, mirroring the shape of `tests/generator-audit.js`
 (cycle 101):
@@ -1159,7 +1186,8 @@ technical detail may leak onto a player surface.
 
 | File | Status | Purpose |
 |---|---|---|
-| `docs/AUDIO_VIDEO_OPTIMIZATION.md` | **Created** | This document |
+| `docs/AUDIO_VIDEO_OPTIMIZATION.md` | **Created** (cycle 104), **updated** (cycle 105) | This document |
+| `tests/audio-audit.js` | **Created** (cycle 105) | Permanent audio call-site × export cross-check — 12 assertions |
 | `AGENTS.md` | **Update recommended** (not changed here) | Add a "Media" section pointing at this document, and add `node tests/audio-audit.js` to the test gates once that file exists |
 | `.harness/docs/architecture.md` | **Stale — update recommended** (not changed here) | Written for v3.4 (cycle 53). It does not mention the `Audio` module's current shape, the TTS karaoke feature, `tests/generator-audit.js`, or this media review |
 | `docs/ARCHITECTURE_REVIEW.md` | Current (cycle 96) | Code-architecture review. Complements this document; no conflict |
@@ -1173,7 +1201,7 @@ technical detail may leak onto a player surface.
 
 | Limitation | Effect |
 |---|---|
-| **No browser was run.** All findings are from static analysis plus a mocked `AudioContext`. The three bugs (B1, B2, B3) are proven by *call-site resolution* and *export parsing*, not by observing the error in a live browser. | The bugs are certain (the code path is unambiguous), but the exact console text and timing were not observed. A live check should precede the fix commit. |
+| **No browser was run.** All findings are from static analysis plus a mocked `AudioContext`. The three bugs (B1, B2, B3) are proven by *call-site resolution* and *export parsing*, not by observing the error in a live browser. | The bugs were certain (the code path is unambiguous) and are now **fixed in cycle 105**, but the fix itself has not been confirmed in a live browser. A live probe should confirm: (a) the recommendation chip now plays a tick, (b) the long-press answer reveal now plays a beep, (c) background music resumes after a tab switch. |
 | **No audio was listened to.** Tone frequencies, envelopes, and relative loudness were read from the source, not heard. | Statements like "`click` and `energyTick` are indistinguishable" are derived from identical source parameters (both 0.04 s sine at 660 Hz), which is strong but not the same as listening. Verify by ear before deduplicating. |
 | **No device testing.** Latency, CPU, and memory on a low-end Android tablet were not measured. | The memory and CPU figures in §8.9-8.10 are calculated from the Web Audio node model, not sampled from a device profiler. |
 | **TTS voice availability was not tested** on any target platform. | The "no Cantonese voice" state in §11.1 is inferred from the code path, not observed. |
@@ -1219,3 +1247,25 @@ architecture needs to be replaced.**
 
 *Analysis performed against `index.html` @ `d92c75a` (cycle 103), 2026-10-24.
 No implementation changes were made as part of this review.*
+
+---
+
+## 15. Changelog
+
+| Cycle | Date | Change |
+|---|---|---|
+| 104 | 2026-10-24 | This document created (analysis only, no implementation changes) |
+| 105 | 2026-10-24 | **B1/B2/B3 fixed** — `Audio.tick` and `Audio.beep` exported; `Audio.isPlaying()` added and used by the `visibilitychange` handler. `tests/audio-audit.js` created (12 assertions) + 6 T105 regex lock-ins in `tests/regression.js`. Meta-test verified: reintroducing the three bugs produces 6 audit failures. |
+
+**Still open after cycle 105** (all tracked, none blocking):
+
+| Item | Severity | Where |
+|---|---|---|
+| `masterGain` declared and never used → no master gain, no ducking | P1 | §8.3, §10.3 |
+| `Audio.countdown` exported but never wired | P1 | §5.1, §10.4 |
+| `noise()` allocates a fresh `AudioBuffer` per call (up to 96 KB) | P1 | §8.3, §10.3 |
+| BGM loop is 7.2 s → bass pattern repeats 208× per 5-min session | P2 | §6.3, §10.5 |
+| Home menu is silent; `menuTrack` has no audio effect | P2 | §5.1, §10.5 |
+| Easy mode inherits a boss scene BGM | P2 | §6.1, §10.5 |
+| No service worker / no manifest → no offline | P2 | §1.2, §10.6 |
+| No player-facing media states (no voice, audio blocked, offline) | P2 | §11.1, §10.7 |

@@ -4941,6 +4941,10 @@ const Audio = (() => {
     },
     countdown: () => tone(880, 0.10, 'square', 0.14), // 倒數最後 10 秒
     click: () => tone(660, 0.04, 'sine', 0.08),
+    // V3.6 cycle105: 呢兩個之前被 call 但冇 export → runtime TypeError
+    // (call sites: Audio.tick @6643 推薦 chip toggle / Audio.beep @10160 長按顯示答案)
+    tick: () => tone(1200, 0.03, 'square', 0.05),   // UI tick — 輕量確認 blip
+    beep: (freq = 440, dur = 0.08) => tone(freq, dur, 'sine', 0.12), // 通用提示 beep
     // V3.6 cycle47 arena SFX
     tugPull: () => {
       tone(140, 0.07, 'square', 0.14, 90, 0.07);
@@ -4974,6 +4978,10 @@ const Audio = (() => {
     getChannels() { return { ...channels }; },
     isEnabled() { return channels.master && channels.sfx; },
     isBgmOn() { return channels.bgm; },
+    // V3.6 cycle105: BGM 實際運行中? 之前讀未 export 嘅 bgmInterval (IIFE-private)
+    // timer handle → 永遠 undefined → 切走 tab 後 BGM 唔會恢復。
+    // 正確做法: export 一個 boolean accessor, 唔好 export 原始 handle。
+    isPlaying() { return !!bgmInterval; },
     prime() { ensure(); if (ctx && ctx.state === 'suspended') ctx.resume().catch(()=>{}); },
   };
 })();
@@ -11768,7 +11776,9 @@ document.addEventListener('touchstart', () => Audio.prime(), { once: true });
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) {
     // 記住當前 BGM 狀態，停 BGM
-    _wasPlayingBGM = !!Audio.bgmInterval;  // 暴露內部 flag（hack but ok）
+    // V3.6 cycle105: 之前讀未 export 嘅 bgmInterval (IIFE-private) → 永遠 false
+    // → 切返嚟 BGM 唔會恢復。改用 export 出嚟嘅 isPlaying() accessor。
+    _wasPlayingBGM = Audio.isPlaying();
     if (_wasPlayingBGM) Audio.stopBGM();
   } else {
     // 恢復 BGM（如遊戲運行中）
