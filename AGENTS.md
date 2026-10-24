@@ -8,7 +8,7 @@ Vanilla JS + Tailwind CDN, no build, GitHub Pages.
 
 - Open `index.html` or `python3 -m http.server 8000`
 - Tests:
-  - `node tests/regression.js` → **743 pass / 0 fail** (structural regex lock-in, cycle 53–100)
+  - `node tests/regression.js` → **756 pass / 0 fail** (structural regex lock-in, cycle 53–103)
   - `node tests/generator-audit.js` → **4493 pass / 0 fail** (functional truth-table, cycle 101+)
 - No lint / typecheck / build
 - Live: https://ihateusingai-beep.github.io/math-guardian/
@@ -17,9 +17,11 @@ Vanilla JS + Tailwind CDN, no build, GitHub Pages.
 
 ```
 .
-├── index.html              # entire runtime (~382 KB)
+├── index.html              # entire runtime (~523 KB raw / ~135 KB gzip)
 ├── TODO.md                 # project plan / next backlog
+├── docs/                   # current engineering docs (ARCHITECTURE_REVIEW, AUDIO_VIDEO_OPTIMIZATION)
 ├── tests/regression.js     # structural regex lock-in
+├── tests/generator-audit.js # functional truth-table (generators × 30 trials)
 └── .harness/               # changelogs, docs, plans
 ```
 
@@ -35,13 +37,32 @@ Vanilla JS + Tailwind CDN, no build, GitHub Pages.
 
 - Every behavior change lands a matching assertion in `tests/regression.js`
 - Assertions = source regex only (no DOM)
-- File budget: `index.html` raw **< 600 KB** (current: ~522 KB)
+- File budget: `index.html` raw **< 600 KB** (current: ~523 KB / 535,780 bytes)
 - **Functional truth-table** (`tests/generator-audit.js`) catches arithmetic / math correctness
   bugs that regex tests cannot see (e.g. cycle55 orderAsc/Desc20 random-as-arithmetic).
   Runs all 23 generators x 30 trials with deterministic randInt -- catches infinite loops,
   out-of-range values, broken arithmetic invariants.
 - Student UI: **no** stigma「SEN」label; MC **A/B/C** badges by **render order**
 - `startGame`/resume helpers must be **module scope** (not nested in `setupMenu`)
+
+## Media (audio / video)
+
+**No audio files, no video files, no data URIs.** All sound is synthesized at
+runtime via Web Audio API (`Audio` IIFE, index.html:4761-4979); narration uses
+the Web Speech API (`TTS`, index.html:4983-5088); all "video" is CSS `@keyframes`
+(63 total) + DOM particles. The only visual asset payload is 35 inline SVG
+symbols (~42 KB). Media payload downloaded: **0 bytes**.
+
+- Full audit + sound-effects map + music map: **`docs/AUDIO_VIDEO_OPTIMIZATION.md`**
+- 3 confirmed runtime bugs (analysis only, NOT fixed as of cycle 103):
+  - `Audio.tick()` called at index.html:6643 but not exported -> TypeError
+  - `Audio.beep(440, 0.08)` called at index.html:10160 but not exported -> TypeError
+  - `Audio.bgmInterval` read at index.html:11771 but not exported -> always
+    `undefined` -> **BGM never resumes after the tab is backgrounded**
+- `masterGain` (index.html:4762) is declared and never used -> no master gain
+- `Audio.countdown` is exported but has zero call sites
+- Recommended next step: `tests/audio-audit.js` (call-site x export cross-check)
+  -- one test that would have caught all 3 bugs
 
 ## Design system (v3.6 cycle97)
 
