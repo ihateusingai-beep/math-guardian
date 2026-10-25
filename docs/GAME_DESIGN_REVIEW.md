@@ -225,6 +225,11 @@ const q = QuestionGen.make(type, Game.settings.mode);   // 重練 = 生成全新
 
 ## 5. 三條優化路線（方案選項）
 
+> 📌 **已出方案**：`docs/GAMEPLAY_ASSET_PROPOSAL.md`（cycle 109 proposal）——
+> 玩法（Stage / 進度格 / 接力協作 / 提示階梯 / 錯題重播 / 概念卡）
+> + 資產（16 個新 symbol + 像素品質規格 + 預算表）。
+> 呢份揀咗 **B → C → A** 嘅路線同 §5 一致。
+
 | 路線 | 做咩 | 影響 | 工時 | 對象 |
 |---|---|---|---|---|
 | **A. 適應化** | D0(已修) + D4 scope 內適應 + D1 分層提示 | 教學價值最高、影響每個學生 | 大（生成器 + 狀態 + UI） | 中度學生進步 |

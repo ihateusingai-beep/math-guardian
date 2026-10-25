@@ -27,7 +27,8 @@ Vanilla JS + Tailwind CDN, no build, GitHub Pages.
 │   ├── VISUAL_QUALITY_RUBRIC.md   # cycle106 — 視覺 rubric + 評分 + state matrix + profiles
 │   ├── ART_STYLE_GUIDE.md         # cycle106 — 美術實作規則 (grid / palette / timing / export)
 │   ├── UI_STYLE_GUIDE.md          # cycle106 — 遊戲 UI 規則 (構圖 / 掣狀態 / a11y)
-│   ├── GAME_DESIGN_REVIEW.md      # cycle108 — 遊戲設計檢討 (核心 loop + 6 個設計缺口 + 方案)
+│   ├── GAME_DESIGN_REVIEW.md      # cycle108 — 遊戲設計檢討 (核心 loop + 6 個設計缺口)
+│   ├── GAMEPLAY_ASSET_PROPOSAL.md # cycle109p — 玩法 + 資產設計方案 (未實作,待 review)
 │   ├── AUDIO_VIDEO_OPTIMIZATION.md # cycle104/105 — media pipeline audit
 │   ├── ARCHITECTURE_REVIEW.md     # cycle96 — code architecture review
 │   └── screenshots/                # cycle106 — before/after evidence 幀 (17 張 JPEG)
