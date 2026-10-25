@@ -2002,8 +2002,13 @@ assert('DEPLOY-06 OG meta tags (title + description + type)',
   /<meta\s+property="og:title"/.test(src) &&
   /<meta\s+property="og:description"/.test(src) &&
   /<meta\s+property="og:type"\s+content="website"/.test(src));
-assert('DEPLOY-07 CNAME file present',
-  fs.existsSync('CNAME') && /[a-z0-9.-]+\.[a-z]{2,}/i.test(fs.readFileSync('CNAME', 'utf8').trim()));
+// cycle-107: CNAME file 已移除（placeholder 域名事故修復）。若日後重新加返，
+// 必須同 index.html 嘅 Plausible data-domain 一致，否則會出現兩套 host 打架。
+const plausibleDomain = (src.match(/<script defer data-domain="([^"]+)"/) || [])[1] || '';
+const cnamePath = path.join(__dirname, '..', 'CNAME');
+const cnameValue = fs.existsSync(cnamePath) ? fs.readFileSync(cnamePath, 'utf8').trim() : '';
+assert('DEPLOY-07 custom domain 設定一致（無 CNAME → 用 .github.io；有 CNAME → 同 plausible data-domain 相同）',
+  cnameValue === '' ? plausibleDomain === 'ihateusingai-beep.github.io' : cnameValue === plausibleDomain);
 assert('DEPLOY-08 DEPLOY.md present with custom domain instructions',
   fs.existsSync('DEPLOY.md') &&
   /Custom Domain Setup/.test(fs.readFileSync('DEPLOY.md', 'utf8')));
@@ -2335,6 +2340,37 @@ assert('T106 cycle106 art style guide doc exists',
   fs.existsSync(path.join(__dirname, '..', 'docs', 'ART_STYLE_GUIDE.md')));
 assert('T106 cycle106 UI style guide doc exists',
   fs.existsSync(path.join(__dirname, '..', 'docs', 'UI_STYLE_GUIDE.md')));
+
+// =========== T107: V3.6 cycle107 — deploy domain placeholder 事故修復 ===========
+// 背景：cycle 96 加咗 CNAME file，內容係 DEPLOY.md 寫住嘅「例子域名」
+// mathguardian.kencheng.dev —— 該域名從來未在 registrar 註冊（公開 DNS 為 NXDOMAIN）。
+// GitHub Pages 一見 CNAME 就令 ihateusingai-beep.github.io/math-guardian/ 301 去該域名，
+// 導致線上站由 2026-10-16 起一直開唔到（擺了 9 日先發現）。
+console.log('\n[T107] V3.6 cycle-107 (deploy: placeholder CNAME removed · live site restored)');
+
+// --- T107-01 .. 04: placeholder 域名唔准再出現 ---
+assert('T107-01 index.html 不再引用未註冊嘅 placeholder 域名 kencheng.dev',
+  !/kencheng\.dev/.test(src));
+assert('T107-02 Plausible data-domain 指向實際部署 host',
+  /<script defer data-domain="ihateusingai-beep\.github\.io"/.test(src));
+assert('T107-03 repo 不存在 CNAME file（站由 .github.io 服務）',
+  !fs.existsSync(path.join(__dirname, '..', 'CNAME')));
+assert('T107-04 DEPLOY.md 記錄咗 placeholder 事故 + 修復步驟（DNS 先、CNAME 後）',
+  fs.existsSync(path.join(__dirname, '..', 'DEPLOY.md')) &&
+  /placeholder/i.test(fs.readFileSync(path.join(__dirname, '..', 'DEPLOY.md'), 'utf8')) &&
+  /dig \+short/.test(fs.readFileSync(path.join(__dirname, '..', 'DEPLOY.md'), 'utf8')));
+
+// --- T107-05 .. 07: 一致性 — 所有 live URL 記錄都指向 .github.io ---
+const AGENTS_MD = fs.readFileSync(path.join(__dirname, '..', 'AGENTS.md'), 'utf8');
+const TODO_MD = fs.readFileSync(path.join(__dirname, '..', 'TODO.md'), 'utf8');
+assert('T107-05 AGENTS.md 嘅 live URL 係 .github.io 且唔含 placeholder 域名',
+  /ihateusingai-beep\.github\.io\/math-guardian/.test(AGENTS_MD) &&
+  !/kencheng\.dev/.test(AGENTS_MD));
+assert('T107-06 TODO.md 嘅 live URL 係 .github.io 且唔含 placeholder 域名',
+  /ihateusingai-beep\.github\.io\/math-guardian/.test(TODO_MD) &&
+  !/kencheng\.dev/.test(TODO_MD));
+assert('T107-07 AGENTS.md 明寫「DNS 未生效前唔准加返 CNAME」嘅規則',
+  /DNS 未生效之前加返 `CNAME`|唔好喺域名未註冊/.test(AGENTS_MD));
 
 // =========== summary ===========
 console.log(`\n========== ${pass} pass / ${fail} fail ==========`);

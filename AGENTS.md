@@ -8,11 +8,14 @@ Vanilla JS + Tailwind CDN, no build, GitHub Pages.
 
 - Open `index.html` or `python3 -m http.server 8000`
 - Tests:
-  - `node tests/regression.js` → **797 pass / 0 fail** (structural regex lock-in, cycle 53–106)
+  - `node tests/regression.js` → **804 pass / 0 fail** (structural regex lock-in, cycle 53–107)
   - `node tests/generator-audit.js` → **4493 pass / 0 fail** (functional truth-table, cycle 101+)
   - `node tests/audio-audit.js` → **12 pass / 0 fail** (audio call-site × export cross-check, cycle 105+)
 - No lint / typecheck / build
 - Live: https://ihateusingai-beep.github.io/math-guardian/
+- **Deploy domain**: `CNAME` file 已移除(cycle 107)—— 站喺 `.github.io` 服務。
+  **唔好喺域名未註冊 / DNS 未生效之前加返 `CNAME`**,GitHub Pages 會即刻 301 轉過去,
+  令線上站開唔到(cycle 96 就係咁擺咗 9 日)。詳見 `DEPLOY.md`。
 
 ## Layout
 

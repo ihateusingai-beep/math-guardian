@@ -15,8 +15,8 @@
 
 | 項 | 值 |
 |---|---|
-| Version | **v3.6** · cycle **106** |
-| Tests | **5302 pass / 0 fail**（797 regression + 4493 generator-audit + 12 audio-audit） |
+| Version | **v3.6** · cycle **107** |
+| Tests | **5309 pass / 0 fail**（804 regression + 4493 generator-audit + 12 audio-audit） |
 | Size | `index.html` **541,798 bytes**（budget < 600 KB） |
 | Media payload | **0 bytes**（全部 runtime 合成） |
 | Visual readiness | **6.3 / 10**（Before cycle 106 = 4.56）· 見 `docs/VISUAL_QUALITY_RUBRIC.md` |
@@ -44,6 +44,8 @@
 - [x] **c104** `docs/AUDIO_VIDEO_OPTIMIZATION.md` — media pipeline audit
 - [x] **c105** 3 個 audio runtime bug 修正 + `tests/audio-audit.js`
 - [x] **c106** 視覺品質 rubric + 美術/UI style guide + P0 修復（死 CSS / 高度鏈 / 對比度 / 第 0 題）
+- [x] **c107** 修 deploy placeholder 域名事故（刪 `CNAME` + Plausible `data-domain` + T107 lock-in）
+  —— 線上站由 2026-10-16 起一直 301 去未註冊域名（開唔到），而家回復 `.github.io`
 
 ---
 
@@ -94,6 +96,9 @@
 
 ### P5 · 營運 / 維護
 
+- [ ] **自訂域名（Ken 手動 · 唔好未做 DNS 就加 CNAME）**：註冊域名 → 加 A/CNAME record →
+      `dig +short` 驗到 IP → 先至加 `CNAME` file + 改 `index.html` 嘅 Plausible `data-domain` →
+      再喺 Plausible dashboard 加同一個 domain（DNS TXT 或檔案驗證）。步驟見 `DEPLOY.md`
 - [ ] size watch / dead code（逼近 600 KB 就要清）
 - [ ] 刪 `index.html.bak`（535 KB stale 副本 · gitignored）
 - [ ] classroom dogfood 修（實課後 · 特別係 H 系列 layout 改動）
@@ -124,7 +129,7 @@
 
 **Gates（每 cycle 必跑）**
 ```
-node tests/regression.js       # 797 pass / 0 fail
+node tests/regression.js       # 804 pass / 0 fail
 node tests/generator-audit.js  # 4493 pass / 0 fail
 node tests/audio-audit.js      # 12 pass / 0 fail
 ```

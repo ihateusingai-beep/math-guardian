@@ -201,7 +201,7 @@ This is correct behaviour for Chrome's autoplay policy.
 
 | Asset | Host | Delivery | Blocking? | Caching control |
 |---|---|---|---|---|
-| `index.html` | GitHub Pages (`ihateusingai-beep.github.io` / `mathguardian.kencheng.dev`) | Static, no build | n/a | GitHub Pages default (see §1.9) |
+| `index.html` | GitHub Pages (`ihateusingai-beep.github.io/math-guardian/`) | Static, no build | n/a | GitHub Pages default (see §1.9) |
 | Tailwind | `cdn.tailwindcss.com` | Third-party CDN, runtime JIT compile | **Yes** — plain `<script src>` with no `defer` | CDN-controlled |
 | Plausible analytics | `plausible.io` | Third-party, `defer` | No | CDN-controlled |
 | School logo | `www.puichi.edu.hk` | Third-party school CMS | No (`<img>`) | Server-controlled |
