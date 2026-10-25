@@ -8,8 +8,8 @@ Vanilla JS + Tailwind CDN, no build, GitHub Pages.
 
 - Open `index.html` or `python3 -m http.server 8000`
 - Tests:
-  - `node tests/regression.js` → **825 pass / 0 fail** (structural regex lock-in, cycle 53–109)
-  - `node tests/generator-audit.js` → **4554 pass / 0 fail** (functional truth-table, cycle 101+ · T108 Adaptive ladder · T109 Stage/提示階梯)
+  - `node tests/regression.js` → **846 pass / 0 fail** (structural regex lock-in, cycle 53–110)
+  - `node tests/generator-audit.js` → **4585 pass / 0 fail** (functional truth-table, cycle 101+ · T108 Adaptive ladder · T109 Stage/提示階梯 · T110 里程碑 · T110b 接力)
   - `node tests/audio-audit.js` → **12 pass / 0 fail** (audio call-site × export cross-check, cycle 105+)
 - No lint / typecheck / build
 - Live: https://ihateusingai-beep.github.io/math-guardian/
@@ -21,7 +21,7 @@ Vanilla JS + Tailwind CDN, no build, GitHub Pages.
 
 ```
 .
-├── index.html              # entire runtime (~529 KB raw / ~136 KB gzip)
+├── index.html              # entire runtime (~559 KB raw / ~140 KB gzip)
 ├── TODO.md                 # project plan / next backlog
 ├── docs/                   # current engineering docs
 │   ├── VISUAL_QUALITY_RUBRIC.md   # cycle106 — 視覺 rubric + 評分 + state matrix + profiles
@@ -69,7 +69,7 @@ Rubric / 目標風格 / 基準喺 **`docs/VISUAL_QUALITY_RUBRIC.md`**。
 
 - Every behavior change lands a matching assertion in `tests/regression.js`
 - Assertions = source regex only (no DOM)
-- File budget: `index.html` raw **< 600 KB** (current: ~529 KB / 541,798 bytes)
+- File budget: `index.html` raw **< 600 KB** (current: ~559 KB / 572,527 bytes)
 - **Functional truth-table** (`tests/generator-audit.js`) catches arithmetic / math correctness
   bugs that regex tests cannot see (e.g. cycle55 orderAsc/Desc20 random-as-arithmetic).
   Runs all 23 generators x 30 trials with deterministic randInt -- catches infinite loops,
@@ -87,6 +87,22 @@ Rubric / 目標風格 / 基準喺 **`docs/VISUAL_QUALITY_RUBRIC.md`**。
   → 喺 `tests/generator-audit.js` 抽出**真實模組**、用 mock 環境**實際執行**、斷言實際 state 變化。
   每條新 lock-in 都要試過「還原舊 code → fail → 修復 → pass」先算有效。
   Adaptive 嘅 `TYPE_ORDER` ladder 同 easy scope **唔可以互換** —— 適應只准喺同一個 scope 內發生。
+- **Relay lock-in** (cycle110, T110/T110b): easy dual「接力」嘅數值邏輯同 panel 切換要真實執行
+  (`tests/generator-audit.js` T110b 抽出 `_scheduleNextQuestion` + `UI.setSENTurn`,用 mock DOM 實際跑)。
+  三個 cycle110b 實測捉到嘅 bug（全部有 lock-in）:
+  1. **兩個「輪到邊隊」真實來源** —— `turnTeam` vs `currentTeam` → badge / review / Adaptive 同可見 panel 唔一致。
+     → 已收埋成 `currentTeam` 一個欄位；`tests/regression.js` T110-13 **全檔唔准再出現第二個欄位**。
+  2. **`setSENTurn` toggle 咗錯嘅元素** —— `#knight-card` / `#mage-card` 係「經典 game screen」嘅面板，
+     easy 行嘅係 SEN screen（`#sen-panel-*`）→ 舊 code 對 SEN 板完全冇效果（dead code），
+     實機截圖見到**兩條題同時顯示**，學生唔知輪到邊個。→ 改 toggle `#sen-panel-*`。
+  3. **接力唔會跳過已完成嘅隊伍** → 一隊做完後傳手畀佢 → setTimeout 見 `_easyTeamDone` 就 return
+     → 冇人再答題 = **死鎖**。→ 接力要先 `if (done[nextTeam]) nextTeam = other`。
+  ⚠️ **新 screen / 新 panel 加落去嘅時候,要確認係同一個 screen** ——
+  classic game screen 同 SEN screen 兩套 DOM,唔好照抄 selector。
+- **End-screen lock-in** (cycle110b, T110-19..21): 學校 iPad 係 **639×669**,end screen 內容一多就 overflow。
+  → 概念卡 / 島嶼要喺 `end-stats` **上面**；掣行 `position: sticky; bottom: 0`（唔使捲到底先撳到）。
+  → 雙隊 medal 係兩個 emoji 併埋（🥇🥇）,`.end-medal` 一定要 `white-space: nowrap`
+    （之前喺窄 box 換行,疊落標題「完成！」上面）。
 - Student UI: **no** stigma「SEN」label; MC **A/B/C** badges by **render order**
 - `startGame`/resume helpers must be **module scope** (not nested in `setupMenu`)
 
@@ -160,6 +176,19 @@ symbols (~42 KB). Media payload downloaded: **0 bytes**.
 - One-click start: `types = scopes` · 10 Q goal · identity card · 金銀銅
 - Play: `solo` | `dual` touch-board；dual arena `versus` 扯大欖 / `coop` 推船
 - **cycle52**: dual easy-start must **keep** versus/coop pick (never force coop)
+
+### Easy dual 接力 (cycle 110)
+- **接力**: easy dual 每答完一題就**傳手**（之前同一隊一直答,第二個學生根本冇得出手）。
+  - 答錯嗰條題**傳俾另一隊救**（同一條題,唔抽新題）→ `Game.state.replayQ`（單一重播槽）
+  - 答錯第 2 次 → 扣 ½ 格(`_applyStageUnits(team, -2)`)+ 換新題（避免無限卡住）
+  - 接力**必須跳過已完成嘅隊伍**,否則一隊做完就死鎖
+- **可見性**: 只顯示「輪到嗰隊」嘅 **SEN panel**（`#sen-panel-*`），單欄全寬（`.sen-board-relay`）
+  + 頂部 banner「輪到 X」/「✅ X 完成咗 · 輪到 Y」
+- **「輪到邊隊」唯一真實來源 = `Game.state.currentTeam`**（badge / review / Adaptive / 可見 panel 全部讀佢）
+- **概念卡 4 里程碑**（persisted 落 `Profile.data.milestonesByType`）:
+  M1 首次答啱 · M2 冇用提示連對 5 題 · M3 錯咗之後救回 · M4 同一局連對 10 題
+  結算畫面用 `renderEndConceptCards` 顯示（重用現有 `px-abacus` / `px-badge-*` 死 symbol,零新 asset）
+- **島嶼旅程**: 跨課堂累積（`Profile.data.islandStage`），結算畫面 CSS pips bar
 
 ### Question pipeline
 - `TYPE_REGISTRY` + `Generators` + `QuestionGen.make` + bank rotate (`mg2.bank.v3`)

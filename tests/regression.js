@@ -11,6 +11,14 @@ const path = require('path');
 const FILE = path.join(__dirname, '..', 'index.html');
 const src = fs.readFileSync(FILE, 'utf8');
 
+// 「代碼行」視圖 —— 剝走 block comment 同整行 // 註解。
+// 用嚟做「某個識別符唔准再出現」呢類斷言（避免註解提及個名就誤報）。
+const srcCode = src
+  .replace(/\/\*[\s\S]*?\*\//g, '')
+  .split('\n')
+  .filter(l => !/^\s*(\/\/|\*|\/\*)/.test(l))
+  .join('\n');
+
 // =========== mini test runner ===========
 let pass = 0, fail = 0;
 const fails = [];
@@ -852,7 +860,7 @@ assert('R5-6  _recordAnswerStats called after correct/wrong effects',
   /_recordAnswerStats\(team, q, correct\);/.test(src));
 // R5-7: next-question routing extracted to _scheduleNextQuestion
 assert('R5-7  _scheduleNextQuestion contains null-out + coop/versus branch',
-  /function _scheduleNextQuestion\s*\(\s*team[\s\S]{0,40}\)[\s\S]{0,900}current\[team\] = null[\s\S]{0,1500}coop/.test(src));
+  /function _scheduleNextQuestion\s*\(\s*team[\s\S]{0,40}\)[\s\S]{0,1200}current\[team\] = null[\s\S]{0,2200}coop/.test(src));
 // R5-8: ordering ordering compare still in helper
 assert('R5-8  _compareAnswer ordering check uses length+JSON',
   /function _compareAnswer[\s\S]{0,800}type\s*===\s*'ordering'[\s\S]{0,300}actual\.length\s*===\s*expected\.length[\s\S]{0,300}JSON\.stringify/.test(src));
@@ -1123,7 +1131,7 @@ assert('EASY-65 easy wrong answers use _easyHintText + delayed next Q',
 assert('EASY-66 compareGroup optionLabels are Chinese (not bare emoji)',
   /optionLabels:\{1:'左邊多',2:'右邊多',3:'一樣多'\}/.test(src));
 assert('EASY-67 easy mode schedule defaults delay (not bare 0)',
-  /function _scheduleNextQuestion[\s\S]{0,1500}delay \|\| 700/.test(src));
+  /function _scheduleNextQuestion[\s\S]{0,2600}delay \|\| 700/.test(src));
 
 // V3.6 cycle42: touch hard rules + identity + 金銀銅
 console.log('\n[T34] V3.6 audit cycle-42 (touch / identity / medals)');
@@ -2449,14 +2457,14 @@ assert('T109-15 錯題重練 banner 存在',
 // 雙隊其實唔需要對方）。改成接力：每答完傳手，答錯嗰條題傳俾另一隊救。
 console.log('\n[T110] V3.6 cycle-110 (gameplay: 接力協作 + 概念卡里程碑 + 島嶼旅程)');
 assert('T110-01 接力：easy dual 每答完一題傳手（唔再係同一隊一直答）',
-  /const nextTeam = dual \? \(team === 'knight' \? 'mage' : 'knight'\) : 'knight';/.test(src));
+  /let nextTeam = dual \? \(team === 'knight' \? 'mage' : 'knight'\) : 'knight';/.test(src));
 assert('T110-02 UI.setSENTurn 存在 + 接力用 currentTeam 做唯一真實來源',
   /setSENTurn\(team\)/.test(src) &&
   /UI\.setSENTurn\)\s*UI\.setSENTurn/.test(src) &&
   /Game\.state\.currentTeam = nextTeam;/.test(src));
-assert('T110-03 setSENTurn 會切換兩邊卡片可見性 + 顯示「輪到」',
-  /card\.classList\.toggle\('hidden',\s*tm !== t\)/.test(src) &&
-  /輪到 \$\{who\}/.test(src));
+assert('T110-03 setSENTurn 會切換兩邊 panel 可見性 + 顯示「輪到」',
+  /const p = \$\(`sen-panel-\$\{tm\}`\);[\s\S]{0,200}classList\.toggle\('hidden',\s*tm !== t\)/.test(src) &&
+  /輪到 \$\{nameOf\(t\)\}/.test(src));
 assert('T110-04 答錯第 2 次 → 扣 ½ 格 + 換新題（唔會無限卡住）',
   /Game\.state\.replayTries >= 2/.test(src) &&
   /_applyStageUnits\(team,\s*-2\)/.test(src));
@@ -2487,12 +2495,34 @@ assert('T110-12 里程碑真實執行 lock-in 喺 generator-audit（T110 段）'
 //   之前新開 turnTeam，但 badge（作答中/待命中）、review 重練對象、
 //   Adaptive 全部讀 currentTeam → 可見卡片同 currentTeam 會唔一致。
 assert('T110-13 全檔唔准再出現第二個「輪到邊隊」欄位 turnTeam（避免漂移）',
-  !/turnTeam/.test(src));
+  !/turnTeam/.test(srcCode));
 assert('T110-14 setSENTurn 嘅邊隊預設讀 currentTeam（唔係 hardcode knight）',
   /const t = team \|\| Game\.state\.currentTeam \|\| 'knight';/.test(src));
 assert('T110-15 接力切換之後 currentTeam 同可見卡片一致（真實執行 lock-in 喺 generator-audit）',
   fs.existsSync(path.join(__dirname, '..', 'tests', 'generator-audit.js')) &&
   /T110b/.test(fs.readFileSync(path.join(__dirname, '..', 'tests', 'generator-audit.js'), 'utf8')));
+// V3.6 cycle110b: setSENTurn 之前 toggle 咗「經典 game screen」嘅 #knight-card / #mage-card，
+//   但 easy 行嘅係 SEN screen（#sen-panel-*）→ 舊 code 對 SEN 板完全冇效果（dead code），
+//   實機截圖見到兩條題同時顯示，學生唔知輪到邊個。
+assert('T110-16 setSENTurn 必須切 SEN panel（#sen-panel-*），唔係經典 card（#*-card）',
+  /sen-panel-\$\{tm\}/.test(src) &&
+  !/setSENTurn[\s\S]{0,900}\$\(`\$\{tm\}-card`\)/.test(src));
+assert('T110-17 接力模式用單欄全寬（sen-board-relay），避免 639px iPad 選項被切走',
+  /\.sen-board-relay \{ grid-template-columns: 1fr !important; \}/.test(src) &&
+  /\.sen-panel\.hidden \{ display: none !important; \}/.test(src) &&
+  /classList\.toggle\('sen-board-relay', dual\)/.test(src));
+assert('T110-18 接力會跳過已完成嘅隊伍（否則一隊做完就死鎖）',
+  /if \(done\[nextTeam\]\) \{[\s\S]{0,300}if \(!done\[other\]\) nextTeam = other;/.test(src));
+// V3.6 cycle110b/c: end screen 喺學校 iPad 639×669 會 overflow → 概念卡跌出畫面、掣撳唔到
+assert('T110-19 end screen 掣行 sticky（唔使捲到底先撳到「再玩一次」）',
+  /\.end-actions \{[\s\S]{0,300}position: sticky; bottom: 0;/.test(src) &&
+  /class="grid grid-cols-2 gap-3 end-actions"/.test(src));
+assert('T110-20 雙隊 medal 唔准換行（🥇🥇 換行會疊落標題上面）',
+  /\.end-medal \{[\s\S]{0,300}white-space: nowrap;/.test(src) &&
+  /position: absolute; left: 50%; top: 50%;/.test(src));
+assert('T110-21 概念卡 + 島嶼一定要喺 end-stats 上面（學生最想睇嘅新卡）',
+  /id="end-island"[\s\S]{0,200}id="end-concept-cards"[\s\S]{0,200}id="end-stats"/.test(src) &&
+  /id="end-stats"[\s\S]{0,400}id="end-badges"/.test(src));
 
 // =========== summary ===========
 console.log(`\n========== ${pass} pass / ${fail} fail ==========`);

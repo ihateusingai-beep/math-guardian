@@ -795,6 +795,9 @@ try {
   function mkEnv() {
     const els = {};
     const $ = (id) => (els[id] || (els[id] = mkEl(id)));
+    // 預先建立會用到嘅元素（令斷言可以「乾淨咁 fail」而唔係 throw）
+    ['sen-panel-knight', 'sen-panel-mage', 'sen-turn-banner', 'sen-board',
+     'knight-card', 'mage-card'].forEach((id) => { $(id); });
     const Game = {
       state: {
         current: { knight: null, mage: null },
@@ -828,10 +831,11 @@ try {
     mod._scheduleNextQuestion('knight', 0);
     check('T110b-01 接力後 currentTeam = 下一隊（mage）', Game.state.currentTeam === 'mage',
       `currentTeam=${Game.state.currentTeam}`);
-    // --- 2. 可見卡片必須同 currentTeam 一致（原本嘅 bug 就係呢度唔一致）---
-    const mageVisible = !els['mage-card'].classList.contains('hidden');
-    const knightHidden = els['knight-card'].classList.contains('hidden');
-    check('T110b-02 可見卡片 == currentTeam（mage 見、knight 隱）', mageVisible && knightHidden,
+    // --- 2. 可見 panel 必須同 currentTeam 一致（原本嘅 bug 就係呢度唔一致）---
+    // ⚠️ 係 SEN panel（#sen-panel-*），唔係經典 game screen 嘅 #knight-card / #mage-card
+    const mageVisible = !els['sen-panel-mage'].classList.contains('hidden');
+    const knightHidden = els['sen-panel-knight'].classList.contains('hidden');
+    check('T110b-02 可見 panel == currentTeam（mage 見、knight 隱）', mageVisible && knightHidden,
       `mageVisible=${mageVisible} knightHidden=${knightHidden} currentTeam=${Game.state.currentTeam}`);
     check('T110b-03 接力 banner 顯示「輪到 小美」', /輪到 小美/.test(els['sen-turn-banner'].textContent),
       `banner="${els['sen-turn-banner'].textContent}"`);
@@ -876,6 +880,36 @@ try {
     check('T110b-12 easy solo 唔顯示接力 banner',
       els['sen-turn-banner'].classList.contains('hidden'),
       `banner="${els['sen-turn-banner'].textContent}"`);
+    check('T110b-13 easy solo 淨係顯示 knight panel',
+      !els['sen-panel-knight'].classList.contains('hidden') &&
+      els['sen-panel-mage'].classList.contains('hidden'),
+      `knight=${els['sen-panel-knight'].classList.contains('hidden')} mage=${els['sen-panel-mage'].classList.contains('hidden')}`);
+  }
+
+  // --- 7. 死鎖 case：一隊完成之後，接力必須跳返俾仲有進度嗰隊 ---
+  //  bug shape: 小明做完 → 傳俾小美 → 小美答完 → 傳返俾小明(已完成)
+  //            → setTimeout 見 _easyTeamDone[nextTeam] 就 return → 冇人再答題
+  {
+    const { Game, els, calls, mod } = mkEnv();
+    Game.state._easyTeamDone.knight = true;   // 小明已完成
+    mod._scheduleNextQuestion('mage', 0);      // 小美答完 → 應該傳返俾…小明？唔係！
+    check('T110b-14 已完成嘅隊伍唔會再攞到下一條題（避免死鎖）',
+      Game.state.currentTeam === 'mage' && Game.state.current.mage !== null,
+      `currentTeam=${Game.state.currentTeam} current.mage=${JSON.stringify(Game.state.current.mage)} current.knight=${JSON.stringify(Game.state.current.knight)}`);
+    check('T110b-15 接力仍然有題可答（唔會停喺冇題嗰隊）',
+      (Game.state.current.mage || Game.state.current.knight) !== null,
+      `current=${JSON.stringify(Game.state.current)}`);
+  }
+
+  // --- 8. 兩隊都完成 → 唔應該再派題 ---
+  {
+    const { Game, calls, mod } = mkEnv();
+    Game.state._easyTeamDone.knight = true;
+    Game.state._easyTeamDone.mage = true;
+    Game.state.running = false;   // _easyGameComplete 會喺兩隊都完成時 set running=false
+    mod._scheduleNextQuestion('knight', 0);
+    check('T110b-16 兩隊都完成 → 唔再派新題', calls.nextQuestion.length === 0,
+      `nextQuestion calls=${JSON.stringify(calls.nextQuestion)}`);
   }
 } catch (e) {
   check('T110b relay audit 執行得到（唔好 throw）', false, e.message);

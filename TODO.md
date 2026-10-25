@@ -66,7 +66,13 @@
 
 - [ ] **review 方案**（Ken / 老師）→ 回饋 §7 七條未決問題（課堂長度 / 學生能力基線 / 課程要求 / 機數 / 提示政策 / 獎勵個人定班級 / 同儕比較）
 - [x] **cycle 109** 玩法骨架：Stage + 進度格（3 格 · 半格）+ 局長 = Stage 數 + 提示階梯 4 層 + 錯題原地重播 + 局完重練關卡（**0 新 asset**）✅ 已 ship
-- [ ] **cycle 110** 協作 L1 接力（答錯傳手）+ 概念卡 4 里程碑 + 班級島進度（重用 6 個死 symbol）
+- [x] **cycle 110** 協作 L1 接力（答錯傳手）+ 概念卡 4 里程碑 + 班級島進度（重用 6 個死 symbol）✅ 已 ship
+      └ cycle110b 修 3 個實測 bug：①「輪到邊隊」兩個真實來源（`turnTeam` vs `currentTeam`）→ 收埋成一個
+        ② `setSENTurn` toggle 咗經典 screen 嘅 `#knight-card`（easy 行 SEN screen → dead code，
+        實機見到兩條題同時顯示）→ 改 `#sen-panel-*` + 單欄全寬
+        ③ 接力唔跳過已完成隊伍 → 一隊做完就死鎖
+      └ cycle110c end screen 喺 iPad 639×669 overflow：概念卡/島嶼提到 stats 上面 + 掣行 sticky
+        + 雙隊 medal `white-space: nowrap`（之前 🥇🥇 換行疊落標題）
 - [ ] **cycle 111** Boss 重新入場 + scope 內 3 級難度（生成器加 level 參數）+ **像素品質全修** + 新 16 個 symbol + `tests/asset-audit.js`
 - [ ] **cycle 112** 教師台 8 項控制 + 班級模式 + 概念卡 UI
 
