@@ -391,7 +391,7 @@ assert('AUDIT5-P1  pagehide handler for mobile Safari',
   /addEventListener\('pagehide'[\s\S]{0,200}Snapshot\.flush\('pagehide'\)/.test(src));
 // AUDIT5-P1-3: touch-target 44px
 assert('AUDIT5-P1  .btn-sm min-height 44px',
-  /\.btn-sm\s*\{[\s\S]{0,200}min-height: 44px; min-width: 44px;/.test(src));
+  /\.btn-sm\s*\{[\s\S]{0,400}min-height: 44px; min-width: 44px;/.test(src));
 assert('AUDIT5-P1  btn-type-all uses btn-sm',
   /id="btn-type-all"[^>]*class="btn-sm/.test(src));
 assert('AUDIT5-P1  btn-clear-review uses btn-sm',
@@ -442,7 +442,9 @@ assert('AUDIT5-P2  opt-type aria-label includes 難度 + 選/未選',
 assert('AUDIT5-P2  resume button has aria-label',
   /btn\.setAttribute\('aria-label', '繼續上次遊戲/.test(src));
 assert('AUDIT5-P2  btn-ghost hover bg-white/25 (upgraded contrast)',
-  /\.btn-ghost\s*\{[\s\S]{0,100}hover:bg-white\/25/.test(src));
+  // V3.6 cycle106: Tailwind apply 指令死咗,改用原生 CSS(數值同 bg-white/10 → bg-white/25 一致)
+  /\.btn-ghost\s*\{[\s\S]{0,240}background-color: rgb\(255 255 255 \/ 0\.1\)/.test(src) &&
+  /\.btn-ghost:hover\s*\{[\s\S]{0,140}background-color: rgb\(255 255 255 \/ 0\.25\)/.test(src));
 // AUDIT5-P2: timer resume
 assert('AUDIT5-P2  Snapshot.resume reduces timeLeftSec by elapsed',
   /if \(s\.settings && s\.settings\.win === 'time' && s\.state\.timeLeftSec > 0 && s\.savedAt\)[\s\S]{0,300}elapsed/.test(src));
@@ -1499,14 +1501,17 @@ assert('FT80-06 footer z-index below sticky/FAB but above body',
 
 // V3.6 cycle81: pink-blue text regression + SEN fade-in
 console.log('\n[T65] V3.6 audit cycle-81 (text contrast regression fix)');
-assert('CT81-01 school name uses dark slate (text-slate-800)',
-  /text-slate-800 tracking-wide">將軍澳培智學校</.test(src));
-assert('CT81-02 v3.6 subtitle uses dark slate-700',
+assert('CT81-01 school name uses on-night token (cycle106: real bg is dark night scene)',
+  /text-on-night tracking-wide">將軍澳培智學校</.test(src));
+// V3.6 cycle106: cycle81 當時假設背景係粉藍淺色 → 用 slate-800/slate-700/slate-600。
+// 但實測(1440×900 像素取樣)menu 背景係夜空深藍 rgb(24,40,72)→ 對比度得 1.06:1,
+// 完全隐形。cycle106 改用固定淺色 token --c-text-on-night(夜晚場景專用)。
+assert('CT81-02 v3.6 subtitle uses on-night token (cycle106: real bg is dark night scene)',
   /v3\.6 · 課堂練習 · 雙隊 · Boss[\s\S]{0,50}<\/p>/.test(src) &&
-  /text-slate-700 mt-1 font-semibold/.test(src));
-assert('CT81-03 培智 數學科 line uses dark slate-600',
+  /text-on-night mt-1 font-semibold/.test(src));
+assert('CT81-03 培智 數學科 line uses on-night-muted token (cycle106)',
   /培智 · 數學科 · 合作學習[\s\S]{0,50}<\/p>/.test(src) &&
-  /text-slate-600 mt-1/.test(src));
+  /text-on-night-muted mt-1/.test(src));
 assert('CT81-04 title gradient upgraded to dark variants (amber-600 etc)',
   /from-amber-600 via-pink-600 to-purple-700/.test(src));
 assert('CT81-05 sen-fade-in CSS keyframe present',
@@ -2035,8 +2040,8 @@ assert('T97-05 .menu-section-card uses tokens (light translucent bg + light bord
   /\.menu-section-card\s*\{[\s\S]{0,200}var\(--c-bg-card-light-translucent\)/.test(src) &&
   /\.menu-section-card\s*\{[\s\S]{0,200}var\(--c-border-light\)/.test(src));
 assert('T97-06 .opt-scope-preset uses tokens',
-  /\.opt-scope-preset\s*\{[\s\S]{0,300}var\(--c-text-on-light\)/.test(src) &&
-  /\.opt-scope-preset\s*\{[\s\S]{0,300}var\(--c-bg-card-light-translucent\)/.test(src));
+  /\.opt-scope-preset\s*\{[\s\S]{0,420}var\(--c-text-on-light\)/.test(src) &&
+  /\.opt-scope-preset\s*\{[\s\S]{0,420}var\(--c-bg-card-light-translucent\)/.test(src));
 assert('T97-07 5 opt-* types (track/play/solo-skin/mode/bridge/scope) share single design token block',
   /opt-(track|play|solo-skin|mode|bridge|scope):not\(\.opt-selected\)\s*\{[\s\S]{0,300}var\(--c-text-on-light\)/.test(src));
 // Smoke test: extract largest script and run node --check (catches syntax errors)
@@ -2212,6 +2217,124 @@ assert('T105 B3 fixed: no external Audio.bgmInterval access remains',
   !/\bAudio\.bgmInterval\b/.test(src));
 assert('T105 cycle105 comment documents the three bug fixes',
   /cycle105:\s*之前讀未 export 嘅 bgmInterval|cycle105:\s*呢兩個之前被 call 但冇 export/.test(src));
+
+// =========== T106: V3.6 cycle106 — visual quality P0 fixes ===========
+// 背景: docs/VISUAL_QUALITY_RUBRIC.md 嘅 visual audit 用真實 browser render 量到
+// 一批「睇唔到 / 答唔到」嘅 P0。根因有三類:
+//   P0-A  死 CSS  — <style> 冇 type="text/tailwindcss",Tailwind Play CDN 唔會
+//          process 個 apply 指令 → 9 條 rule 死掉 → onboarding 進度掣 / 老師面板
+//          掣 / Boss 答案掣 隐形或變形
+//   P0-B  高度鏈斷 — .ht-pair-stack 用 height:100% 但 parent 只有 min-height
+//          (高度 indefinite)→ percentage fallback → 兩條 bar 都係 6px →
+//          「邊個高？」題目視覺上無解
+//   P0-C  對比度   — raw text-slate-6/7/800 落深色 surface,實測 1.05:1 ~ 1.45:1
+//   P0-D  off-by-one — 第 ${st.total} 題 → 第一題顯示「第 0 題」
+console.log('\n[T106] V3.6 cycle-106 (visual quality P0: dead CSS / height chain / contrast / off-by-one)');
+
+// --- P0-A: 死 CSS 根因 — 全檔唔准再出現 Tailwind apply 指令 ---
+// 呢條係最重要嘅 lock-in: 只要冇 apply 指令, Play CDN 就唔需要 compile 任何嘢,
+// 死 CSS 呢個 bug family 就唔會再出現。
+assert('T106 P0-A no Tailwind apply directive anywhere in index.html',
+  !/@apply/.test(src),
+  '本 <style> 唔係 text/tailwindcss — Play CDN 唔會 process apply 指令, 會令 rule 死掉');
+assert('T106 P0-A .btn has real padding (not dead apply)',
+  /\.btn,\s*\.option-btn,\s*\.key-btn\s*\{[\s\S]{0,260}padding:\s*0\.75rem 1\.25rem/.test(src));
+assert('T106 P0-A .btn base has border-radius + shadow + transition',
+  /\.btn,\s*\.option-btn,\s*\.key-btn\s*\{[\s\S]{0,420}border-radius:\s*1rem/.test(src) &&
+  /\.btn,\s*\.option-btn,\s*\.key-btn\s*\{[\s\S]{0,420}box-shadow:/.test(src) &&
+  /\.btn,\s*\.option-btn,\s*\.key-btn\s*\{[\s\S]{0,420}transition-property:/.test(src));
+assert('T106 P0-A .btn:active has scale feedback',
+  /\.btn:active,\s*\.option-btn:active,\s*\.key-btn:active\s*\{\s*transform:\s*scale\(0\.95\)/.test(src));
+assert('T106 P0-A .btn-knight has gradient background',
+  /\.btn-knight\s*\{[\s\S]{0,140}background-image:\s*linear-gradient\(to bottom right,\s*#3b82f6,\s*#4f46e5\)/.test(src));
+assert('T106 P0-A .btn-mage has gradient background',
+  /\.btn-mage\s*\{[\s\S]{0,140}background-image:\s*linear-gradient/.test(src));
+assert('T106 P0-A .btn-boss has gradient background',
+  /\.btn-boss\s*\{[\s\S]{0,140}background-image:\s*linear-gradient/.test(src));
+assert('T106 P0-A .btn-ghost has bg + border + hover rule',
+  /\.btn-ghost\s*\{[\s\S]{0,220}background-color:\s*rgb\(255 255 255 \/ 0\.1\)/.test(src) &&
+  /\.btn-ghost\s*\{[\s\S]{0,220}border:\s*1px solid rgb\(255 255 255 \/ 0\.2\)/.test(src) &&
+  /\.btn-ghost:hover\s*\{[\s\S]{0,140}background-color:\s*rgb\(255 255 255 \/ 0\.25\)/.test(src));
+assert('T106 P0-A .btn-sm has radius + size',
+  /\.btn-sm\s*\{[\s\S]{0,400}border-radius:\s*0\.75rem/.test(src) &&
+  /\.btn-sm\s*\{[\s\S]{0,400}font-size:\s*0\.875rem/.test(src));
+assert('T106 P0-A .option-btn is full width + 2xl type (was dead apply)',
+  /\.option-btn\s*\{[\s\S]{0,200}width:\s*100%/.test(src) &&
+  /\.option-btn\s*\{[\s\S]{0,200}font-size:\s*1\.5rem/.test(src));
+assert('T106 P0-A .key-btn has 2xl type (was dead apply)',
+  /\.key-btn\s*\{[\s\S]{0,200}font-size:\s*1\.5rem/.test(src));
+assert('T106 P0-A .mode-badge has radius + padding + readable colour',
+  /\.mode-badge\s*\{[\s\S]{0,320}border-radius:\s*9999px/.test(src) &&
+  /\.mode-badge\s*\{[\s\S]{0,320}padding:\s*0\.25rem 0\.75rem/.test(src) &&
+  /\.mode-badge\s*\{[\s\S]{0,320}color:\s*var\(--c-text-on-night\)/.test(src));
+
+// --- P0-B: compareHeight / compareLength 高度鏈 ---
+assert('T106 P0-B .ht-pair-hit has DEFINITE height (percentage needs it)',
+  /\n\s{4}height:\s*clamp\(10rem,\s*40vh,\s*17rem\)/.test(src));
+assert('T106 P0-B .ht-pair-stack no longer uses height:100%',
+  /\.ht-pair-stack\s*\{[\s\S]{0,400}flex:\s*1 1 auto/.test(src) &&
+  !/\.ht-pair-stack\s*\{[^}]*height:\s*100%/.test(src));
+assert('T106 P0-B .ht-pair-bar-track exists and is a positioning context',
+  /\.ht-pair-bar-track\s*\{[\s\S]{0,300}position:\s*relative/.test(src) &&
+  /\.ht-pair-bar-track\s*\{[\s\S]{0,300}flex:\s*1 1 auto/.test(src));
+assert('T106 P0-B .ht-pair-bar is absolutely positioned inside the track',
+  /\.ht-pair-bar\s*\{[\s\S]{0,200}position:\s*absolute/.test(src) &&
+  /\.ht-pair-bar\s*\{[\s\S]{0,240}bottom:\s*0/.test(src));
+assert('T106 P0-B _heightPairHTML emits the track wrapper',
+  /ht-pair-bar-track[\s\S]{0,240}ht-pair-bar tone-/.test(src));
+
+// --- P0-C: 對比度 ---
+assert('T106 P0-C --c-text-on-night token defined in :root',
+  /--c-text-on-night:\s*#e2e8f0/.test(src) &&
+  /--c-text-on-night-muted:\s*rgba\(226,232,240,0\.75\)/.test(src));
+assert('T106 P0-C .text-on-night utility class exists',
+  /\.text-on-night\s*\{\s*color:\s*var\(--c-text-on-night\);?\s*\}/.test(src) &&
+  /\.text-on-night-muted\s*\{\s*color:\s*var\(--c-text-on-night-muted\);?\s*\}/.test(src));
+assert('T106 P0-C .sen-panel .sen-q-emoji uses readable colour (was slate-800 on navy = 1.05:1)',
+  /\.sen-panel \.sen-q-emoji\s*\{[\s\S]{0,300}color:\s*var\(--c-text-on-night\)/.test(src));
+assert('T106 P0-C boss question text uses readable colour',
+  /id="knight-question-text"[^>]*class="[^"]*text-on-night/.test(src) &&
+  /id="mage-question-text"[^>]*class="[^"]*text-on-night/.test(src));
+assert('T106 P0-C boss energy row uses readable colour',
+  /id="knight-energy-row"[^>]*class="[^"]*text-on-night-muted/.test(src) &&
+  /id="mage-energy-row"[^>]*class="[^"]*text-on-night-muted/.test(src));
+assert('T106 P0-C #menu-track-helper has its own readable colour rule',
+  /#menu-track-helper\s*\{[\s\S]{0,200}color:\s*var\(--c-text-on-night-muted\)/.test(src));
+assert('T106 P0-C onboarding step counter uses readable colour',
+  /text-on-night-muted mb-2">第 \$\{i\+1\} \/ \$\{steps\.length\} 步/.test(src));
+assert('T106 P0-C onboarding title uses amber-300 (amber-700 on slate-800 = 2.5:1)',
+  /text-amber-300 mb-3">\$\{s\.title\}/.test(src));
+assert('T106 P0-C teacher dashboard profile block readable',
+  /id="td-profile"[^>]*class="[^"]*text-on-night/.test(src));
+assert('T106 P0-C teacher modal raw slate colours migrated to tokens',
+  !/id="td-bank-status"[^>]*text-slate-700/.test(src) &&
+  !/id="td-bank-count"[^>]*text-slate-700/.test(src) &&
+  !/text-xs text-slate-600 mt-2">提示：每次開啟會出新的數學挑戰題/.test(src) &&
+  !/<p class="text-slate-700 mb-4">老師正在控制中/.test(src) &&
+  !/id="confirm-modal-body"[^>]*text-slate-700/.test(src));
+
+// --- P0-D: 第 N 題 off-by-one ---
+assert('T106 P0-D 第 N 題 shows current question number (total + 1, clamped to goal)',
+  /第 \$\{Math\.min\(st\.total \+ 1,\s*_goalQ\)\} 題/.test(src));
+
+// --- P1: 觸控目標 ≥ 44px + Boss 唔再似 error ---
+assert('T106 P1 .opt-scope-preset touch target >= 44px',
+  /\.opt-scope-preset\s*\{[\s\S]{0,420}min-height:\s*44px !important/.test(src));
+assert('T106 P1 .identity-toggle touch target >= 44px',
+  /\.identity-toggle\s*\{[\s\S]{0,500}min-height:\s*44px/.test(src));
+assert('T106 P1 #recommend-chips .rec-chip touch target >= 44px',
+  /#recommend-chips \.rec-chip\s*\{[\s\S]{0,300}min-height:\s*44px/.test(src));
+assert('T106 P1 boss track option is not styled like a disabled/error state',
+  /\.opt-track\[data-track="boss"\]\s*\{[\s\S]{0,220}border:\s*2px solid/.test(src) &&
+  !/\.opt-track\[data-track="boss"\]\s*\{[^}]*dashed/.test(src));
+
+// --- cycle106 文件 lock-in ---
+assert('T106 cycle106 visual rubric doc exists',
+  fs.existsSync(path.join(__dirname, '..', 'docs', 'VISUAL_QUALITY_RUBRIC.md')));
+assert('T106 cycle106 art style guide doc exists',
+  fs.existsSync(path.join(__dirname, '..', 'docs', 'ART_STYLE_GUIDE.md')));
+assert('T106 cycle106 UI style guide doc exists',
+  fs.existsSync(path.join(__dirname, '..', 'docs', 'UI_STYLE_GUIDE.md')));
 
 // =========== summary ===========
 console.log(`\n========== ${pass} pass / ${fail} fail ==========`);
