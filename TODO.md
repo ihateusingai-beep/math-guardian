@@ -15,7 +15,7 @@
 
 | 項 | 值 |
 |---|---|
-| Version | **v3.6** · cycle **109** |
+| Version | **v3.6** · cycle **110** |
 | Tests | **5391 pass / 0 fail**（825 regression + 4554 generator-audit + 12 audio-audit） |
 | Size | `index.html` **541,798 bytes**（budget < 600 KB） |
 | Media payload | **0 bytes**（全部 runtime 合成） |

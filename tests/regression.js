@@ -506,7 +506,7 @@ assert('AUDIT6-F01 handleAnswer nulls current[team] before setTimeout',
   /function\(team, value, btn\) \{[\s\S]{0,2500}Game\.state\.current\[team\] = null;[\s\S]{0,400}setTimeout\(\(\) => \{/.test(src) ||
   /AUDIT6-F01: re-entrancy[\s\S]{0,400}current\[team\][\s\S]{0,400}= null[\s\S]{0,200}setTimeout/.test(src) ||
   // R5 (cycle 15): null-out 搬入 _scheduleNextQuestion helper
-  /function _scheduleNextQuestion[\s\S]{0,400}current\[team\] = null;[\s\S]{0,300}setTimeout/.test(src));
+  /function _scheduleNextQuestion[\s\S]{0,400}current\[team\] = null;[\s\S]{0,700}setTimeout/.test(src));
 assert('AUDIT6-F01 re-entrancy null-out comment exists',
   /AUDIT6-F01: re-entrancy null-out/.test(src) &&
   /_scheduleNextQuestion/.test(src));
@@ -1070,7 +1070,7 @@ assert('EASY-53 shapeMatch optionLabels is value-map not shapes.map array',
 assert('EASY-54 easy handleAnswer records Profile stats via _recordAnswerStats',
   /difficulty === 'easy'[\s\S]{0,3500}_recordAnswerStats/.test(src));
 assert('EASY-55 easy handleAnswer plays Audio.correct / Audio.wrong',
-  /difficulty === 'easy'[\s\S]{0,3500}Audio\.correct[\s\S]{0,800}Audio\.wrong/.test(src));
+  /difficulty === 'easy'[\s\S]{0,5000}Audio\.correct[\s\S]{0,800}Audio\.wrong/.test(src));
 
 // V3.6-SEN cycle37: hoist + goal end + one-click start
 console.log('\n[T32] V3.6 audit cycle-37 (wire hoist / easy goal / one-click)');
@@ -2412,12 +2412,13 @@ assert('T109-02 局長 = Stage 數（goalStages 設定存在）',
 assert('T109-03 Stage 進度係 per-team（雙隊各自有進度）',
   /stage:\s*\{\s*\n\s*knight:\s*\{\s*index:\s*0,\s*units:\s*0,\s*cleared:\s*0\s*\}/.test(src) &&
   /mage:\s*\{\s*index:\s*0,\s*units:\s*0,\s*cleared:\s*0\s*\}/.test(src));
+// V3.6 cycle110: 重播槽改成單一（easy path 一次只有一條題喺度）
 assert('T109-04 答錯會記住同一條題（replay state + 原地重播）',
-  /Game\.state\.replay\[team\]\s*=\s*q;/.test(src) &&
-  /const replayQ = Game\.state\.replay\[nextTeam\];/.test(src) &&
+  /Game\.state\.replayQ\s*=\s*q;/.test(src) &&
+  /const replayQ = Game\.state\.replayQ;/.test(src) &&
   /Game\.state\.current\[nextTeam\]\s*=\s*replayQ;/.test(src));
 assert('T109-05 重播唔抽新題（唔會再 call QuestionGen.make）',
-  /const replayQ = Game\.state\.replay\[nextTeam\];[\s\S]{0,320}?UI\.showQuestion\(nextTeam\)/.test(src));
+  /const replayQ = Game\.state\.replayQ;[\s\S]{0,320}?UI\.showQuestion\(nextTeam\)/.test(src));
 assert('T109-06 錯題保留完整 payload（局完重練用同一條）',
   /Game\.state\.review\.push\(\{\s*\.\.\.q,\s*retryCount:\s*0,\s*retryStreak:\s*0\s*\}\)/.test(src));
 assert('T109-07 提示階梯 4 層（L1 重述 / L2 聚焦 / L3 部分 / L4 答案）',
@@ -2442,6 +2443,56 @@ assert('T109-14 進度格用 0-byte CSS（--p 漸層填充，冇新 asset 檔）
   /\.sen-cell\.is-filled[\s\S]{0,200}?--p/.test(src) && !/<img[^>]*sen-cell/.test(src));
 assert('T109-15 錯題重練 banner 存在',
   /id="sen-retry-banner"/.test(src) && /showSENRetryBanner/.test(src));
+
+// =========== T110: V3.6 cycle110 — 接力協作 / 概念卡里程碑 / 島嶼旅程 ===========
+// cycle 110：easy dual 之前係「同一隊一直答」（第二個學生根本冇得出手 →
+// 雙隊其實唔需要對方）。改成接力：每答完傳手，答錯嗰條題傳俾另一隊救。
+console.log('\n[T110] V3.6 cycle-110 (gameplay: 接力協作 + 概念卡里程碑 + 島嶼旅程)');
+assert('T110-01 接力：easy dual 每答完一題傳手（唔再係同一隊一直答）',
+  /const nextTeam = dual \? \(team === 'knight' \? 'mage' : 'knight'\) : 'knight';/.test(src));
+assert('T110-02 UI.setSENTurn 存在 + 接力用 currentTeam 做唯一真實來源',
+  /setSENTurn\(team\)/.test(src) &&
+  /UI\.setSENTurn\)\s*UI\.setSENTurn/.test(src) &&
+  /Game\.state\.currentTeam = nextTeam;/.test(src));
+assert('T110-03 setSENTurn 會切換兩邊卡片可見性 + 顯示「輪到」',
+  /card\.classList\.toggle\('hidden',\s*tm !== t\)/.test(src) &&
+  /輪到 \$\{who\}/.test(src));
+assert('T110-04 答錯第 2 次 → 扣 ½ 格 + 換新題（唔會無限卡住）',
+  /Game\.state\.replayTries >= 2/.test(src) &&
+  /_applyStageUnits\(team,\s*-2\)/.test(src));
+assert('T110-05 進度扣減唔會變負',
+  /if \(s\.units < 0\) s\.units = 0;/.test(src));
+assert('T110-06 概念卡 4 里程碑（M1/M2/M3/M4）',
+  /function _checkMilestones\(/.test(src) &&
+  /m1/.test(src) && /m2/.test(src) && /m3/.test(src) && /m4/.test(src));
+assert('T110-07 里程碑持久化落 Profile',
+  /Profile\.data\.milestonesByType/.test(src) && /Profile\.save\(\)/.test(src));
+assert('T110-08 概念卡 render + 重用現有 symbol（0 新 asset）',
+  /function renderEndConceptCards\(/.test(src) &&
+  /CONCEPT_BADGE/.test(src) && /px-abacus/.test(src));
+assert('T110-09 島嶼旅程（跨課堂累積 + 結算畫面顯示）',
+  /function _islandAdvance\(/.test(src) &&
+  /Profile\.data\.islandStage/.test(src) &&
+  /function renderEndIsland\(/.test(src));
+assert('T110-10 隊伍完成後仍然要傳手（否則雙隊模式另一隊永遠冇題答、局完唔到）',
+  /_easyGameComplete\(team\);\s*\n\s*_scheduleNextQuestion\(team,/.test(src) &&
+  !/if \(_easyGameComplete\(team\)\) return;/.test(src));
+assert('T110-11 島嶼 bar 用 CSS pips（唔靠特殊字形，跨平台一定 render 得到）',
+  /class="island-pip/.test(src) && /\.island-pip\.on/.test(src) &&
+  !/island-bar[^`]*▮/.test(src));
+assert('T110-12 里程碑真實執行 lock-in 喺 generator-audit（T110 段）',
+  fs.existsSync(path.join(__dirname, '..', 'tests', 'generator-audit.js')) &&
+  /T110/.test(fs.readFileSync(path.join(__dirname, '..', 'tests', 'generator-audit.js'), 'utf8')));
+// V3.6 cycle110b: 「輪到邊隊」必須只有一個真實來源。
+//   之前新開 turnTeam，但 badge（作答中/待命中）、review 重練對象、
+//   Adaptive 全部讀 currentTeam → 可見卡片同 currentTeam 會唔一致。
+assert('T110-13 全檔唔准再出現第二個「輪到邊隊」欄位 turnTeam（避免漂移）',
+  !/turnTeam/.test(src));
+assert('T110-14 setSENTurn 嘅邊隊預設讀 currentTeam（唔係 hardcode knight）',
+  /const t = team \|\| Game\.state\.currentTeam \|\| 'knight';/.test(src));
+assert('T110-15 接力切換之後 currentTeam 同可見卡片一致（真實執行 lock-in 喺 generator-audit）',
+  fs.existsSync(path.join(__dirname, '..', 'tests', 'generator-audit.js')) &&
+  /T110b/.test(fs.readFileSync(path.join(__dirname, '..', 'tests', 'generator-audit.js'), 'utf8')));
 
 // =========== summary ===========
 console.log(`\n========== ${pass} pass / ${fail} fail ==========`);

@@ -595,6 +595,292 @@ try {
   check('T109 Stage audit 執行得到（唔好 throw）', false, e.message);
 }
 
+// ============================================================
+// T110: 概念卡里程碑 functional audit (cycle 110)
+// ============================================================
+
+function loadMilestoneModule() {
+  const html = fs.readFileSync(INDEX, 'utf8');
+  const scripts = html.match(/<script>[\s\S]*?<\/script>/g) || [];
+  let body = '';
+  for (const s of scripts) {
+    const candidate = s.replace(/^<script>/, '').replace(/<\/script>$/, '');
+    if (candidate.length > body.length) body = candidate;
+  }
+  if (!body) throw new Error('No <script> found in index.html');
+  function grabFn(name) {
+    const marker = `function ${name}(`;
+    const i = body.indexOf(marker);
+    if (i === -1) throw new Error(`${name} not found`);
+    let depth = 0, started = false, end = -1;
+    for (let j = i; j < body.length; j++) {
+      if (body[j] === '{') { depth++; started = true; }
+      else if (body[j] === '}') { depth--; if (started && depth === 0) { end = j + 1; break; } }
+    }
+    if (end === -1) throw new Error(`${name} end not found`);
+    return body.slice(i, end);
+  }
+  const consts = (body.match(/const STAGE_CELLS = 3;/) || [''])[0] + '\n' +
+                 (body.match(/const CELL_UNITS = 4;/) || [''])[0];
+  const fns = ['_checkMilestones', '_applyStageUnits', '_stageCellFills', '_islandAdvance'].map(grabFn).join('\n');
+  const code = `
+    ${consts}
+    ${fns}
+    return { _checkMilestones, _applyStageUnits, _stageCellFills, _islandAdvance };
+  `;
+  const __Game = {
+    state: { hintStreakByType: {}, sessionStreak: 0, _islandCounted: false,
+             stage: { knight: { index: 0, units: 0, cleared: 0 }, mage: { index: 0, units: 0, cleared: 0 } } },
+    settings: { goalStages: 3 },
+  };
+  const __Profile = { data: {}, save() { __Profile.saved = (__Profile.saved || 0) + 1; } };
+  const __TYPE_REGISTRY = { count20: { label: '數數' } };
+  const __FX = { screenAlert: () => {} };
+  const fn = new Function('Game', 'Profile', 'TYPE_REGISTRY', 'FX', code);
+  return { mod: fn(__Game, __Profile, __TYPE_REGISTRY, __FX), Game: __Game, Profile: __Profile };
+}
+
+console.log('\n[T110] V3.6 cycle-110 (concept-card milestone functional audit)');
+
+try {
+  const { mod, Game, Profile } = loadMilestoneModule();
+  const { _checkMilestones, _applyStageUnits, _islandAdvance } = mod;
+
+  // --- M1: 首次答啱 ---
+  _checkMilestones('count20', true, 0, false);
+  check('M1 首次答啱 → 解鎖', !!(Profile.data.milestonesByType && Profile.data.milestonesByType.count20 && Profile.data.milestonesByType.count20.m1),
+    JSON.stringify(Profile.data.milestonesByType));
+  check('M1 存咗入 Profile（持久化）', (Profile.saved || 0) >= 1, `saved=${Profile.saved}`);
+
+  // --- M2: 冇用提示連對 5 題 ---
+  Profile.data = {}; Game.state.hintStreakByType = {}; Game.state.sessionStreak = 0;
+  for (let i = 0; i < 4; i++) _checkMilestones('count20', true, 0, false);
+  check('M2 連對 4 題未解鎖', !(Profile.data.milestonesByType.count20 || {}).m2,
+    JSON.stringify(Profile.data.milestonesByType));
+  _checkMilestones('count20', true, 0, false);
+  check('M2 冇提示連對 5 題 → 解鎖', !!(Profile.data.milestonesByType.count20 || {}).m2,
+    JSON.stringify(Profile.data.milestonesByType));
+
+  // --- M2 唔應該喺「用咗提示」時解鎖 ---
+  Profile.data = {}; Game.state.hintStreakByType = {}; Game.state.sessionStreak = 0;
+  for (let i = 0; i < 8; i++) _checkMilestones('count20', true, 2, false);
+  check('M2 用咗提示 → 唔解鎖', !(Profile.data.milestonesByType.count20 || {}).m2,
+    JSON.stringify(Profile.data.milestonesByType));
+
+  // --- M3: 錯咗之後救回 ---
+  Profile.data = {}; Game.state.hintStreakByType = {}; Game.state.sessionStreak = 0;
+  _checkMilestones('count20', true, 0, false);
+  check('M3 未救回之前未解鎖', !(Profile.data.milestonesByType.count20 || {}).m3, JSON.stringify(Profile.data.milestonesByType));
+  _checkMilestones('count20', true, 0, true);
+  check('M3 錯咗之後重播答啱 → 解鎖', !!(Profile.data.milestonesByType.count20 || {}).m3,
+    JSON.stringify(Profile.data.milestonesByType));
+
+  // --- M4: 同一局連對 10 題 ---
+  Profile.data = {}; Game.state.hintStreakByType = {}; Game.state.sessionStreak = 0;
+  for (let i = 0; i < 9; i++) _checkMilestones('count20', true, 0, false);
+  check('M4 連對 9 題未解鎖', !(Profile.data.milestonesByType.count20 || {}).m4, JSON.stringify(Profile.data.milestonesByType));
+  _checkMilestones('count20', true, 0, false);
+  check('M4 同一局連對 10 題 → 解鎖', !!(Profile.data.milestonesByType.count20 || {}).m4,
+    JSON.stringify(Profile.data.milestonesByType));
+
+  // --- 答錯會清空連勝 ---
+  Profile.data = {}; Game.state.hintStreakByType = {}; Game.state.sessionStreak = 0;
+  _checkMilestones('count20', true, 0, false);
+  _checkMilestones('count20', false, 0, false);
+  check('答錯 → 連勝清零', Game.state.sessionStreak === 0, `streak=${Game.state.sessionStreak}`);
+
+  // --- 里程碑唔會重複解鎖（時間戳唔變） ---
+  Profile.data = {}; Game.state.hintStreakByType = {}; Game.state.sessionStreak = 0;
+  _checkMilestones('count20', true, 0, false);
+  const first = Profile.data.milestonesByType.count20.m1;
+  _checkMilestones('count20', true, 0, false);
+  check('M1 唔會被重複解鎖（時間戳唔變）', Profile.data.milestonesByType.count20.m1 === first,
+    `${first} vs ${Profile.data.milestonesByType.count20.m1}`);
+
+  // --- 扣格唔會變負 ---
+  Game.state.stage.knight = { index: 0, units: 0, cleared: 0 };
+  _applyStageUnits('knight', -2);
+  check('扣 ½ 格喺 0 進度 → 唔會變負', Game.state.stage.knight.units === 0, `units=${Game.state.stage.knight.units}`);
+  _applyStageUnits('knight', 8);
+  _applyStageUnits('knight', -2);
+  check('扣 ½ 格喺有進度 → 真係扣', Game.state.stage.knight.units === 6, `units=${Game.state.stage.knight.units}`);
+
+  // --- 島嶼旅程：每局只加一次 ---
+  Profile.data = {}; Game.state._islandCounted = false;
+  _islandAdvance();
+  _islandAdvance();
+  check('島嶼旅程每局只加一次', Profile.data.islandStage === 1, `islandStage=${Profile.data.islandStage}`);
+  Game.state._islandCounted = false;
+  _islandAdvance();
+  check('下一局再加一次', Profile.data.islandStage === 2, `islandStage=${Profile.data.islandStage}`);
+} catch (e) {
+  check('T110 milestone audit 執行得到（唔好 throw）', false, e.message);
+}
+
+// ============================================================
+// T110b: 接力「輪到邊隊」單一真實來源 functional audit (cycle 110b)
+//
+// Bug shape（cycle 110 實作時引入）: 新開咗 Game.state.turnTeam 做接力，
+// 但 badge（作答中/待命中）、review 重練對象、Adaptive 全部讀 currentTeam
+// → 可見卡片同 currentTeam 唔一致（小美答緊但 badge 話佢待命）。
+// Fix: 收埋成 currentTeam 一個欄位。
+// ⚠️ regex 結構測試捉唔到「兩個欄位值唔一致」→ 必須真實執行。
+// ============================================================
+
+function loadRelayModule() {
+  const html = fs.readFileSync(INDEX, 'utf8');
+  const scripts = html.match(/<script>[\s\S]*?<\/script>/g) || [];
+  let body = '';
+  for (const s of scripts) {
+    const candidate = s.replace(/^<script>/, '').replace(/<\/script>$/, '');
+    if (candidate.length > body.length) body = candidate;
+  }
+  if (!body) throw new Error('No <script> found in index.html');
+  function grabFn(name) {
+    const marker = `function ${name}(`;
+    const i = body.indexOf(marker);
+    if (i === -1) throw new Error(`${name} not found`);
+    let depth = 0, started = false, end = -1;
+    for (let j = i; j < body.length; j++) {
+      if (body[j] === '{') { depth++; started = true; }
+      else if (body[j] === '}') { depth--; if (started && depth === 0) { end = j + 1; break; } }
+    }
+    if (end === -1) throw new Error(`${name} end not found`);
+    return body.slice(i, end);
+  }
+  // object method（`setSENTurn(team) {`）—— 同一個 brace scanner
+  function grabMethod(name) {
+    const marker = `${name}(team) {`;
+    const i = body.indexOf(marker);
+    if (i === -1) throw new Error(`${name} method not found`);
+    const braceStart = body.indexOf('{', i);
+    let depth = 0, end = -1;
+    for (let j = braceStart; j < body.length; j++) {
+      if (body[j] === '{') depth++;
+      else if (body[j] === '}') { depth--; if (depth === 0) { end = j + 1; break; } }
+    }
+    if (end === -1) throw new Error(`${name} method end not found`);
+    return body.slice(i, end);
+  }
+  const code = `
+    const UI = { setSENTurn: function ${grabMethod('setSENTurn')} };
+    ${grabFn('_scheduleNextQuestion')}
+    return { _scheduleNextQuestion, setSENTurn: UI.setSENTurn };
+  `;
+  return new Function('Game', '$', 'nextQuestion', 'setTimeout', code);
+}
+
+console.log('\n[T110b] V3.6 cycle-110b (relay single source of truth functional audit)');
+
+try {
+  const makeModule = loadRelayModule();
+
+  function mkEl(id) {
+    const classes = new Set();
+    const el = {
+      id,
+      textContent: '',
+      innerHTML: '',
+      style: { setProperty: () => {} },
+      setAttribute: () => {},
+      classList: {
+        toggle: (c, on) => { if (on === undefined) { classes.has(c) ? classes.delete(c) : classes.add(c); } else if (on) classes.add(c); else classes.delete(c); },
+        add: (c) => classes.add(c),
+        remove: (c) => classes.delete(c),
+        contains: (c) => classes.has(c),
+      },
+    };
+    return el;
+  }
+  function mkEnv() {
+    const els = {};
+    const $ = (id) => (els[id] || (els[id] = mkEl(id)));
+    const Game = {
+      state: {
+        current: { knight: null, mage: null },
+        currentTeam: 'knight',
+        running: true, ended: false,
+        _easyTeamDone: { knight: false, mage: false },
+        replayQ: null,
+        hintLevel: { knight: 0, mage: 0 },
+      },
+      settings: { difficulty: 'easy', playLayout: 'dual', team: 'coop',
+                   playerLabel: '小明', playerLabelRight: '小美' },
+    };
+    const calls = { nextQuestion: [], shown: [] };
+    const UI = {
+      setSENTurn: null,   // 由 module 內部 const UI 提供（外面用 Game.state 對照）
+      showQuestion: (team) => calls.shown.push(team),
+    };
+    // setTimeout 即時執行（測試唔想等真實 delay）
+    const setTimeout = (fn) => { fn(); return 0; };
+    const nextQuestion = (team) => {
+      calls.nextQuestion.push(team);
+      Game.state.current[team] = { type: 'count20', answer: 7 };
+    };
+    const mod = makeModule(Game, $, nextQuestion, setTimeout);
+    return { Game, $, els, calls, mod };
+  }
+
+  // --- 1. 接力切換：currentTeam 必須跟住變 ---
+  {
+    const { Game, els, mod } = mkEnv();
+    mod._scheduleNextQuestion('knight', 0);
+    check('T110b-01 接力後 currentTeam = 下一隊（mage）', Game.state.currentTeam === 'mage',
+      `currentTeam=${Game.state.currentTeam}`);
+    // --- 2. 可見卡片必須同 currentTeam 一致（原本嘅 bug 就係呢度唔一致）---
+    const mageVisible = !els['mage-card'].classList.contains('hidden');
+    const knightHidden = els['knight-card'].classList.contains('hidden');
+    check('T110b-02 可見卡片 == currentTeam（mage 見、knight 隱）', mageVisible && knightHidden,
+      `mageVisible=${mageVisible} knightHidden=${knightHidden} currentTeam=${Game.state.currentTeam}`);
+    check('T110b-03 接力 banner 顯示「輪到 小美」', /輪到 小美/.test(els['sen-turn-banner'].textContent),
+      `banner="${els['sen-turn-banner'].textContent}"`);
+    // --- 3. 答完嗰隊唔可以仲有題（避免兩隊同時有題）---
+    check('T110b-04 答完嗰隊冇題（current[knight] 係 null）', Game.state.current.knight === null,
+      `current.knight=${JSON.stringify(Game.state.current.knight)}`);
+    check('T110b-05 新題派俾 currentTeam 嗰隊', Game.state.current.mage && Game.state.current.mage.answer === 7,
+      `current.mage=${JSON.stringify(Game.state.current.mage)}`);
+  }
+
+  // --- 4. 答錯嗰條題傳俾另一隊（同一條題，答案一致）---
+  {
+    const { Game, els, calls, mod } = mkEnv();
+    const wrongQ = { type: 'count20', answer: 4 };
+    Game.state.replayQ = wrongQ;
+    mod._scheduleNextQuestion('knight', 0);
+    check('T110b-06 答錯嗰條題原封不動傳俾下一隊', Game.state.current.mage && Game.state.current.mage.answer === 4,
+      `current.mage=${JSON.stringify(Game.state.current.mage)}`);
+    check('T110b-07 傳手時唔抽新題（nextQuestion 冇被叫）', calls.nextQuestion.length === 0,
+      `nextQuestion calls=${JSON.stringify(calls.nextQuestion)}`);
+    check('T110b-08 傳手後 currentTeam = mage', Game.state.currentTeam === 'mage',
+      `currentTeam=${Game.state.currentTeam}`);
+  }
+
+  // --- 5. 唔可以存在第二個 turnTeam 欄位（漂移源）---
+  {
+    const { Game } = mkEnv();
+    const mod_keys = Object.keys(Game.state);
+    check('T110b-09 Game.state 冇 turnTeam（單一真實來源）', !mod_keys.includes('turnTeam'),
+      `state keys=${JSON.stringify(mod_keys)}`);
+    check('T110b-10 currentTeam 存在並且有值', Game.state.currentTeam === 'knight',
+      `currentTeam=${Game.state.currentTeam}`);
+  }
+
+  // --- 6. easy solo 唔會傳手（只有 knight）---
+  {
+    const { Game, els, mod } = mkEnv();
+    Game.settings.playLayout = 'solo';
+    mod._scheduleNextQuestion('knight', 0);
+    check('T110b-11 easy solo 唔傳手（currentTeam 仍然係 knight）', Game.state.currentTeam === 'knight',
+      `currentTeam=${Game.state.currentTeam}`);
+    check('T110b-12 easy solo 唔顯示接力 banner',
+      els['sen-turn-banner'].classList.contains('hidden'),
+      `banner="${els['sen-turn-banner'].textContent}"`);
+  }
+} catch (e) {
+  check('T110b relay audit 執行得到（唔好 throw）', false, e.message);
+}
+
 // summary
 console.log(`\n========== ${pass} pass / ${fail} fail ==========`);
 if (fail > 0) {

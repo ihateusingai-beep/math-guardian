@@ -1109,7 +1109,36 @@
     background: rgba(15,23,42,0.45) !important;
     border-color: rgba(255,255,255,0.18) !important;
   }
-  /* ===== V3.6 cycle109 — Stage 進度格 / 提示行 / 錯題重練 banner =====
+  /* ===== V3.6 cycle110 — 接力 banner / 概念卡 / 島嶼旅程（全部 0-byte CSS） ===== */
+.sen-turn-banner {
+  margin: 0.4rem auto 0; padding: 0.3rem 0.9rem;
+  font-size: 1rem; font-weight: 800; color: #a5b4fc;
+  background: rgba(15, 23, 42, 0.85);
+  border: 2px solid rgba(165, 180, 252, 0.45);
+  border-radius: 9999px; text-align: center;
+  max-width: 90vw;
+}
+.concept-cards-label { font-size: 0.8rem; font-weight: 800; color: #fde68a; margin-bottom: 0.35rem; }
+.concept-cards { display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center; }
+.concept-card {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  padding: 0.4rem 0.55rem; min-width: 76px;
+  background: rgba(15, 23, 42, 0.7);
+  border: 2px solid rgba(253, 230, 138, 0.35);
+  border-radius: 12px;
+}
+.concept-name { font-size: 0.7rem; font-weight: 800; color: #f0f9ff; }
+.concept-dots { font-size: 0.85rem; letter-spacing: 1px; color: #fbbf24; }
+.island-label { font-size: 0.8rem; font-weight: 800; color: #a5b4fc; margin-bottom: 0.3rem; }
+.island-bar { display: flex; gap: 5px; justify-content: center; }
+.island-pip {
+  width: 16px; height: 16px; border-radius: 4px; box-sizing: border-box;
+  background: rgba(255, 255, 255, 0.15);
+  border: 2px solid rgba(52, 211, 153, 0.45);
+}
+.island-pip.on { background: #34d399; border-color: #34d399; }
+
+/* ===== V3.6 cycle109 — Stage 進度格 / 提示行 / 錯題重練 banner =====
    全部 0-byte CSS（冇新 asset）。進度格用 --p 做 0..100% 漸層填充，
    對應每格 4 段（0.25 精度）：答啱 1 格 = 100%、用提示 = 50% / 25%。 */
 .sen-stage {
@@ -4046,6 +4075,8 @@
       </div>
       <div id="sen-arena-status" class="sen-arena-status">準備…</div>
     </div>
+    <!-- V3.6 cycle110: 接力提示（easy dual 輪到邊隊） -->
+    <div id="sen-turn-banner" class="sen-turn-banner hidden" role="status" aria-live="polite"></div>
     <!-- V3.6 cycle109: 局完「錯題重練」關卡 banner -->
     <div id="sen-retry-banner" class="sen-retry-banner hidden" role="status" aria-live="polite">🔁 錯題重練：同一條題，連續答啱兩次就過關</div>
     <div id="sen-board" class="sen-board sen-board-solo">
@@ -4135,6 +4166,9 @@
       <div id="end-stats" class="bg-slate-800/70 border border-amber-300/20 rounded-2xl p-4 mb-4 text-left space-y-2 text-amber-50"></div>
       <!-- P2-c: Achievement badges (unlocked only, fade-in stagger) -->
       <div id="end-badges" class="mb-4 flex justify-center gap-3 flex-wrap" style="font-size:0;line-height:0;"></div>
+      <!-- V3.6 cycle110: 概念卡里程碑 + 島嶼旅程 -->
+      <div id="end-island" class="mb-3"></div>
+      <div id="end-concept-cards" class="mb-4"></div>
       <div class="grid grid-cols-2 gap-3">
         <button id="btn-restart" class="btn btn-knight" aria-label="再玩一次 — 用同樣設定重新開始">🔁 再玩一次</button>
         <button id="btn-back-menu" class="btn btn-mage" aria-label="返回主選單 — 結束本局">🏠 返回主選單</button>
@@ -6940,7 +6974,14 @@ const Game = {
     },
     stagesTotal: 3,         // 一局有幾多 Stage
     hintLevel: { knight: 0, mage: 0 },  // 當前題目已用提示層數（0 = 未用）
-    replay: { knight: null, mage: null },  // 原地重播：答錯嗰條原題（唔抽新題）
+    // V3.6 cycle110: 單一重播槽（easy path 一次只有一條題喺度）+ 接力輪次
+    replayQ: null,          // 原地重播：答錯嗰條原題（唔抽新題）
+    replayTries: 0,         // 呢條題答錯咗幾多次（第 2 次錯 → 罰半格 + 換新題）
+    // V3.6 cycle110: 接力用 currentTeam 做「唯一真實來源」
+    //   （曾另開第二個輪次欄位，令 badge / review / Adaptive 睇嘅 currentTeam
+    //     永遠停喺 knight → 同可見卡片唔一致。cycle110b 收埋。）
+    hintStreakByType: {},   // 冇用提示連對幾多題（用嚟計 M2 里程碑）
+    sessionStreak: 0,       // 同一局連對幾多題（用嚟計 M4 里程碑）
     retryMode: false,       // 局完「錯題重練」關卡
     retryList: [],          // 要重練嘅題（保留完整 payload）
     retryIndex: 0,
@@ -6992,7 +7033,7 @@ const Game = {
       const correct = _compareAnswer(q.answer, value, q.type).correct;
 
       // V3.6 cycle109: 呢條係咪「原地重播」嗰條？（答錯之後再問同一條，唔抽新題）
-      const isReplay = !!Game.state.replay[team];
+      const isReplay = !!Game.state.replayQ;
       const usedHint = Game.state.hintLevel[team] || 0;
 
       // V3.6 cycle75/76: length/height = tap real bar only；錯唔罰、唔跳題、只重播題
@@ -7017,11 +7058,13 @@ const Game = {
         _recordAnswerStats(team, q, true);
         // V3.6 cycle109: tap-pair 答啱一樣推進 Stage 進度
         _applyStageUnits(team, _cellUnits(true, usedHint, isReplay));
-        Game.state.replay[team] = null;
+        Game.state.replayQ = null;
+        Game.state.replayTries = 0;
         Game.state.hintLevel[team] = 0;
         UI.refreshSENScreen();
         UI.refreshSENArena(team, true);
-        if (_easyGameComplete(team)) return;
+        // V3.6 cycle110: 就算呢隊完成咗，都要繼續傳手（雙隊模式下另一隊仲有題要答）
+        _easyGameComplete(team);
         _scheduleNextQuestion(team, 900);
         return;
       }
@@ -7030,11 +7073,22 @@ const Game = {
       const units = _cellUnits(correct, usedHint, isReplay);
       if (correct) {
         UI._senShowFeedback(true, null, team);
-        Game.state.replay[team] = null;
+        Game.state.replayQ = null;
+        Game.state.replayTries = 0;
         Game.state.hintLevel[team] = 0;
       } else {
-        // 答錯：記住同一條題，下一輪再問（唔抽新題 — spaced repetition 靠重播同一 stimulus）
-        Game.state.replay[team] = q;
+        // V3.6 cycle110: 答錯 → 記住同一條題。
+        //   第一次錯：原地重播（雙隊會傳俾另一隊救）
+        //   第二次錯：扣 ½ 格 + 換新題（否則會無限卡喺同一條）
+        Game.state.replayTries = (Game.state.replayTries || 0) + 1;
+        if (Game.state.replayTries >= 2) {
+          Game.state.replayQ = null;
+          Game.state.replayTries = 0;
+          _applyStageUnits(team, -2);   // 扣 ½ 格
+        } else {
+          // 原地重播同一條（唔抽新題 — spaced repetition 靠重播同一 stimulus）
+          Game.state.replayQ = q;
+        }
         Game.state.hintLevel[team] = 0;
         // 提示只出層 1（重述），唔會直接講答案；學生可以撳「提示」逐層深入
         if (Game.settings.instantHint !== false) {
@@ -7063,9 +7117,14 @@ const Game = {
         Audio.wrong && Audio.wrong();
       }
       _recordAnswerStats(team, q, correct);
+      // V3.6 cycle110: 概念卡里程碑（M1 首次答啱 / M2 冇提示連對 5 / M3 錯咗救回 / M4 連對 10）
+      _checkMilestones(q.type, correct, usedHint, isReplay);
       UI.refreshSENScreen();
       UI.refreshSENArena(team, correct);
-      if (_easyGameComplete(team)) return;
+      // V3.6 cycle110: 就算呢隊完成咗，都要繼續傳手（雙隊模式下另一隊仲有題要答）
+      // ⚠️ 之前「一完成就提早 return」會令傳手中斷 —— 雙隊模式下
+      //    一隊完成後另一隊就永遠冇題答，局完唔到（easy dual 根本入唔到結算畫面）。
+      _easyGameComplete(team);
       _scheduleNextQuestion(team, correct ? 650 : 1000);
       return;
     }
@@ -8296,6 +8355,28 @@ const UI = {
     if (!el) return;
     el.classList.toggle('hidden', !show);
   },
+
+  // V3.6 cycle110: 接力 — 切換輪到邊隊 + 顯示提示
+  // ⚠️ cycle110b: 邊隊 = Game.state.currentTeam（唯一真實來源），唔好再開新欄位
+  setSENTurn(team) {
+    const banner = $('sen-turn-banner');
+    if (Game.settings.playLayout !== 'dual') {
+      if (banner) banner.classList.add('hidden');
+      return;
+    }
+    const t = team || Game.state.currentTeam || 'knight';
+    ['knight', 'mage'].forEach(tm => {
+      const card = $(`${tm}-card`);
+      if (card) card.classList.toggle('hidden', tm !== t);
+    });
+    if (banner) {
+      banner.classList.remove('hidden');
+      const who = t === 'knight'
+        ? (Game.settings.playerLabel || '左隊')
+        : (Game.settings.playerLabelRight || '右隊');
+      banner.textContent = `輪到 ${who}`;
+    }
+  },
 };
 
 function escapeHTML(s) {
@@ -9418,7 +9499,11 @@ function startGame() {
     mage:   { index: 0, units: 0, cleared: 0 },
   };
   Game.state.hintLevel = { knight: 0, mage: 0 };
-  Game.state.replay = { knight: null, mage: null };
+  Game.state.replayQ = null;
+  Game.state.replayTries = 0;
+  Game.state.currentTeam = 'knight';
+  Game.state.hintStreakByType = {};
+  Game.state.sessionStreak = 0;
   Game.state.retryMode = false;
   Game.state.retryList = [];
   Game.state.retryIndex = 0;
@@ -9770,21 +9855,27 @@ function _recordAnswerStats(team, q, correct) {
 function _scheduleNextQuestion(team, delayMs) {
   Game.state.current[team] = null;
   const delay = (typeof delayMs === 'number') ? delayMs : 0;
-  // V3.6-SEN: easy solo = only knight next; dual = same team continues (versus)
+  // V3.6 cycle110: 接力 — easy solo = 只有 knight；easy dual = 兩隊輪流
+  // （之前同一隊一直答，第二個學生根本冇得出手 → 雙隊其實唔需要對方）
   if (Game.settings.difficulty === 'easy') {
     const dual = Game.settings.playLayout === 'dual';
-    const nextTeam = dual ? team : 'knight';
+    const nextTeam = dual ? (team === 'knight' ? 'mage' : 'knight') : 'knight';
+    // V3.6 cycle110b: currentTeam = 「輪到邊隊」嘅唯一真實來源
+    //   badge（作答中/待命中）、review 重練對象、Adaptive 都讀佢，
+    //   所以喺呢度同步，唔可以再開第二個輪次欄位（會漂移）。
+    Game.state.currentTeam = nextTeam;
     setTimeout(() => {
       if (!(Game.state.running && !Game.state.ended && !(Game.state._easyTeamDone && Game.state._easyTeamDone[nextTeam]))) return;
       // V3.6 cycle109: 答錯 → 原地重播「同一條」（唔抽新題，spaced repetition 靠重播同一 stimulus）
-      const replayQ = Game.state.replay[nextTeam];
+      const replayQ = Game.state.replayQ;
       if (replayQ) {
         Game.state.current[nextTeam] = replayQ;
         Game.state.hintLevel[nextTeam] = 0;
         if (typeof UI !== 'undefined' && UI.showQuestion) UI.showQuestion(nextTeam);
-        return;
+      } else {
+        nextQuestion(nextTeam);
       }
-      nextQuestion(nextTeam);
+      if (typeof UI !== 'undefined' && UI.setSENTurn) UI.setSENTurn(nextTeam);
     }, delay || 700);
     return;
   }
@@ -9834,8 +9925,9 @@ function _cellUnits(correct, usedHintLevel, isReplay) {
 function _applyStageUnits(team, units) {
   const st = Game.state;
   const s = st.stage[team] || (st.stage[team] = { index: 0, units: 0, cleared: 0 });
-  if (!units || units <= 0) return { cleared: false, stageIndex: s.index };
+  if (!units) return { cleared: false, stageIndex: s.index };
   s.units += units;
+  if (s.units < 0) s.units = 0;   // V3.6 cycle110: 扣格（答錯兩次）唔可以變負
   const need = STAGE_CELLS * CELL_UNITS;
   let cleared = false;
   while (s.units >= need) {
@@ -9863,6 +9955,46 @@ function _stageCellFills(team) {
 function _stageGoalQuestions() {
   const stages = Math.max(1, Number(Game.settings.goalStages) || 3);
   return { stages, target: stages * STAGE_CELLS, hardCap: stages * STAGE_CELLS * 2 };
+}
+
+// V3.6 cycle110: 概念卡 4 里程碑
+//   M1 首次答啱 · M2 冇用提示連對 5 題 · M3 錯咗之後救回 · M4 同一局連對 10 題
+function _checkMilestones(type, correct, usedHint, wasReplay) {
+  if (!type) return;
+  const st = Game.state;
+  if (!st.hintStreakByType) st.hintStreakByType = {};
+  if (st.hintStreakByType[type] === undefined) st.hintStreakByType[type] = 0;
+  if (correct) {
+    st.hintStreakByType[type] = usedHint ? 0 : st.hintStreakByType[type] + 1;
+    st.sessionStreak = (st.sessionStreak || 0) + 1;
+  } else {
+    st.hintStreakByType[type] = 0;
+    st.sessionStreak = 0;
+  }
+  const P = Profile.data;
+  if (!P.milestonesByType) P.milestonesByType = {};
+  const m = P.milestonesByType[type] || (P.milestonesByType[type] = {});
+  const now = Date.now();
+  let changed = false;
+  if (correct && !m.m1) { m.m1 = now; changed = true; }
+  if (correct && !usedHint && st.hintStreakByType[type] >= 5 && !m.m2) { m.m2 = now; changed = true; }
+  if (correct && wasReplay && !m.m3) { m.m3 = now; changed = true; }
+  if (correct && st.sessionStreak >= 10 && !m.m4) { m.m4 = now; changed = true; }
+  if (changed) {
+    Profile.save();
+    const reg = TYPE_REGISTRY[type];
+    const label = reg ? reg.label : type;
+    if (typeof FX !== 'undefined' && FX.screenAlert) FX.screenAlert(`🏅 ${label}：解鎖新里程碑！`, '#fbbf24');
+  }
+}
+
+// 島嶼旅程 — 跨課堂累積（每完成一局全部 Stage = 島上一格）
+function _islandAdvance() {
+  const st = Game.state;
+  if (st._islandCounted) return;
+  st._islandCounted = true;
+  Profile.data.islandStage = (Profile.data.islandStage || 0) + 1;
+  Profile.save();
 }
 
 // 呢個隊伍做完未？（全部 Stage 通關 或者 撞硬上限）
@@ -9906,6 +10038,7 @@ function _easyFinishOrRetry() {
     _nextRetryQuestion('knight');
     return;
   }
+  _islandAdvance();
   if (!st.ended) endGame(true);
 }
 
@@ -9926,6 +10059,7 @@ function _easyRetryFinish() {
   st.retryMode = false;
   st.running = false;
   st._easyEnding = true;
+  _islandAdvance();
   if (typeof UI !== 'undefined' && UI.showSENRetryBanner) UI.showSENRetryBanner(false);
   if (!st.ended) endGame(true);
 }
@@ -10274,6 +10408,52 @@ function endGame(victory) {
   setTimeout(() => showEndScreen(victory), 600);
 }
 
+// V3.6 cycle110: 概念卡 → 里程碑 icon 對照（重用現有 6 個「死 symbol」，零新 asset）
+const CONCEPT_BADGE = {
+  count20: 'px-abacus',
+  compareLength: 'px-badge-shield',
+  compareHeight: 'px-badge-leaf',
+  orderAsc20: 'px-badge-hat',
+  orderDesc20: 'px-badge-book',
+  learnL: 'px-badge-star',
+  findLDrink: 'px-badge-star',
+  findLItem: 'px-badge-star',
+};
+const MILESTONE_KEYS = ['m1', 'm2', 'm3', 'm4'];
+
+// 島嶼旅程進度（跨課堂累積）
+function renderEndIsland() {
+  const el = $('end-island');
+  if (!el) return;
+  const n = Math.max(0, Math.min(8, Number(Profile.data.islandStage) || 0));
+  const pips = Array.from({ length: 8 }, (_, i) => `<span class="island-pip${i < n ? ' on' : ''}"></span>`).join('');
+  el.innerHTML = `<div class="island-label">🏝️ 島嶼旅程</div>` +
+    `<div class="island-bar" role="img" aria-label="島嶼旅程進度 ${n} / 8">${pips}</div>`;
+}
+
+// 概念卡：每個用過嘅 scope 一張 + 4 個里程碑
+function renderEndConceptCards() {
+  const el = $('end-concept-cards');
+  if (!el) return;
+  const M = Profile.data.milestonesByType || {};
+  const used = Array.from(new Set([...(Game.settings.scopes || []), ...Object.keys(M)]));
+  if (!used.length) { el.innerHTML = ''; return; }
+  const cards = used.map(t => {
+    const reg = TYPE_REGISTRY[t];
+    const label = reg ? reg.label : t;
+    const m = M[t] || {};
+    const got = MILESTONE_KEYS.filter(k => m[k]).length;
+    const dots = MILESTONE_KEYS.map(k => (m[k] ? '●' : '○')).join('');
+    const sym = CONCEPT_BADGE[t] || 'px-badge-star';
+    return `<div class="concept-card">` +
+      `<svg class="pixel" width="32" height="32" aria-hidden="true"><use href="#${sym}"/></svg>` +
+      `<div class="concept-name">${escapeHTML(label)}</div>` +
+      `<div class="concept-dots" role="img" aria-label="里程碑 ${got} / 4">${dots}</div>` +
+      `</div>`;
+  }).join('');
+  el.innerHTML = `<div class="concept-cards-label">概念卡</div><div class="concept-cards">${cards}</div>`;
+}
+
 function renderEndBadges(victory) {
   // P2-c: 解鎖 condition
   const totalCorrect = (Game.state.teams.knight.correct || 0) + (Game.state.teams.mage.correct || 0);
@@ -10542,6 +10722,9 @@ function showEndScreen(victory) {
   _renderEndIcon(victory, endMeta);
   _renderEndBackground();
   renderEndBadges(victory);   // existing helper (P2-c, kept unchanged)
+  // V3.6 cycle110: 概念卡里程碑 + 島嶼旅程
+  renderEndIsland();
+  renderEndConceptCards();
   $('end-title').textContent = title;
   $('end-message').textContent = msg;
   _renderEndStats();
