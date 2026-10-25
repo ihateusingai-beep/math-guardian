@@ -15,8 +15,8 @@
 
 | 項 | 值 |
 |---|---|
-| Version | **v3.6** · cycle **107** |
-| Tests | **5309 pass / 0 fail**（804 regression + 4493 generator-audit + 12 audio-audit） |
+| Version | **v3.6** · cycle **108** |
+| Tests | **5349 pass / 0 fail**（810 regression + 4527 generator-audit + 12 audio-audit） |
 | Size | `index.html` **541,798 bytes**（budget < 600 KB） |
 | Media payload | **0 bytes**（全部 runtime 合成） |
 | Visual readiness | **6.3 / 10**（Before cycle 106 = 4.56）· 見 `docs/VISUAL_QUALITY_RUBRIC.md` |
@@ -46,13 +46,29 @@
 - [x] **c106** 視覺品質 rubric + 美術/UI style guide + P0 修復（死 CSS / 高度鏈 / 對比度 / 第 0 題）
 - [x] **c107** 修 deploy placeholder 域名事故（刪 `CNAME` + Plausible `data-domain` + T107 lock-in）
   —— 線上站由 2026-10-16 起一直 301 去未註冊域名（開唔到），而家回復 `.github.io`
+- [x] **c108** 遊戲設計檢討 + 修 P0（Adaptive ladder guard）+ T108 behavioural lock-in
+  —— easy scope 學生連答啱 5 題，scope 會被換成 classic 加法題（已修）
 
 ---
 
-## 2. NEXT（cycle 107+ backlog）
+## 2. NEXT（cycle 109+ backlog）
 
-> 來源：`docs/VISUAL_QUALITY_RUBRIC.md` §9（優先改善計劃）+ §10（rendering profiles 規格）。
-> 詳細證據、數值、最小改動步驟全部喺 rubric，呢度只做 index。
+> 來源：`docs/GAME_DESIGN_REVIEW.md`（遊戲設計層）· `docs/VISUAL_QUALITY_RUBRIC.md` §9（視覺層）。
+> 詳細證據、最小改動步驟、驗證方法全部喺對應 doc，呢度只做 index。
+
+### P0 · 遊戲設計（cycle 109 建議由呢度開始）
+
+> 建議次序：**B 鞏固化 → C 結構化 → A 適應化**（理由見 design review §5）
+
+- [ ] **B1** 錯題**同一條重播**（review item 保留完整 question payload，唔好再抽新題）— D2
+- [ ] **B2** 局完加「錯題重練」關卡（連續 2 次重播都啱先移出 queue）— D5
+- [ ] **B3** 局長可配（5 / 10 / 20 題）+ 教師控制台設（唔喺學生選單）— D3
+- [ ] **C1** 局內 type 唔隨機跳（「全部」改成每 5 題換一個 type）— D6
+- [ ] **C2** scope 選單結構化 + 教師可控局長 — D6
+- [ ] **A1** 分層提示 4 級 scaffold（重述 → 聚焦 → 部分答案 → 完整答案）— D1
+      ⚠️ 先要 Ken / 老師確認「最後一招係咪可以畀答案」
+- [ ] **A2** scope 內難度分級 + 自適應（count20 1–3→1–10、compareLength 1:2→1:1.5）— D4
+      ⚠️ 最大項，要喺 B/C 穩定咗先做
 
 ### P0 · 殘餘對比度 / 可讀性（cycle 107 建議揀呢個）
 
@@ -129,8 +145,8 @@
 
 **Gates（每 cycle 必跑）**
 ```
-node tests/regression.js       # 804 pass / 0 fail
-node tests/generator-audit.js  # 4493 pass / 0 fail
+node tests/regression.js       # 810 pass / 0 fail
+node tests/generator-audit.js  # 4527 pass / 0 fail
 node tests/audio-audit.js      # 12 pass / 0 fail
 ```
 改咗 UI / CSS / token → 額外：headless Chrome + CDP 重 capture 受影響 state + 重量對比度（見 `docs/VISUAL_QUALITY_RUBRIC.md` §4 驗證方法）。

@@ -11315,9 +11315,17 @@ const Adaptive = {
     const c = this.counters[team][type];
     if (c.dir >= 0) c.streak++;
     else { c.dir = 0; c.streak = 1; }
-    if (c.streak >= 5 && TYPE_ORDER.indexOf(type) < TYPE_ORDER.length - 1) {
+    // V3.6 cycle108 P0: 升級/降級只可以喺 TYPE_ORDER 呢條 ladder 內進行。
+    // 原本條件 `TYPE_ORDER.indexOf(type) < TYPE_ORDER.length - 1` 對「唔喺 TYPE_ORDER」
+    // 嘅 type 會回 -1 → -1 < 5 = true → 誤判成可升級 → next = TYPE_ORDER[0] = 'add10'。
+    // 結果：easy/SEN scope（count20 / compareLength / orderAsc20 / orderDesc20 …）
+    // 學生連續答啱 5 題之後，scope 會被靜靜換成 classic 加法題 —— 對 SEN 學生
+    // 係內容災難（做緊數數突然變 10+10）。
+    // 修正：type 唔喺 ladder → 完全唔做 type 置換（counter 仍然記，mastery 仍然計）。
+    const idx = TYPE_ORDER.indexOf(type);
+    if (idx < 0) return;
+    if (c.streak >= 5 && idx < TYPE_ORDER.length - 1) {
       // 升級
-      const idx = TYPE_ORDER.indexOf(type);
       const next = TYPE_ORDER[idx + 1];
       // 確保 settings.types 有 next；如果 type 唔喺 settings.types，唔動
       if (Game.settings.types.includes(type)) {
@@ -11335,12 +11343,13 @@ const Adaptive = {
     const c = this.counters[team][type];
     if (c.dir <= 0) c.streak++;
     else { c.dir = 0; c.streak = 1; }
-    if (c.streak >= 3 && TYPE_ORDER.indexOf(type) > 0) {
+    // V3.6 cycle108 P0: 同一個 ladder guard（原本靠 `indexOf(type) > 0` 剛好擋住 -1，
+    // 但係隱式、而且一旦 TYPE_ORDER 改動就會再爆）。統一用 idx 明確表達。
+    const idx = TYPE_ORDER.indexOf(type);
+    if (idx <= 0) return;   // 唔喺 ladder，或者已經係最簡單嗰級 → 唔降級
+    if (c.streak >= 3) {
       // 降級
-      const idx = TYPE_ORDER.indexOf(type);
       const prev = TYPE_ORDER[idx - 1];
-      // Boundary lock: add10 唔可以再降；sub2d 唔可以再升（已包喺 onCorrect）
-      if (type === 'add10') return;
       // V3.5-AUDIT14: 已經 mastered 嘅 type 唔再降（
       if (this.isMastered(type)) return;
       if (Game.settings.types.includes(type)) {

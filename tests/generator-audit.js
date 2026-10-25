@@ -311,6 +311,136 @@ try {
   process.exit(1);
 }
 
+// ============================================================
+// T108: Adaptive ladder functional audit (cycle 108 P0 lock-in)
+// ============================================================
+// 背景（cycle 108 P0）：Adaptive.onCorrect 原本用
+//   `TYPE_ORDER.indexOf(type) < TYPE_ORDER.length - 1`
+// 做升級門檻。對「唔喺 TYPE_ORDER 嘅 type」indexOf 回 -1 → -1 < 5 = true
+// → 誤判成可升級 → next = TYPE_ORDER[0] = 'add10'
+// → 學生喺 easy/SEN path 連續答啱 5 題，scope 會被靜靜換成 classic 加法題。
+// 實機驗證（headless Chrome + live site）：count20 → add10。
+//
+// 呢個係行為 bug，regex 結構測試捉唔到，所以喺呢個 functional audit 度做真實執行。
+
+// module-level mocks（測試體同 loader 共用同一份 instance，Adaptive 改嘅就係佢）
+const __adaptiveGame = { settings: { types: [] } };
+const __adaptiveProfile = { data: { masteredByType: {}, statsByType: {}, adaptiveDowngrades: 0 }, save: () => {} };
+
+function loadAdaptive() {
+  const html = fs.readFileSync(INDEX, 'utf8');
+  const scripts = html.match(/<script>[\s\S]*?<\/script>/g) || [];
+  let body = '';
+  for (const s of scripts) {
+    const candidate = s.replace(/^<script>/, '').replace(/<\/script>$/, '');
+    if (candidate.length > body.length) body = candidate;
+  }
+  if (!body) throw new Error('No <script> found in index.html');
+
+  const orderMatch = body.match(/const TYPE_ORDER\s*=\s*\[[^\]]*\]/);
+  if (!orderMatch) throw new Error('TYPE_ORDER not found');
+  const orderSrc = orderMatch[0];
+
+  const startMarker = 'const Adaptive = {';
+  const startIdx = body.indexOf(startMarker);
+  if (startIdx === -1) throw new Error('Adaptive not found');
+  let depth = 0, endIdx = -1;
+  for (let i = startIdx + startMarker.length - 1; i < body.length; i++) {
+    if (body[i] === '{') depth++;
+    else if (body[i] === '}') { depth--; if (depth === 0) { endIdx = i + 1; break; } }
+  }
+  if (endIdx === -1) throw new Error('Adaptive end not found');
+  const adaptiveSrc = body.slice(startIdx, endIdx);
+
+  const code = `
+    ${orderSrc}
+    ${adaptiveSrc}
+    return { TYPE_ORDER, Adaptive };
+  `;
+  const fn = new Function('Game', 'Profile', 'FX', 'TEAM_META', 'TYPE_REGISTRY', 'announceToA11y', code);
+  const FX = { screenAlert: () => {} };
+  const TEAM_META = { knight: { name: '騎士' }, mage: { name: '法師' } };
+  const TYPE_REGISTRY = {};
+  return fn(__adaptiveGame, __adaptiveProfile, FX, TEAM_META, TYPE_REGISTRY, () => {});
+}
+
+console.log('\n[T108] V3.6 cycle-108 (Adaptive ladder: easy scope 唔可以被換走)');
+
+try {
+  const { TYPE_ORDER, Adaptive } = loadAdaptive();
+  const Game = __adaptiveGame;   // 測試體用同一個 instance
+
+  // --- 1. easy / SEN scope: 連續答啱 5 題都唔可以改 scope ---
+  const EASY_SCOPES = ['count20', 'compareLength', 'compareHeight',
+                       'orderAsc20', 'orderDesc20', 'learnL', 'findLDrink', 'findLItem'];
+  for (const scope of EASY_SCOPES) {
+    Game.settings.types = [scope];
+    Adaptive.reset();
+    for (let i = 0; i < 5; i++) Adaptive.onCorrect('knight', scope);
+    check(`easy scope "${scope}" 連答啱 5 題後 scope 唔會被換走`,
+      Game.settings.types.length === 1 && Game.settings.types[0] === scope,
+      `types = ${JSON.stringify(Game.settings.types)}（期望 ["${scope}"]）`);
+  }
+
+  // --- 2. easy / SEN scope: 連續答錯 6 題都唔可以改 scope ---
+  for (const scope of EASY_SCOPES) {
+    Game.settings.types = [scope];
+    Adaptive.reset();
+    for (let i = 0; i < 6; i++) Adaptive.onWrong('knight', scope);
+    check(`easy scope "${scope}" 連答錯 6 題後 scope 唔會被換走`,
+      Game.settings.types.length === 1 && Game.settings.types[0] === scope,
+      `types = ${JSON.stringify(Game.settings.types)}（期望 ["${scope}"]）`);
+  }
+
+  // --- 3. 通用 invariant：任何唔喺 TYPE_ORDER 嘅 type 都唔可以被 type 置換 ---
+  //     （呢個係 bug 嘅根：indexOf 回 -1 仍然通過 < length 嘅條件）
+  const nonLadderTypes = EASY_SCOPES.concat(['add20x', 'notAType', 'count10', 'groupAdd', 'compareGroup']);
+  for (const type of nonLadderTypes) {
+    Game.settings.types = [type];
+    Adaptive.reset();
+    for (let i = 0; i < 12; i++) { Adaptive.onCorrect('knight', type); Adaptive.onWrong('mage', type); }
+    check(`唔喺 ladder 嘅 type "${type}" 升級/降級後都唔會改 settings.types`,
+      Game.settings.types.length === 1 && Game.settings.types[0] === type,
+      `types = ${JSON.stringify(Game.settings.types)}（期望 ["${type}"]）`);
+  }
+
+  // --- 4. classic ladder 行為必須保留（修復唔可以整爛原本功能）---
+  Game.settings.types = ['add10'];
+  Adaptive.reset();
+  for (let i = 0; i < 5; i++) Adaptive.onCorrect('knight', 'add10');
+  check('classic: add10 連答啱 5 題 → 升級到 sub10',
+    Game.settings.types[0] === 'sub10',
+    `types = ${JSON.stringify(Game.settings.types)}（期望 ["sub10"]）`);
+
+  Game.settings.types = ['sub10'];
+  Adaptive.reset();
+  for (let i = 0; i < 3; i++) Adaptive.onWrong('knight', 'sub10');
+  check('classic: sub10 連答錯 3 題 → 降級到 add10',
+    Game.settings.types[0] === 'add10',
+    `types = ${JSON.stringify(Game.settings.types)}（期望 ["add10"]）`);
+
+  Game.settings.types = ['add10'];
+  Adaptive.reset();
+  for (let i = 0; i < 3; i++) Adaptive.onWrong('knight', 'add10');
+  check('classic: add10 係 ladder 底部 → 唔會再降級',
+    Game.settings.types[0] === 'add10',
+    `types = ${JSON.stringify(Game.settings.types)}（期望 ["add10"]）`);
+
+  Game.settings.types = ['sub2d'];
+  Adaptive.reset();
+  for (let i = 0; i < 8; i++) Adaptive.onCorrect('knight', 'sub2d');
+  check('classic: sub2d 係 ladder 頂 → 唔會再升級',
+    Game.settings.types[0] === 'sub2d',
+    `types = ${JSON.stringify(Game.settings.types)}（期望 ["sub2d"]）`);
+
+  // --- 5. TYPE_ORDER 本身必須仍然係經典 6 級（唔可以被順手改壞）---
+  check('TYPE_ORDER 仍然係經典 6 級 ladder',
+    JSON.stringify(TYPE_ORDER) === JSON.stringify(['add10','sub10','add20','sub20','add2d','sub2d']),
+    `TYPE_ORDER = ${JSON.stringify(TYPE_ORDER)}`);
+} catch (e) {
+  check('T108 Adaptive audit 執行得到（唔好 throw）', false, e.message);
+}
+
 // summary
 console.log(`\n========== ${pass} pass / ${fail} fail ==========`);
 if (fail > 0) {

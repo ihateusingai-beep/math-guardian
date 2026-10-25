@@ -8,8 +8,8 @@ Vanilla JS + Tailwind CDN, no build, GitHub Pages.
 
 - Open `index.html` or `python3 -m http.server 8000`
 - Tests:
-  - `node tests/regression.js` → **804 pass / 0 fail** (structural regex lock-in, cycle 53–107)
-  - `node tests/generator-audit.js` → **4493 pass / 0 fail** (functional truth-table, cycle 101+)
+  - `node tests/regression.js` → **810 pass / 0 fail** (structural regex lock-in, cycle 53–108)
+  - `node tests/generator-audit.js` → **4527 pass / 0 fail** (functional truth-table, cycle 101+ · T108 Adaptive ladder)
   - `node tests/audio-audit.js` → **12 pass / 0 fail** (audio call-site × export cross-check, cycle 105+)
 - No lint / typecheck / build
 - Live: https://ihateusingai-beep.github.io/math-guardian/
@@ -27,11 +27,12 @@ Vanilla JS + Tailwind CDN, no build, GitHub Pages.
 │   ├── VISUAL_QUALITY_RUBRIC.md   # cycle106 — 視覺 rubric + 評分 + state matrix + profiles
 │   ├── ART_STYLE_GUIDE.md         # cycle106 — 美術實作規則 (grid / palette / timing / export)
 │   ├── UI_STYLE_GUIDE.md          # cycle106 — 遊戲 UI 規則 (構圖 / 掣狀態 / a11y)
+│   ├── GAME_DESIGN_REVIEW.md      # cycle108 — 遊戲設計檢討 (核心 loop + 6 個設計缺口 + 方案)
 │   ├── AUDIO_VIDEO_OPTIMIZATION.md # cycle104/105 — media pipeline audit
 │   ├── ARCHITECTURE_REVIEW.md     # cycle96 — code architecture review
 │   └── screenshots/                # cycle106 — before/after evidence 幀 (17 張 JPEG)
 ├── tests/regression.js     # structural regex lock-in
-├── tests/generator-audit.js # functional truth-table (generators × 30 trials)
+├── tests/generator-audit.js # functional truth-table (generators × 30 trials + T108 Adaptive ladder)
 ├── tests/audio-audit.js    # audio pipeline audit (call-site × export cross-check)
 └── .harness/               # changelogs, docs, plans
 ```
@@ -74,6 +75,11 @@ Rubric / 目標風格 / 基準喺 **`docs/VISUAL_QUALITY_RUBRIC.md`**。
   out-of-range values, broken arithmetic invariants.
 - **Visual lock-in** (cycle106, T106): dead CSS / 高度鏈 / 對比度 / off-by-one 全部有 assertion。
   最重要嗰條: **全檔唔准再出現 Tailwind `apply` 指令**(見 Design system)。
+- **Behavioural lock-in** (cycle108, T108): 涉及**狀態被改寫**嘅 bug,regex 結構檢查 100% 捉唔到
+  (cycle 108 P0: easy scope 被 Adaptive 換成 `add10`,實測先見到)。
+  → 喺 `tests/generator-audit.js` 抽出**真實模組**、用 mock 環境**實際執行**、斷言實際 state 變化。
+  每條新 lock-in 都要試過「還原舊 code → fail → 修復 → pass」先算有效。
+  Adaptive 嘅 `TYPE_ORDER` ladder 同 easy scope **唔可以互換** —— 適應只准喺同一個 scope 內發生。
 - Student UI: **no** stigma「SEN」label; MC **A/B/C** badges by **render order**
 - `startGame`/resume helpers must be **module scope** (not nested in `setupMenu`)
 

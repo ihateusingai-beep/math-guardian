@@ -2372,6 +2372,30 @@ assert('T107-06 TODO.md 嘅 live URL 係 .github.io 且唔含 placeholder 域名
 assert('T107-07 AGENTS.md 明寫「DNS 未生效前唔准加返 CNAME」嘅規則',
   /DNS 未生效之前加返 `CNAME`|唔好喺域名未註冊/.test(AGENTS_MD));
 
+// =========== T108: V3.6 cycle108 — Adaptive ladder guard ===========
+// cycle 108 P0：Adaptive.onCorrect 用 `TYPE_ORDER.indexOf(type) < TYPE_ORDER.length - 1`
+// 做升級門檻 → 對「唔喺 TYPE_ORDER 嘅 type」indexOf 回 -1 → 誤判成可升級 →
+// next = TYPE_ORDER[0] = 'add10'。結果 easy/SEN scope 學生連答啱 5 題，scope 靜靜
+// 變成 classic 加法題。行為鎖喺 tests/generator-audit.js T108（真實執行）。
+// 呢度做結構鎖（防止 guard 被日後 refactor 拆走）。
+console.log('\n[T108] V3.6 cycle-108 (Adaptive: type 置換只准喺 TYPE_ORDER ladder 內)');
+const ADAPTIVE_BLOCK = (src.match(/const Adaptive = \{[\s\S]*?\n\};/) || [''])[0];
+// 剝走註解先做條件檢查（註解入面會引用舊條件字串做說明）
+const ADAPTIVE_CODE = ADAPTIVE_BLOCK
+  .replace(/\/\*[\s\S]*?\*\//g, '')
+  .replace(/^\s*\/\/.*$/gm, '');
+assert('T108-01 Adaptive module 存在', ADAPTIVE_BLOCK.length > 0);
+assert('T108-02 onCorrect 有 TYPE_ORDER membership guard (idx < 0 → return)',
+  /onCorrect\s*\([^)]*\)\s*\{[\s\S]{0,900}const idx = TYPE_ORDER\.indexOf\(type\);[\s\S]{0,200}if \(idx < 0\) return;/.test(ADAPTIVE_CODE));
+assert('T108-03 onWrong 有 TYPE_ORDER membership guard (idx <= 0 → return)',
+  /onWrong\s*\([^)]*\)\s*\{[\s\S]{0,900}const idx = TYPE_ORDER\.indexOf\(type\);[\s\S]{0,200}if \(idx <= 0\) return;/.test(ADAPTIVE_CODE));
+assert('T108-04 唔准再出現會令 indexOf(-1) 通過嘅升級條件',
+  !/TYPE_ORDER\.indexOf\(type\)\s*<\s*TYPE_ORDER\.length/.test(ADAPTIVE_CODE));
+assert('T108-05 唔准再出現會令 indexOf(-1) 通過嘅降級條件',
+  !/TYPE_ORDER\.indexOf\(type\)\s*>\s*0/.test(ADAPTIVE_CODE));
+assert('T108-06 type 置換只可以發生喺 Adaptive 升級/降級兩處',
+  (src.match(/Game\.settings\.types = Game\.settings\.types\.map\(/g) || []).length === 2);
+
 // =========== summary ===========
 console.log(`\n========== ${pass} pass / ${fail} fail ==========`);
 if (fail > 0) {
