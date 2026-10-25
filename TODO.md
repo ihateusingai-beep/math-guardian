@@ -73,7 +73,13 @@
         ③ 接力唔跳過已完成隊伍 → 一隊做完就死鎖
       └ cycle110c end screen 喺 iPad 639×669 overflow：概念卡/島嶼提到 stats 上面 + 掣行 sticky
         + 雙隊 medal `white-space: nowrap`（之前 🥇🥇 換行疊落標題）
-- [ ] **cycle 111** Boss 重新入場 + scope 內 3 級難度（生成器加 level 參數）+ **像素品質全修** + 新 16 個 symbol + `tests/asset-audit.js`
+- [x] **cycle 111a** 像素資產品質全修 + `tests/asset-audit.js`（8 組 check）✅ 已 ship
+      └ 座標全整數（7 個 symbol）· 顯示尺寸改整數倍（em/vw/clamp → px）· 35+2 symbol 加 `crispEdges`
+      └ 刪走重複定義嘅 `px-castle`（舊一份永遠 render 唔到）· 清走重複 CSS rule（`.pic-card-svg` / `.boss-svg`）
+      └ **修好靜靜壞咗嘅功能**：`_lPickMC` 冇傳 `svgId` → 6 個 pkg 精靈從來冇 render 過
+      └ 新增 2 個精靈（`pkg-soymilk-1l` 豆漿 1L / `pkg-paint-5l` 油漆 5L）—— 之前「油漆 5L」借用
+        「漂白水 2L」精靈，學生會讀到錯嘅容量
+- [ ] **cycle 111b** Boss 重新入場（進度格驅動）· scope 內 3 級難度（生成器加 level 參數）· 新 16 個 symbol（5 boss + island + 4 scope icon + 3 UI icon）+ emoji-as-chrome 置換
 - [ ] **cycle 112** 教師台 8 項控制 + 班級模式 + 概念卡 UI
 
 ### P1 · 遊戲設計（細項 · 已記錄喺 design review §3）

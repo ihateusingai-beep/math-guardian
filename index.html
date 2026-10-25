@@ -1672,7 +1672,7 @@
   .q-shape svg { width: 96px; height: 96px; }
   /* clock */
   .q-clock { display: flex; align-items: center; justify-content: center; margin: 1rem auto; }
-  .q-clock svg { width: 140px; height: 140px; }
+  .q-clock svg { width: 144px; height: 144px; }   /* 16×16 symbol 嘅 9× */
   /* order 排序題 */
   .q-order-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.5rem; }
   .q-order-row .q-order-btn { font-size: 1.6rem; padding: 0.8rem; border-radius: 1rem; background: rgba(255,255,255,0.08); border: 2px solid rgba(255,255,255,0.15); color: #fff; font-weight: 800; cursor: pointer; }
@@ -1939,6 +1939,12 @@
   .fill.low      { background: linear-gradient(90deg, #ef4444, #f87171) !important; animation: pulse-bar 1s infinite; }
 
   /* ============== 隕石 / 粒子 / 螢幕警示 ============== */
+  /* V3.6 cycle111: boss 入場大圖（16×16 symbol 嘅 14× 整數倍）*/
+  .bi-svg {
+    width: 224px;
+    height: 224px;
+    animation: boss-intro-pop 600ms cubic-bezier(0.34,1.56,0.64,1) both;
+  }
   .meteor {
     position: fixed; top: 0; left: 50%; width: 80px; height: 80px;
     pointer-events: none; z-index: 60;
@@ -2032,8 +2038,9 @@
     100% { filter: drop-shadow(0 6px 12px rgba(220,38,38,0.4)) brightness(1); transform: scale(1) rotate(0); }
   }
   .boss-svg {
-    width: clamp(88px, 18vw, 128px);
-    height: clamp(88px, 18vw, 128px);
+    /* cycle111: 16×16 symbol 嘅整數倍（6× = 96px；大屏 8× = 128px）*/
+    width: 96px;
+    height: 96px;
     filter: drop-shadow(0 8px 18px rgba(220,38,38,0.55));
     transition: filter .35s;
     position: relative;
@@ -2239,10 +2246,9 @@
     image-rendering: crisp-edges;
   }
   .pixel-icon { display: inline-block; vertical-align: middle; }
-  /* boss pixel art 容器 — size/filter overridden in cycle69 immersive block */
-  .boss-svg { transition: filter .35s; }
-  .boss-svg.enraged { filter: drop-shadow(0 0 18px #ef4444) hue-rotate(-15deg) saturate(1.6); }
-  .boss-svg.frozen  { filter: drop-shadow(0 0 18px #67e8f9) hue-rotate(180deg) brightness(0.95); }
+  /* boss pixel art 容器 —— size / filter / transition 全部喺上面 cycle69 immersive block 定義。
+     V3.6 cycle111: 呢度原本重複咗 3 條 rule（.boss-svg / .enraged / .frozen），
+     cascade 下後面嗰個 .boss-svg 冇 width/height → 令人誤以為尺寸冇設定。已清走。 */
   @keyframes troll-idle {
     0%,100% { transform: translateY(0); }
     50%     { transform: translateY(-3px); }
@@ -2281,9 +2287,11 @@
   .flag-wave     { animation: flag-wave 1.5s ease-in-out infinite; transform-origin: bottom; }
 
   /* Mini icon container */
-  .icon-mini { width: 1.4em; height: 1.4em; }
-  .icon-md   { width: 2em;   height: 2em; }
-  .icon-lg   { width: 3em;   height: 3em; }
+  /* V3.6 cycle111: 像素 icon 容器改用 px（16×16 symbol 嘅整數倍 1× / 2× / 3×）。
+     之前用 em → 實際像素 = 1.4em / 2em 會隨父字體浮動，非整數倍就一定有灰邊。 */
+  .icon-mini { width: 16px; height: 16px; }
+  .icon-md   { width: 32px; height: 32px; }
+  .icon-lg   { width: 48px; height: 48px; }
 
   /* 重練 chip：hover / long-press 顯示答案 (P0-2) */
   .review-chip { position: relative; cursor: pointer; }
@@ -2312,7 +2320,7 @@
     overflow: visible;
     transform-origin: bottom center;
   }
-  .char-svg { width: 100%; height: 100%; overflow: visible; }
+  .char-svg { width: 64px; height: 96px; overflow: visible; }   /* 32×48 symbol 嘅 2× */
   @keyframes knight-idle {
     0%,100% { transform: translateY(0) rotate(0); }
     50%     { transform: translateY(-2px) rotate(0); }
@@ -2440,23 +2448,24 @@
     color: #1e293b;
     border: 2px solid #94a3b8;
   }
+  .pic-card-svg {
+    /* cycle111: 64×64 symbol 嘅整數倍（2× = 128px）*/
+    width: 128px;
+    height: 128px;
+    display: block;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.15));
+    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.25s;
+  }
+  .pic-card-mini .pic-card-svg {
+    width: 64px;   /* 64×64 symbol 嘅 1× */
+    height: 64px;
+  }
   .pic-card-btn .pic-card-pkg.is-l {
     background: #fef3c7;
     color: #92400e;
     border-color: #f59e0b;
   }
   /* V3.6 cycle93: SVG 包裝插畫 — 真實感 + 跨 OS 一致 */
-  .pic-card-svg {
-    width: 84px;
-    height: 84px;
-    display: block;
-    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.15));
-    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.25s;
-  }
-  .pic-card-mini .pic-card-svg {
-    width: 60px;
-    height: 60px;
-  }
   /* V3.6 cycle94: hover 互動 — cap 升 / bubble 升 / straw 擺 / 樽 shake */
   .pic-card-btn:hover .pic-card-svg {
     transform: translateY(-3px) rotate(-2deg) scale(1.05);
@@ -2467,7 +2476,8 @@
   .pic-card-btn:hover .pkg-soda-cap,
   .pic-card-btn:hover .pkg-det-cap,
   .pic-card-btn:hover .pkg-soy-cap,
-  .pic-card-btn:hover .pkg-bleach-cap {
+  .pic-card-btn:hover .pkg-bleach-cap,
+  .pic-card-btn:hover .pkg-paint-lid {
     animation: pkg-cap-lift 0.6s ease-out;
   }
   @keyframes pkg-cap-lift {
@@ -2682,7 +2692,7 @@
     </pattern>
 
     <!-- 🔥 Forest Troll Boss (16x16 pixel grid → SVG rects) -->
-    <symbol id="px-troll" viewBox="0 0 16 16">
+    <symbol id="px-troll" viewBox="0 0 16 16" shape-rendering="crispEdges">
       <!-- 粗框 body: 深綠陰影 + 主綠 + 亮綠 highlight -->
       <!-- horns -->
       <rect x="3"  y="0" width="1" height="2" fill="#3f1f0a"/>
@@ -2719,7 +2729,7 @@
     </symbol>
 
     <!-- ❄️ Frost Giant Boss (P1-C) — 冰藍巨人 + 雪晶體 -->
-    <symbol id="px-frost" viewBox="0 0 16 16">
+    <symbol id="px-frost" viewBox="0 0 16 16" shape-rendering="crispEdges">
       <!-- ice crown spikes -->
       <rect x="3"  y="0" width="1" height="2" fill="#0e7490"/>
       <rect x="12" y="0" width="1" height="2" fill="#0e7490"/>
@@ -2755,7 +2765,7 @@
     </symbol>
 
     <!-- 🔥 Lava Giant Boss (V3.6 cycle83) — 熔岩巨人 + 火柱 -->
-    <symbol id="px-lava" viewBox="0 0 16 16">
+    <symbol id="px-lava" viewBox="0 0 16 16" shape-rendering="crispEdges">
       <!-- horns (dark red) -->
       <rect x="3"  y="0" width="1" height="2" fill="#7f1d1d"/>
       <rect x="12" y="0" width="1" height="2" fill="#7f1d1d"/>
@@ -2793,7 +2803,7 @@
     </symbol>
 
     <!-- 🐉 Shadow Dragon Boss (V3.6 cycle83) — 暗影龍 + 紅眼 -->
-    <symbol id="px-shadow" viewBox="0 0 16 16">
+    <symbol id="px-shadow" viewBox="0 0 16 16" shape-rendering="crispEdges">
       <!-- wing spikes (dark purple) -->
       <rect x="1"  y="2" width="2" height="1" fill="#1e1b4b"/>
       <rect x="0"  y="3" width="2" height="2" fill="#1e1b4b"/>
@@ -2825,7 +2835,7 @@
     </symbol>
 
     <!-- 💎 Crystal Golem Boss (V3.6 cycle83) — 水晶魔像 + 棱面 -->
-    <symbol id="px-crystal" viewBox="0 0 16 16">
+    <symbol id="px-crystal" viewBox="0 0 16 16" shape-rendering="crispEdges">
       <!-- crystal crown spikes -->
       <rect x="3"  y="0" width="1" height="2" fill="#1e40af"/>
       <rect x="12" y="0" width="1" height="2" fill="#1e40af"/>
@@ -2863,7 +2873,7 @@
     </symbol>
 
     <!-- ⚔️ Knight Shield (圓盾 + 十字劍) -->
-    <symbol id="px-knight" viewBox="0 0 16 16">
+    <symbol id="px-knight" viewBox="0 0 16 16" shape-rendering="crispEdges">
       <!-- shield outline -->
       <rect x="4"  y="2"  width="8"  height="1" fill="#1e3a8a"/>
       <rect x="3"  y="3"  width="1"  height="8" fill="#1e3a8a"/>
@@ -2885,7 +2895,7 @@
     </symbol>
 
     <!-- 🔮 Mage Orb (水晶球 + 星座) -->
-    <symbol id="px-mage" viewBox="0 0 16 16">
+    <symbol id="px-mage" viewBox="0 0 16 16" shape-rendering="crispEdges">
       <!-- outer ring -->
       <rect x="3"  y="3"  width="10" height="10" fill="#581c87"/>
       <rect x="4"  y="4"  width="8"  height="8"  fill="#7e22ce"/>
@@ -2904,112 +2914,14 @@
     </symbol>
 
     <!-- V3.6 cycle93: L 容量真實包裝 SVG 插畫 (64x64 viewBox) -->
-    <symbol id="pkg-milk-1l" viewBox="0 0 64 64">
-      <!-- gable top -->
-      <path class="pkg-milk-gable" d="M14 6 L32 2 L50 6 L48 12 L16 12 Z" fill="#dbeafe" stroke="#1e3a8a" stroke-width="1.2"/>
-      <path d="M20 8 L22 12 M32 5 L32 12 M44 8 L42 12" stroke="#1e3a8a" stroke-width="0.8" fill="none"/>
-      <!-- carton body -->
-      <rect x="14" y="12" width="36" height="46" fill="#ffffff" stroke="#1e3a8a" stroke-width="1.5"/>
-      <rect x="14" y="12" width="36" height="6" fill="#bfdbfe"/>
-      <!-- cap -->
-      <rect class="pkg-milk-cap" x="26" y="2" width="12" height="4" rx="1" fill="#1e3a8a"/>
-      <!-- label -->
-      <rect x="18" y="22" width="28" height="22" fill="#eff6ff" stroke="#3b82f6" stroke-width="0.8"/>
-      <text x="32" y="34" text-anchor="middle" font-size="9" font-weight="900" fill="#1e3a8a" font-family="sans-serif">鮮奶</text>
-      <text x="32" y="42" text-anchor="middle" font-size="11" font-weight="900" fill="#dc2626" font-family="sans-serif">1L</text>
-      <!-- bottom shadow -->
-      <rect x="14" y="55" width="36" height="3" fill="#1e3a8a" opacity="0.2"/>
-    </symbol>
 
-    <symbol id="pkg-soda-15l" viewBox="0 0 64 64">
-      <!-- bottle cap (animated: lift on hover) -->
-      <rect class="pkg-soda-cap" x="28" y="2" width="8" height="5" fill="#16a34a"/>
-      <rect class="pkg-soda-cap" x="27" y="1" width="10" height="2" fill="#15803d"/>
-      <!-- bottle neck -->
-      <path d="M28 7 L26 12 L26 18 L38 18 L38 12 L36 7 Z" fill="#fef3c7" stroke="#a16207" stroke-width="0.8"/>
-      <!-- bottle body (PET, red) -->
-      <path d="M22 18 L42 18 L46 22 L46 56 Q46 60 42 60 L22 60 Q18 60 18 56 L18 22 Z" fill="#dc2626" stroke="#7f1d1d" stroke-width="1.2"/>
-      <!-- highlight -->
-      <path d="M22 22 L24 22 L24 50 L22 50 Z" fill="#fca5a5" opacity="0.6"/>
-      <!-- label wrap -->
-      <rect class="pkg-soda-label" x="18" y="30" width="28" height="18" fill="#fef2f2" stroke="#7f1d1d" stroke-width="0.8"/>
-      <text x="32" y="40" text-anchor="middle" font-size="8" font-weight="900" fill="#7f1d1d" font-family="sans-serif">汽水</text>
-      <text x="32" y="46" text-anchor="middle" font-size="9" font-weight="900" fill="#dc2626" font-family="sans-serif">1.5L</text>
-    </symbol>
 
-    <symbol id="pkg-juice-1l" viewBox="0 0 64 64">
-      <!-- carton body (paper, orange) -->
-      <rect x="14" y="6" width="36" height="54" fill="#fed7aa" stroke="#c2410c" stroke-width="1.2"/>
-      <!-- top fold -->
-      <path d="M14 6 L32 2 L50 6 L48 10 L16 10 Z" fill="#fdba74" stroke="#c2410c" stroke-width="1"/>
-      <!-- straw (animated: wiggle) -->
-      <g class="pkg-juice-straw">
-        <rect x="36" y="0" width="3" height="8" fill="#fef3c7" stroke="#a16207" stroke-width="0.5"/>
-        <rect x="35" y="0" width="5" height="2" fill="#fef3c7" stroke="#a16207" stroke-width="0.5"/>
-      </g>
-      <!-- fruit illustration -->
-      <circle class="pkg-juice-fruit" cx="22" cy="22" r="6" fill="#f97316"/>
-      <path d="M20 16 Q22 12 24 16" stroke="#16a34a" stroke-width="1.2" fill="none"/>
-      <!-- label -->
-      <rect x="18" y="34" width="28" height="20" fill="#fff7ed" stroke="#c2410c" stroke-width="0.8"/>
-      <text x="32" y="44" text-anchor="middle" font-size="8" font-weight="900" fill="#7c2d12" font-family="sans-serif">果汁</text>
-      <text x="32" y="50" text-anchor="middle" font-size="9" font-weight="900" fill="#c2410c" font-family="sans-serif">1L</text>
-    </symbol>
 
-    <symbol id="pkg-detergent-1l" viewBox="0 0 64 64">
-      <!-- cap (animated: lift) -->
-      <rect class="pkg-det-cap" x="27" y="2" width="10" height="4" fill="#166534"/>
-      <!-- handle -->
-      <path d="M28 6 L28 12 L36 12 L36 6" stroke="#16a34a" stroke-width="1.5" fill="none"/>
-      <!-- bottle body (clear, green liquid) -->
-      <path d="M22 12 L42 12 L44 16 L44 56 Q44 60 40 60 L24 60 Q20 60 20 56 L20 16 Z" fill="#86efac" stroke="#15803d" stroke-width="1.2"/>
-      <!-- wave pattern (liquid surface) -->
-      <path d="M20 28 Q26 24 32 28 T44 28 L44 56 Q44 60 40 60 L24 60 Q20 60 20 56 Z" fill="#22c55e"/>
-      <!-- bubbles (animated: rise on hover) -->
-      <circle class="pkg-det-bubble b1" cx="26" cy="40" r="2" fill="#ffffff" opacity="0.7"/>
-      <circle class="pkg-det-bubble b2" cx="38" cy="50" r="1.5" fill="#ffffff" opacity="0.6"/>
-      <circle class="pkg-det-bubble b3" cx="30" cy="56" r="1" fill="#ffffff" opacity="0.5"/>
-      <!-- label -->
-      <rect x="22" y="36" width="20" height="16" fill="#ffffff" stroke="#15803d" stroke-width="0.8"/>
-      <text x="32" y="44" text-anchor="middle" font-size="6" font-weight="900" fill="#14532d" font-family="sans-serif">洗潔精</text>
-      <text x="32" y="50" text-anchor="middle" font-size="8" font-weight="900" fill="#15803d" font-family="sans-serif">1L</text>
-    </symbol>
 
-    <symbol id="pkg-soysauce-1l" viewBox="0 0 64 64">
-      <!-- cap (animated: lift) -->
-      <rect class="pkg-soy-cap" x="27" y="2" width="10" height="3" fill="#7f1d1d"/>
-      <!-- neck -->
-      <path d="M28 5 L28 12 L36 12 L36 5" fill="#fde68a" stroke="#78350f" stroke-width="0.8"/>
-      <!-- bottle body (clear, dark liquid) -->
-      <path d="M22 12 L42 12 L44 18 L44 56 Q44 60 40 60 L24 60 Q20 60 20 56 L20 18 Z" fill="#451a03" stroke="#1c0701" stroke-width="1.2"/>
-      <!-- highlight -->
-      <path d="M22 18 L24 18 L24 50 L22 50 Z" fill="#78350f" opacity="0.5"/>
-      <!-- label -->
-      <rect class="pkg-soy-label" x="22" y="26" width="20" height="24" fill="#fef3c7" stroke="#78350f" stroke-width="0.8"/>
-      <rect x="22" y="26" width="20" height="4" fill="#dc2626"/>
-      <text x="32" y="42" text-anchor="middle" font-size="6" font-weight="900" fill="#7c2d12" font-family="sans-serif">醬油</text>
-      <text x="32" y="48" text-anchor="middle" font-size="8" font-weight="900" fill="#dc2626" font-family="sans-serif">1L</text>
-    </symbol>
 
-    <symbol id="pkg-bleach-2l" viewBox="0 0 64 64">
-      <!-- cap (animated: lift) -->
-      <rect class="pkg-bleach-cap" x="27" y="2" width="10" height="3" fill="#1e40af"/>
-      <!-- handle (jug) -->
-      <path d="M48 14 L54 14 L54 28 L50 28" stroke="#1e40af" stroke-width="2" fill="none"/>
-      <!-- jug body (white/blue) -->
-      <path d="M16 12 L46 12 L48 16 L48 56 Q48 60 44 60 L18 60 Q14 60 14 56 L14 16 Z" fill="#ffffff" stroke="#1e3a8a" stroke-width="1.2"/>
-      <rect x="14" y="20" width="34" height="6" fill="#bfdbfe"/>
-      <!-- label -->
-      <rect x="18" y="30" width="26" height="22" fill="#eff6ff" stroke="#1e3a8a" stroke-width="0.8"/>
-      <text x="31" y="40" text-anchor="middle" font-size="7" font-weight="900" fill="#1e3a8a" font-family="sans-serif">漂白水</text>
-      <text x="31" y="48" text-anchor="middle" font-size="9" font-weight="900" fill="#1e40af" font-family="sans-serif">2L</text>
-      <!-- hazard mark (animated: pulse) -->
-      <path class="pkg-bleach-hazard" d="M24 50 L28 56 L32 50 Z" fill="#facc15" stroke="#a16207" stroke-width="0.5"/>
-      <text x="28" y="55" text-anchor="middle" font-size="4" font-weight="900" fill="#7c2d12" font-family="sans-serif">!</text>
-    </symbol>
 
     <!-- V3.6 cycle94: refined Knight Character (32x48) — full body with armor, cape, sword -->
-    <symbol id="px-char-knight" viewBox="0 0 32 48">
+    <symbol id="px-char-knight" viewBox="0 0 32 48" shape-rendering="crispEdges">
       <!-- 披風 (cape, flowing back) -->
       <path d="M4 8 L0 14 L2 38 L8 32 L6 14 Z" fill="#1e3a8a" stroke="#0c1a4a" stroke-width="0.6"/>
       <path d="M28 8 L32 14 L30 38 L24 32 L26 14 Z" fill="#1e3a8a" stroke="#0c1a4a" stroke-width="0.6"/>
@@ -3017,13 +2929,13 @@
       <rect x="22" y="6" width="2" height="22" fill="#e5e7eb" stroke="#94a3b8" stroke-width="0.4"/>
       <rect x="20" y="28" width="6" height="2" fill="#fbbf24" stroke="#a16207" stroke-width="0.4"/>
       <rect x="21" y="30" width="2" height="6" fill="#92400e"/>
-      <circle cx="22" cy="38" r="1.5" fill="#fbbf24"/>
+      <circle cx="22" cy="38" r="1" fill="#fbbf24"/>
       <!-- 頭盔 (helmet) -->
       <path d="M10 4 Q16 0 22 4 L22 12 L10 12 Z" fill="#3b82f6" stroke="#1e3a8a" stroke-width="0.6"/>
       <rect x="10" y="4" width="12" height="2" fill="#60a5fa"/>
       <!-- 面罩 slit -->
       <rect x="12" y="8" width="8" height="2" fill="#1e3a8a"/>
-      <rect x="13" y="8.5" width="2" height="1" fill="#fef08a"/>
+      <rect x="13" y="8" width="2" height="1" fill="#fef08a"/>
       <!-- 頸 / 肩甲 -->
       <rect x="9" y="12" width="14" height="3" fill="#3b82f6" stroke="#1e3a8a" stroke-width="0.4"/>
       <rect x="9" y="12" width="14" height="1" fill="#60a5fa"/>
@@ -3051,7 +2963,7 @@
     </symbol>
 
     <!-- V3.6 cycle94: refined Mage Character (32x48) — hood, robe, staff with orb -->
-    <symbol id="px-char-mage" viewBox="0 0 32 48">
+    <symbol id="px-char-mage" viewBox="0 0 32 48" shape-rendering="crispEdges">
       <!-- 法杖 (staff, left side) -->
       <rect x="3" y="6" width="2" height="38" fill="#78350f" stroke="#451a03" stroke-width="0.4"/>
       <!-- 杖頭 orb -->
@@ -3066,8 +2978,8 @@
       <!-- 面 (face) -->
       <ellipse cx="16" cy="11" rx="4" ry="3" fill="#fde68a"/>
       <!-- 眼 -->
-      <circle cx="14" cy="11" r="0.6" fill="#1e293b"/>
-      <circle cx="18" cy="11" r="0.6" fill="#1e293b"/>
+      <circle cx="14" cy="11" r="1" fill="#1e293b"/>
+      <circle cx="18" cy="11" r="1" fill="#1e293b"/>
       <!-- 袍 body (purple) -->
       <path d="M9 16 L23 16 L26 30 L20 36 L12 36 L6 30 Z" fill="#7e22ce" stroke="#3b0764" stroke-width="0.5"/>
       <!-- 袍 details (lighter) -->
@@ -3075,51 +2987,25 @@
       <path d="M12 22 L20 22 L20 30 L12 30 Z" fill="#7e22ce" opacity="0.5"/>
       <!-- 腰帶 -->
       <rect x="9" y="30" width="14" height="2" fill="#fbbf24"/>
-      <rect x="15" y="30.5" width="2" height="1" fill="#92400e"/>
+      <rect x="15" y="30" width="2" height="1" fill="#92400e"/>
       <!-- 袍擺 (skirt) -->
       <path d="M6 30 L26 30 L30 44 L2 44 Z" fill="#581c87" stroke="#3b0764" stroke-width="0.5"/>
       <path d="M6 30 L26 30 L24 36 L8 36 Z" fill="#7e22ce"/>
       <!-- 袍 pattern (stars / runes) -->
-      <circle cx="14" cy="38" r="0.8" fill="#fbbf24"/>
-      <circle cx="18" cy="40" r="0.8" fill="#fbbf24"/>
-      <circle cx="20" cy="36" r="0.6" fill="#fde68a"/>
+      <circle cx="14" cy="38" r="1" fill="#fbbf24"/>
+      <circle cx="18" cy="40" r="1" fill="#fbbf24"/>
+      <circle cx="20" cy="36" r="1" fill="#fde68a"/>
       <!-- 鞋 (shoes under robe) -->
-      <ellipse cx="11" cy="46" rx="3" ry="1.5" fill="#1c0701"/>
-      <ellipse cx="21" cy="46" rx="3" ry="1.5" fill="#1c0701"/>
+      <ellipse cx="11" cy="46" rx="3" ry="1" fill="#1c0701"/>
+      <ellipse cx="21" cy="46" rx="3" ry="1" fill="#1c0701"/>
     </symbol>
 
     <!-- V3.6 cycle94: orphan old 16x24 knight + duplicate 16x24 mage removed above -->
 
-    <!-- 🏰 Castle (兩座塔) -->
-    <symbol id="px-castle" viewBox="0 0 16 16">
-      <!-- 底座 -->
-      <rect x="1"  y="13" width="14" height="3" fill="#475569"/>
-      <rect x="1"  y="13" width="14" height="1" fill="#64748b"/>
-      <!-- 城門 -->
-      <rect x="6"  y="9"  width="4" height="4" fill="#1e293b"/>
-      <rect x="7"  y="11" width="2" height="2" fill="#0f172a"/>
-      <!-- 中塔 -->
-      <rect x="6"  y="5"  width="4" height="4" fill="#64748b"/>
-      <rect x="6"  y="5"  width="4" height="1" fill="#94a3b8"/>
-      <!-- 左塔 -->
-      <rect x="1"  y="3"  width="3" height="10" fill="#64748b"/>
-      <rect x="1"  y="3"  width="3" height="1"  fill="#94a3b8"/>
-      <!-- 右塔 -->
-      <rect x="12" y="3"  width="3" height="10" fill="#64748b"/>
-      <rect x="12" y="3"  width="3" height="1"  fill="#94a3b8"/>
-      <!-- 塔頂 (三角旗) -->
-      <path d="M1 3 L2.5 0 L4 3 Z" fill="#dc2626"/>
-      <path d="M12 3 L13.5 0 L15 3 Z" fill="#dc2626"/>
-      <path d="M6 5 L8 1 L10 5 Z" fill="#dc2626"/>
-      <!-- 窗 -->
-      <rect x="2"  y="6"  width="1" height="1" fill="#fbbf24"/>
-      <rect x="13" y="6"  width="1" height="1" fill="#fbbf24"/>
-    </symbol>
-
     <!-- V3.6 cycle94: orphan duplicate blocks above (old 16x24 knight + mage) removed -->
 
     <!-- 🏰 Castle (兩座塔) -->
-    <symbol id="px-castle" viewBox="0 0 16 16">
+    <symbol id="px-castle" viewBox="0 0 16 16" shape-rendering="crispEdges">
       <!-- 底座 -->
       <rect x="1"  y="13" width="14" height="3" fill="#475569"/>
       <rect x="1"  y="13" width="14" height="1" fill="#64748b"/>
@@ -3152,7 +3038,7 @@
     </symbol>
 
     <!-- ☄️ Meteor (拖尾) -->
-    <symbol id="px-meteor" viewBox="0 0 16 16">
+    <symbol id="px-meteor" viewBox="0 0 16 16" shape-rendering="crispEdges">
       <!-- trail -->
       <rect x="1"  y="7"  width="1" height="2" fill="#fb923c" opacity="0.4"/>
       <rect x="2"  y="6"  width="2" height="4" fill="#fb923c" opacity="0.6"/>
@@ -3175,7 +3061,7 @@
     <!-- ✗ Cross (答錯) — V3.5-cycle13 dead code removed (0 refs) -->
 
     <!-- 🏆 Trophy (勝利) -->
-    <symbol id="px-trophy" viewBox="0 0 16 16">
+    <symbol id="px-trophy" viewBox="0 0 16 16" shape-rendering="crispEdges">
       <rect x="5"  y="2"  width="6" height="1" fill="#fbbf24"/>
       <rect x="4"  y="3"  width="8" height="6" fill="#fbbf24"/>
       <rect x="4"  y="3"  width="8" height="1" fill="#fde68a"/>
@@ -3188,7 +3074,7 @@
       <rect x="4"  y="13" width="8" height="1" fill="#92400e"/>
       <rect x="7"  y="5"  width="2" height="3" fill="#fef3c7"/>
     </symbol>
-    <symbol id="px-target" viewBox="0 0 16 16">
+    <symbol id="px-target" viewBox="0 0 16 16" shape-rendering="crispEdges">
       <rect x="3"  y="3"  width="10" height="10" fill="#f87171"/>
       <rect x="5"  y="5"  width="6"  height="6"  fill="#fef3c7"/>
       <rect x="6"  y="6"  width="4"  height="4"  fill="#f87171"/>
@@ -3196,13 +3082,13 @@
     </symbol>
 
     <!-- V3.6 cycle98: Achievement badges (5 種) — end-screen 解鎖 icon -->
-    <symbol id="px-badge-star" viewBox="0 0 16 16">
+    <symbol id="px-badge-star" viewBox="0 0 16 16" shape-rendering="crispEdges">
       <!-- 星形 (5 角, golden) -->
-      <path d="M8 1 L9.5 6 L15 6.5 L11 9.5 L12.5 15 L8 11.5 L3.5 15 L5 9.5 L1 6.5 L6.5 6 Z" fill="#fbbf24" stroke="#a16207" stroke-width="0.5"/>
-      <path d="M8 1 L9.5 6 L12 7 L8 7 Z" fill="#fde68a"/>
-      <circle cx="8" cy="8" r="1.5" fill="#fef3c7"/>
+      <path d="M8 1 L10 6 L15 6 L11 9 L12 14 L8 11 L4 14 L5 9 L1 6 L6 6 Z" fill="#fbbf24" stroke="#a16207" stroke-width="0.5"/>
+      <path d="M8 1 L10 6 L12 7 L8 7 Z" fill="#fde68a"/>
+      <circle cx="8" cy="8" r="1" fill="#fef3c7"/>
     </symbol>
-    <symbol id="px-badge-shield" viewBox="0 0 16 16">
+    <symbol id="px-badge-shield" viewBox="0 0 16 16" shape-rendering="crispEdges">
       <!-- 盾牌 (boss-defeater) -->
       <path d="M8 1 L14 3 L14 8 Q14 13 8 15 Q2 13 2 8 L2 3 Z" fill="#3b82f6" stroke="#1e3a8a" stroke-width="0.6"/>
       <path d="M8 1 L14 3 L14 8 Q14 13 8 15 Z" fill="#60a5fa" opacity="0.5"/>
@@ -3211,7 +3097,7 @@
       <rect x="5" y="7" width="6" height="2" fill="#fef08a"/>
       <rect x="7" y="11" width="2" height="2" fill="#dc2626"/>
     </symbol>
-    <symbol id="px-badge-leaf" viewBox="0 0 16 16">
+    <symbol id="px-badge-leaf" viewBox="0 0 16 16" shape-rendering="crispEdges">
       <!-- 葉形 (lightning-fast) -->
       <path d="M3 1 Q14 3 13 8 Q12 13 6 15 Q2 12 3 1 Z" fill="#10b981" stroke="#065f46" stroke-width="0.5"/>
       <!-- 葉脈 -->
@@ -3222,7 +3108,7 @@
       <!-- 閃電 mark -->
       <path d="M9 3 L7 7 L9 7 L7 11" stroke="#fde68a" stroke-width="1" fill="none"/>
     </symbol>
-    <symbol id="px-badge-hat" viewBox="0 0 16 16">
+    <symbol id="px-badge-hat" viewBox="0 0 16 16" shape-rendering="crispEdges">
       <!-- 學士帽 (連勝高手) -->
       <!-- 帽頂 (正方) -->
       <path d="M1 5 L8 2 L15 5 L8 8 Z" fill="#1e293b" stroke="#0f172a" stroke-width="0.5"/>
@@ -3235,28 +3121,28 @@
       <!-- 帽頂 highlight -->
       <path d="M4 4 L7 3 L7 6 L4 7 Z" fill="#334155" opacity="0.7"/>
     </symbol>
-    <symbol id="px-badge-book" viewBox="0 0 16 16">
+    <symbol id="px-badge-book" viewBox="0 0 16 16" shape-rendering="crispEdges">
       <!-- 書本 (全類精通) -->
       <rect x="2" y="2" width="12" height="12" fill="#fef3c7" stroke="#a16207" stroke-width="0.6"/>
       <!-- 中線 (書脊) -->
       <line x1="8" y1="2" x2="8" y2="14" stroke="#a16207" stroke-width="0.5"/>
       <!-- 左頁 -->
-      <rect x="3" y="4" width="4" height="0.5" fill="#a16207"/>
-      <rect x="3" y="6" width="4" height="0.5" fill="#a16207"/>
-      <rect x="3" y="8" width="4" height="0.5" fill="#a16207"/>
-      <rect x="3" y="10" width="3" height="0.5" fill="#a16207"/>
+      <rect x="3" y="4" width="4" height="1" fill="#a16207"/>
+      <rect x="3" y="6" width="4" height="1" fill="#a16207"/>
+      <rect x="3" y="8" width="4" height="1" fill="#a16207"/>
+      <rect x="3" y="10" width="3" height="1" fill="#a16207"/>
       <!-- 右頁 -->
-      <rect x="9" y="4" width="4" height="0.5" fill="#a16207"/>
-      <rect x="9" y="6" width="4" height="0.5" fill="#a16207"/>
-      <rect x="9" y="8" width="4" height="0.5" fill="#a16207"/>
-      <rect x="9" y="10" width="3" height="0.5" fill="#a16207"/>
+      <rect x="9" y="4" width="4" height="1" fill="#a16207"/>
+      <rect x="9" y="6" width="4" height="1" fill="#a16207"/>
+      <rect x="9" y="8" width="4" height="1" fill="#a16207"/>
+      <rect x="9" y="10" width="3" height="1" fill="#a16207"/>
       <!-- 學位帽小 mark 喺頂 -->
       <rect x="6" y="0" width="4" height="2" fill="#dc2626"/>
       <rect x="7" y="-1" width="2" height="2" fill="#dc2626"/>
     </symbol>
 
     <!-- Abacus (雙位數算盤) -->
-    <symbol id="px-abacus" viewBox="0 0 16 16">
+    <symbol id="px-abacus" viewBox="0 0 16 16" shape-rendering="crispEdges">
       <!-- frame -->
       <rect x="1"  y="1" width="14" height="14" fill="#854d0e"/>
       <rect x="2"  y="2" width="12" height="12" fill="#451a03"/>
@@ -3276,7 +3162,7 @@
     </symbol>
 
     <!-- 🔊 Sound on -->
-    <symbol id="px-sound-on" viewBox="0 0 16 16">
+    <symbol id="px-sound-on" viewBox="0 0 16 16" shape-rendering="crispEdges">
       <rect x="2"  y="6"  width="2" height="4" fill="#60a5fa"/>
       <rect x="4"  y="4"  width="2" height="8" fill="#3b82f6"/>
       <rect x="6"  y="3"  width="2" height="10" fill="#60a5fa"/>
@@ -3287,7 +3173,7 @@
     </symbol>
 
     <!-- 🔇 Sound off -->
-    <symbol id="px-sound-off" viewBox="0 0 16 16">
+    <symbol id="px-sound-off" viewBox="0 0 16 16" shape-rendering="crispEdges">
       <rect x="2"  y="6"  width="2" height="4" fill="#475569"/>
       <rect x="4"  y="4"  width="2" height="8" fill="#64748b"/>
       <rect x="6"  y="3"  width="2" height="10" fill="#475569"/>
@@ -3301,17 +3187,17 @@
     </symbol>
 
     <!-- v3.1: Shape sprites (4 shapes for shapeMatch type) -->
-    <symbol id="px-shape-circle" viewBox="0 0 16 16">
+    <symbol id="px-shape-circle" viewBox="0 0 16 16" shape-rendering="crispEdges">
       <circle cx="8" cy="8" r="7" fill="#fbbf24"/>
       <circle cx="8" cy="8" r="6" fill="#fde047"/>
       <circle cx="6" cy="6" r="2" fill="#fef9c3" opacity="0.7"/>
     </symbol>
-    <symbol id="px-shape-square" viewBox="0 0 16 16">
+    <symbol id="px-shape-square" viewBox="0 0 16 16" shape-rendering="crispEdges">
       <rect x="2" y="2" width="12" height="12" fill="#3b82f6"/>
       <rect x="3" y="3" width="10" height="10" fill="#60a5fa"/>
       <rect x="3" y="3" width="4" height="4" fill="#93c5fd" opacity="0.7"/>
     </symbol>
-    <symbol id="px-shape-triangle" viewBox="0 0 16 16">
+    <symbol id="px-shape-triangle" viewBox="0 0 16 16" shape-rendering="crispEdges">
       <!-- 等邊三角形 (3 條斜線 + fill) -->
       <rect x="7" y="2" width="2" height="1" fill="#22c55e"/>
       <rect x="6" y="3" width="4" height="1" fill="#22c55e"/>
@@ -3326,7 +3212,7 @@
       <rect x="5" y="12" width="6" height="1" fill="#86efac"/>
       <rect x="6" y="13" width="4" height="1" fill="#bbf7d0"/>
     </symbol>
-    <symbol id="px-shape-star" viewBox="0 0 16 16">
+    <symbol id="px-shape-star" viewBox="0 0 16 16" shape-rendering="crispEdges">
       <!-- 5-pointed star -->
       <rect x="7" y="2" width="2" height="2" fill="#facc15"/>
       <rect x="6" y="4" width="4" height="1" fill="#facc15"/>
@@ -3344,21 +3230,21 @@
     </symbol>
 
     <!-- v3.1: Clock sprite for whatTime — hour hand rotated dynamically via transform -->
-    <symbol id="px-clock-base" viewBox="0 0 16 16">
+    <symbol id="px-clock-base" viewBox="0 0 16 16" shape-rendering="crispEdges">
       <!-- 外圈 -->
       <circle cx="8" cy="8" r="7" fill="#fef3c7"/>
       <circle cx="8" cy="8" r="7" fill="none" stroke="#92400e" stroke-width="0.8"/>
       <!-- 12 點鐘位置刻度 -->
-      <rect x="7.5" y="1.5" width="1" height="1.5" fill="#92400e"/>
-      <rect x="7.5" y="13" width="1" height="1.5" fill="#92400e"/>
-      <rect x="1.5" y="7.5" width="1.5" height="1" fill="#92400e"/>
-      <rect x="13" y="7.5" width="1.5" height="1" fill="#92400e"/>
+      <rect x="7" y="1" width="1" height="2" fill="#92400e"/>
+      <rect x="7" y="13" width="1" height="2" fill="#92400e"/>
+      <rect x="1" y="7" width="2" height="1" fill="#92400e"/>
+      <rect x="13" y="7" width="2" height="1" fill="#92400e"/>
       <!-- 中心 -->
-      <circle cx="8" cy="8" r="0.8" fill="#7f1d1d"/>
+      <circle cx="8" cy="8" r="1" fill="#7f1d1d"/>
     </symbol>
 
     <!-- Reusable shapes for background -->
-    <symbol id="bg-tree" viewBox="0 0 64 96">
+    <symbol id="bg-tree" viewBox="0 0 64 96" shape-rendering="crispEdges">
       <!-- trunk -->
       <rect x="28" y="56" width="8"  height="40" fill="#3f2c1a"/>
       <rect x="30" y="58" width="2"  height="38" fill="#5b3a1f"/>
@@ -3381,7 +3267,143 @@
       <rect x="28" y="2"  width="8"  height="6" fill="#2a8c5e"/>
       <rect x="30" y="20" width="2"  height="30" fill="#2a8c5e" opacity="0.5"/>
     </symbol>
-    <symbol id="bg-tree-small" viewBox="0 0 32 48">
+    <symbol id="pkg-milk-1l" viewBox="0 0 64 64" shape-rendering="crispEdges">
+      <!-- gable top -->
+      <path class="pkg-milk-gable" d="M14 6 L32 2 L50 6 L48 12 L16 12 Z" fill="#dbeafe" stroke="#1e3a8a" stroke-width="1.2"/>
+      <path d="M20 8 L22 12 M32 5 L32 12 M44 8 L42 12" stroke="#1e3a8a" stroke-width="0.8" fill="none"/>
+      <!-- carton body -->
+      <rect x="14" y="12" width="36" height="46" fill="#ffffff" stroke="#1e3a8a" stroke-width="1.5"/>
+      <rect x="14" y="12" width="36" height="6" fill="#bfdbfe"/>
+      <!-- cap -->
+      <rect class="pkg-milk-cap" x="26" y="2" width="12" height="4" rx="1" fill="#1e3a8a"/>
+      <!-- label -->
+      <rect x="18" y="22" width="28" height="22" fill="#eff6ff" stroke="#3b82f6" stroke-width="0.8"/>
+      <text x="32" y="34" text-anchor="middle" font-size="9" font-weight="900" fill="#1e3a8a" font-family="sans-serif">鮮奶</text>
+      <text x="32" y="42" text-anchor="middle" font-size="11" font-weight="900" fill="#dc2626" font-family="sans-serif">1L</text>
+      <!-- bottom shadow -->
+      <rect x="14" y="55" width="36" height="3" fill="#1e3a8a" opacity="0.2"/>
+    </symbol>
+    <symbol id="pkg-soda-15l" viewBox="0 0 64 64" shape-rendering="crispEdges">
+      <!-- bottle cap (animated: lift on hover) -->
+      <rect class="pkg-soda-cap" x="28" y="2" width="8" height="5" fill="#16a34a"/>
+      <rect class="pkg-soda-cap" x="27" y="1" width="10" height="2" fill="#15803d"/>
+      <!-- bottle neck -->
+      <path d="M28 7 L26 12 L26 18 L38 18 L38 12 L36 7 Z" fill="#fef3c7" stroke="#a16207" stroke-width="0.8"/>
+      <!-- bottle body (PET, red) -->
+      <path d="M22 18 L42 18 L46 22 L46 56 Q46 60 42 60 L22 60 Q18 60 18 56 L18 22 Z" fill="#dc2626" stroke="#7f1d1d" stroke-width="1.2"/>
+      <!-- highlight -->
+      <path d="M22 22 L24 22 L24 50 L22 50 Z" fill="#fca5a5" opacity="0.6"/>
+      <!-- label wrap -->
+      <rect class="pkg-soda-label" x="18" y="30" width="28" height="18" fill="#fef2f2" stroke="#7f1d1d" stroke-width="0.8"/>
+      <text x="32" y="40" text-anchor="middle" font-size="8" font-weight="900" fill="#7f1d1d" font-family="sans-serif">汽水</text>
+      <text x="32" y="46" text-anchor="middle" font-size="9" font-weight="900" fill="#dc2626" font-family="sans-serif">1.5L</text>
+    </symbol>
+    <symbol id="pkg-juice-1l" viewBox="0 0 64 64" shape-rendering="crispEdges">
+      <!-- carton body (paper, orange) -->
+      <rect x="14" y="6" width="36" height="54" fill="#fed7aa" stroke="#c2410c" stroke-width="1.2"/>
+      <!-- top fold -->
+      <path d="M14 6 L32 2 L50 6 L48 10 L16 10 Z" fill="#fdba74" stroke="#c2410c" stroke-width="1"/>
+      <!-- straw (animated: wiggle) -->
+      <g class="pkg-juice-straw">
+        <rect x="36" y="0" width="3" height="8" fill="#fef3c7" stroke="#a16207" stroke-width="0.5"/>
+        <rect x="35" y="0" width="5" height="2" fill="#fef3c7" stroke="#a16207" stroke-width="0.5"/>
+      </g>
+      <!-- fruit illustration -->
+      <circle class="pkg-juice-fruit" cx="22" cy="22" r="6" fill="#f97316"/>
+      <path d="M20 16 Q22 12 24 16" stroke="#16a34a" stroke-width="1.2" fill="none"/>
+      <!-- label -->
+      <rect x="18" y="34" width="28" height="20" fill="#fff7ed" stroke="#c2410c" stroke-width="0.8"/>
+      <text x="32" y="44" text-anchor="middle" font-size="8" font-weight="900" fill="#7c2d12" font-family="sans-serif">果汁</text>
+      <text x="32" y="50" text-anchor="middle" font-size="9" font-weight="900" fill="#c2410c" font-family="sans-serif">1L</text>
+    </symbol>
+    <symbol id="pkg-detergent-1l" viewBox="0 0 64 64" shape-rendering="crispEdges">
+      <!-- cap (animated: lift) -->
+      <rect class="pkg-det-cap" x="27" y="2" width="10" height="4" fill="#166534"/>
+      <!-- handle -->
+      <path d="M28 6 L28 12 L36 12 L36 6" stroke="#16a34a" stroke-width="1.5" fill="none"/>
+      <!-- bottle body (clear, green liquid) -->
+      <path d="M22 12 L42 12 L44 16 L44 56 Q44 60 40 60 L24 60 Q20 60 20 56 L20 16 Z" fill="#86efac" stroke="#15803d" stroke-width="1.2"/>
+      <!-- wave pattern (liquid surface) -->
+      <path d="M20 28 Q26 24 32 28 T44 28 L44 56 Q44 60 40 60 L24 60 Q20 60 20 56 Z" fill="#22c55e"/>
+      <!-- bubbles (animated: rise on hover) -->
+      <circle class="pkg-det-bubble b1" cx="26" cy="40" r="2" fill="#ffffff" opacity="0.7"/>
+      <circle class="pkg-det-bubble b2" cx="38" cy="50" r="1" fill="#ffffff" opacity="0.6"/>
+      <circle class="pkg-det-bubble b3" cx="30" cy="56" r="1" fill="#ffffff" opacity="0.5"/>
+      <!-- label -->
+      <rect x="22" y="36" width="20" height="16" fill="#ffffff" stroke="#15803d" stroke-width="0.8"/>
+      <text x="32" y="44" text-anchor="middle" font-size="6" font-weight="900" fill="#14532d" font-family="sans-serif">洗潔精</text>
+      <text x="32" y="50" text-anchor="middle" font-size="8" font-weight="900" fill="#15803d" font-family="sans-serif">1L</text>
+    </symbol>
+    <symbol id="pkg-soysauce-1l" viewBox="0 0 64 64" shape-rendering="crispEdges">
+      <!-- cap (animated: lift) -->
+      <rect class="pkg-soy-cap" x="27" y="2" width="10" height="3" fill="#7f1d1d"/>
+      <!-- neck -->
+      <path d="M28 5 L28 12 L36 12 L36 5" fill="#fde68a" stroke="#78350f" stroke-width="0.8"/>
+      <!-- bottle body (clear, dark liquid) -->
+      <path d="M22 12 L42 12 L44 18 L44 56 Q44 60 40 60 L24 60 Q20 60 20 56 L20 18 Z" fill="#451a03" stroke="#1c0701" stroke-width="1.2"/>
+      <!-- highlight -->
+      <path d="M22 18 L24 18 L24 50 L22 50 Z" fill="#78350f" opacity="0.5"/>
+      <!-- label -->
+      <rect class="pkg-soy-label" x="22" y="26" width="20" height="24" fill="#fef3c7" stroke="#78350f" stroke-width="0.8"/>
+      <rect x="22" y="26" width="20" height="4" fill="#dc2626"/>
+      <text x="32" y="42" text-anchor="middle" font-size="6" font-weight="900" fill="#7c2d12" font-family="sans-serif">醬油</text>
+      <text x="32" y="48" text-anchor="middle" font-size="8" font-weight="900" fill="#dc2626" font-family="sans-serif">1L</text>
+    </symbol>
+    <symbol id="pkg-bleach-2l" viewBox="0 0 64 64" shape-rendering="crispEdges">
+      <!-- cap (animated: lift) -->
+      <rect class="pkg-bleach-cap" x="27" y="2" width="10" height="3" fill="#1e40af"/>
+      <!-- handle (jug) -->
+      <path d="M48 14 L54 14 L54 28 L50 28" stroke="#1e40af" stroke-width="2" fill="none"/>
+      <!-- jug body (white/blue) -->
+      <path d="M16 12 L46 12 L48 16 L48 56 Q48 60 44 60 L18 60 Q14 60 14 56 L14 16 Z" fill="#ffffff" stroke="#1e3a8a" stroke-width="1.2"/>
+      <rect x="14" y="20" width="34" height="6" fill="#bfdbfe"/>
+      <!-- label -->
+      <rect x="18" y="30" width="26" height="22" fill="#eff6ff" stroke="#1e3a8a" stroke-width="0.8"/>
+      <text x="31" y="40" text-anchor="middle" font-size="7" font-weight="900" fill="#1e3a8a" font-family="sans-serif">漂白水</text>
+      <text x="31" y="48" text-anchor="middle" font-size="9" font-weight="900" fill="#1e40af" font-family="sans-serif">2L</text>
+      <!-- hazard mark (animated: pulse) -->
+      <path class="pkg-bleach-hazard" d="M24 50 L28 56 L32 50 Z" fill="#facc15" stroke="#a16207" stroke-width="0.5"/>
+      <text x="28" y="55" text-anchor="middle" font-size="4" font-weight="900" fill="#7c2d12" font-family="sans-serif">!</text>
+    </symbol>
+    <!-- V3.6 cycle111: 新增 —— 之前「豆漿」借用果汁樽、「油漆」借用漂白水樽，
+         精靈內建文字（果汁 1L / 漂白水 2L）同資料標籤（豆漿 1L / 油漆 5L）會矛盾，
+         學生會讀到錯嘅容量。→ 每個 L 項要有自己嘅精靈。 -->
+    <symbol id="pkg-soymilk-1l" viewBox="0 0 64 64" shape-rendering="crispEdges">
+      <!-- gable top -->
+      <path class="pkg-milk-gable" d="M14 6 L32 2 L50 6 L48 12 L16 12 Z" fill="#fef3c7" stroke="#a16207" stroke-width="1.2"/>
+      <path d="M20 8 L22 12 M32 5 L32 12 M44 8 L42 12" stroke="#a16207" stroke-width="0.8" fill="none"/>
+      <!-- carton body -->
+      <rect x="14" y="12" width="36" height="46" fill="#fffdf3" stroke="#a16207" stroke-width="1.5"/>
+      <rect x="14" y="12" width="36" height="6" fill="#fde68a"/>
+      <!-- cap -->
+      <rect class="pkg-milk-cap" x="26" y="2" width="12" height="4" rx="1" fill="#a16207"/>
+      <!-- label -->
+      <rect x="18" y="22" width="28" height="22" fill="#fffbeb" stroke="#d97706" stroke-width="0.8"/>
+      <text x="32" y="34" text-anchor="middle" font-size="9" font-weight="900" fill="#92400e" font-family="sans-serif">豆漿</text>
+      <text x="32" y="42" text-anchor="middle" font-size="11" font-weight="900" fill="#dc2626" font-family="sans-serif">1L</text>
+      <!-- bottom shadow -->
+      <rect x="14" y="55" width="36" height="3" fill="#a16207" opacity="0.2"/>
+    </symbol>
+
+    <symbol id="pkg-paint-5l" viewBox="0 0 64 64" shape-rendering="crispEdges">
+      <!-- handle（要喺蓋上面，唔好畀蓋遮住）-->
+      <path d="M24 10 L24 4 L40 4 L40 10" stroke="#44403c" stroke-width="3" fill="none"/>
+      <!-- can body -->
+      <rect x="14" y="12" width="36" height="46" fill="#7c2d12"/>
+      <rect x="16" y="16" width="32" height="38" fill="#b45309"/>
+      <rect x="16" y="16" width="32" height="5" fill="#d97706"/>
+      <!-- lid -->
+      <rect class="pkg-paint-lid" x="12" y="9" width="40" height="5" fill="#57534e"/>
+      <rect x="12" y="9" width="40" height="2" fill="#78716c"/>
+      <!-- label -->
+      <rect x="18" y="24" width="28" height="22" fill="#fef3c7" stroke="#a16207" stroke-width="0.8"/>
+      <text x="32" y="35" text-anchor="middle" font-size="8" font-weight="900" fill="#7c2d12" font-family="sans-serif">油漆</text>
+      <text x="32" y="44" text-anchor="middle" font-size="10" font-weight="900" fill="#dc2626" font-family="sans-serif">5L</text>
+      <!-- bottom shadow -->
+      <rect x="14" y="55" width="36" height="3" fill="#7c2d12" opacity="0.2"/>
+    </symbol>
+
+    <symbol id="bg-tree-small" viewBox="0 0 32 48" shape-rendering="crispEdges">
       <rect x="14" y="36" width="4" height="12" fill="#3f2c1a"/>
       <rect x="8"  y="32" width="16" height="4" fill="#154d32"/>
       <rect x="10" y="26" width="12" height="6" fill="#1d6b46"/>
@@ -3570,8 +3592,8 @@
         <div class="text-base md:text-lg font-extrabold text-on-night tracking-wide">將軍澳培智學校</div>
       </div>
       <div class="flex justify-center items-end gap-3 mb-2" aria-hidden="true">
-        <svg class="pixel troll-idle" style="width:40px;height:40px"><use href="#px-troll"/></svg>
-        <svg class="pixel" style="width:36px;height:36px"><use href="#px-castle"/></svg>
+        <svg class="pixel troll-idle" style="width:48px;height:48px"><use href="#px-troll"/></svg>
+        <svg class="pixel" style="width:48px;height:48px"><use href="#px-castle"/></svg>
       </div>
       <h1 class="text-2xl md:text-4xl font-extrabold bg-gradient-to-r from-amber-600 via-pink-600 to-purple-700 bg-clip-text text-transparent leading-tight drop-shadow-sm">
         數學合作學習遊戲
@@ -3897,7 +3919,7 @@
           <div class="boss-aura"></div>
           <div class="boss-floor"></div>
           <div id="boss-icon" class="boss-svg troll-idle" role="img" aria-label="森林巨魔">
-            <svg class="pixel w-full h-full"><use id="boss-svg-use" href="#px-troll"/></svg>
+            <svg class="pixel" style="width:96px;height:96px"><use id="boss-svg-use" href="#px-troll"/></svg>
           </div>
         </div>
         <div class="boss-hp-wrap">
@@ -4024,13 +4046,13 @@
     <!-- Castle 防禦條 (V3.6-SEN: hidden in easy mode) -->
     <div id="castle-bar-row" class="grid grid-cols-2 gap-3">
       <div id="castle-left-wrap" class="bg-gradient-to-br from-slate-800 to-slate-900 border-2 border-amber-300/40 rounded-2xl p-3 text-center">
-        <svg class="pixel mx-auto mb-1" style="width:42px;height:42px"><use href="#px-castle"/></svg>
+        <svg class="pixel mx-auto mb-1" style="width:48px;height:48px"><use href="#px-castle"/></svg>
         <div class="text-xs text-amber-200 mb-1">左翼城塔</div>
         <div class="track"><div id="castle-left-fill" class="fill hp-castle" style="width:100%"></div></div>
         <div class="text-xs mt-1"><span id="castle-left-text">100</span> / 100</div>
       </div>
       <div id="castle-right-wrap" class="bg-gradient-to-br from-slate-800 to-slate-900 border-2 border-amber-300/40 rounded-2xl p-3 text-center">
-        <svg class="pixel mx-auto mb-1" style="width:42px;height:42px"><use href="#px-castle"/></svg>
+        <svg class="pixel mx-auto mb-1" style="width:48px;height:48px"><use href="#px-castle"/></svg>
         <div class="text-xs text-amber-200 mb-1">右翼城塔</div>
         <div class="track"><div id="castle-right-fill" class="fill hp-castle" style="width:100%"></div></div>
         <div class="text-xs mt-1"><span id="castle-right-text">100</span> / 100</div>
@@ -4176,7 +4198,7 @@
       </div>
       <!-- P2-d: defeated boss portrait (replaces trophy icon on victory) -->
       <div id="end-icon" class="mb-2 flex justify-center" style="width:160px;height:84px;margin:0 auto;position:relative;">
-        <svg id="end-icon-svg" class="pixel w-full h-full"><use href="#px-trophy"/></svg>
+        <svg id="end-icon-svg" class="pixel" style="width:80px;height:80px"><use href="#px-trophy"/></svg>
         <img id="end-boss-portrait" class="hidden" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;image-rendering:pixelated;" alt="">
         <div id="end-medal" class="hidden end-medal" aria-hidden="true"></div>
       </div>
@@ -4369,7 +4391,7 @@
 <!-- ========== 暫停遮罩 ========== -->
 <div id="pause-overlay" class="hidden pause-overlay" role="dialog" aria-modal="true" aria-labelledby="pause-title">
   <div class="text-center">
-    <div class="mb-3 flex justify-center" style="width:96px;height:96px;margin:0 auto;"><svg class="pixel w-full h-full" aria-hidden="true"><use href="#px-castle"/></svg></div>
+    <div class="mb-3 flex justify-center" style="width:96px;height:96px;margin:0 auto;"><svg class="pixel" style="width:96px;height:96px" aria-hidden="true"><use href="#px-castle"/></svg></div>
     <h2 id="pause-title" class="text-3xl font-extrabold mb-2">遊戲暫停中</h2>
     <p class="text-on-night mb-4">老師正在控制中⋯</p>
     <button id="pause-resume-2" class="btn btn-knight" aria-label="恢復遊戲">▶ 恢復遊戲</button>
@@ -5384,7 +5406,7 @@ const FX = {
     const rect = target.getBoundingClientRect();
     const m = document.createElement('div');
     m.className = 'meteor';
-    m.innerHTML = '<svg class="pixel w-full h-full" style="filter:drop-shadow(0 0 18px #fb923c)"><use href="#px-meteor"/></svg>';
+    m.innerHTML = '<svg class="pixel" style="width:80px;height:80px;filter:drop-shadow(0 0 18px #fb923c)"><use href="#px-meteor"/></svg>';
     m.style.left = (rect.left + rect.width * 0.3) + 'px';
     m.style.top = '0px';
     document.body.appendChild(m);
@@ -5960,14 +5982,14 @@ const Generators = {
   // V3.6 cycle89: 容量 (L) — life skills 觀察常見物品包裝
   // cycle93: L items 用 custom SVG (更真實、更 polished); non-L 維持 emoji
   _lItemPool: [
-    { emoji:'🥛', svgId:'pkg-milk-1l',     name:'鮮奶',   pkg:'1L' },
-    { emoji:'🧃', svgId:'pkg-juice-1l',    name:'果汁',   pkg:'1L' },
+    { emoji:'🥛', svgId:'pkg-milk-1l',      name:'鮮奶',   pkg:'1L' },
+    { emoji:'🧃', svgId:'pkg-juice-1l',     name:'果汁',   pkg:'1L' },
     { emoji:'🧴', svgId:'pkg-detergent-1l', name:'洗潔精', pkg:'1L' },
-    { emoji:'🪣', svgId:'pkg-bleach-2l',   name:'漂白水', pkg:'2L' },
-    { emoji:'🥤', svgId:'pkg-soda-15l',    name:'汽水',   pkg:'1.5L' },
-    { emoji:'🧃', svgId:'pkg-juice-1l',    name:'豆漿',   pkg:'1L' },
-    { emoji:'🍶', svgId:'pkg-soysauce-1l', name:'醬油',   pkg:'1L' },
-    { emoji:'🛢️', svgId:'pkg-bleach-2l',   name:'油漆',   pkg:'5L' },
+    { emoji:'🪣', svgId:'pkg-bleach-2l',    name:'漂白水', pkg:'2L' },
+    { emoji:'🥤', svgId:'pkg-soda-15l',     name:'汽水',   pkg:'1.5L' },
+    { emoji:'🧃', svgId:'pkg-soymilk-1l',   name:'豆漿',   pkg:'1L' },
+    { emoji:'🍶', svgId:'pkg-soysauce-1l',  name:'醬油',   pkg:'1L' },
+    { emoji:'🛢️', svgId:'pkg-paint-5l',     name:'油漆',   pkg:'5L' },
   ],
   // 飲品池 (非 L) — 用嚟做 findLDrink 嘅 distractor
   _nonLDrinkPool: [
@@ -6022,7 +6044,9 @@ const Generators = {
       options: LETTERS,
       optionLabels: items.reduce((m, it, i) => { m[LETTERS[i]] = it.pkg; return m; }, {}),
       extra: {
-        items: items.map(it => ({ emoji: it.emoji, name: it.name, pkg: it.pkg })),
+        // cycle111: 補返 svgId —— 之前冇傳落嚟，pic-card renderer 永遠行 emoji 分支
+        // → 6 個 pkg-* SVG 精靈（cycle93 畫嘅包裝插畫）從來冇 render 過 = 功能靜靜壞咗
+        items: items.map(it => ({ emoji: it.emoji, svgId: it.svgId, name: it.name, pkg: it.pkg })),
         answerPkg: lItem.pkg,
         answerName: lItem.name,
         prompt,
@@ -7305,7 +7329,7 @@ const QuestionRenderer = {
     const hour = q.extra && q.extra.hour != null ? q.extra.hour : q.answer;
     const deg = Number(hour) * 30;
     clock.innerHTML = `
-      <svg viewBox="0 0 16 16" role="img" aria-label="時鐘" style="width:140px;height:140px;">
+      <svg viewBox="0 0 16 16" role="img" aria-label="時鐘" style="width:144px;height:144px;">
         <use href="#px-clock-base"/>
         <line x1="8" y1="8" x2="8" y2="3" stroke="#dc2626" stroke-width="1.2" transform="rotate(${deg} 8 8)"/>
         <line x1="8" y1="8" x2="11" y2="8" stroke="#1e293b" stroke-width="0.6"/>
@@ -8172,7 +8196,7 @@ const UI = {
       const deg = hour * 30;
       emojiEl.classList.add('sen-q-visual');
       emojiEl.innerHTML = `<div class="q-clock sen-clock" role="img" aria-label="時鐘">
-        <svg viewBox="0 0 16 16" style="width:min(42vw,180px);height:min(42vw,180px);">
+        <svg viewBox="0 0 16 16" style="width:176px;height:176px;">
           <use href="#px-clock-base"/>
           <line x1="8" y1="8" x2="8" y2="3" stroke="#dc2626" stroke-width="1.2" transform="rotate(${deg} 8 8)"/>
           <line x1="8" y1="8" x2="11" y2="8" stroke="#1e293b" stroke-width="0.6"/>
@@ -8181,7 +8205,7 @@ const UI = {
       if (textEl) textEl.textContent = _senCopyText(q) || '幾點鐘？';
     } else if (q.type === 'shapeMatch' && emojiEl) {
       emojiEl.classList.add('sen-q-visual');
-      emojiEl.innerHTML = `<div class="q-shape"><svg viewBox="0 0 16 16" style="width:min(36vw,140px);height:min(36vw,140px);"><use href="#px-shape-${q.answer}"/></svg></div>`;
+      emojiEl.innerHTML = `<div class="q-shape"><svg viewBox="0 0 16 16" style="width:144px;height:144px;"><use href="#px-shape-${q.answer}"/></svg></div>`;
       if (textEl) textEl.textContent = _senCopyText(q) || '這是什麼形狀？';
     } else if ((q.type === 'count10' || q.type === 'count20' || q.type === 'count1to3') && emojiEl) {
       // V3.6 cycle50: ALWAYS rebuild countable emoji grid from answer (never blank)
@@ -9409,7 +9433,7 @@ function showBossIntro(boss) {
     '@keyframes badge-in { 0% { transform:scale(0.5) translateY(8px); opacity:0 } 60% { transform:scale(1.12) translateY(-2px); opacity:1 } 100% { transform:scale(1) translateY(0); opacity:1 } }',
     '@keyframes boss-intro-text { from { transform:translateY(20px); opacity:0 } to { transform:translateY(0); opacity:1 } }',
     '@keyframes boss-intro-out { 0% { opacity:1 } 100% { opacity:0 } }',
-    '.bi-svg { width:220px; height:220px; animation: boss-intro-pop 600ms cubic-bezier(0.34,1.56,0.64,1) both; filter: drop-shadow(0 0 24px ' + glowColor + '); }',
+    '.bi-svg { filter: drop-shadow(0 0 24px ' + glowColor + '); }',
     '.bi-name { font-size:1.8rem; font-weight:800; margin-top:14px; color:#fde68a; text-shadow: 0 0 12px rgba(251,191,36,0.6), 2px 2px 0 #000; animation: boss-intro-text 400ms 300ms ease-out both; }',
     '.bi-hint { font-size:0.85rem; color:rgba(255,255,255,0.6); margin-top:6px; animation: boss-intro-text 400ms 500ms ease-out both; }',
     '.bi-out { animation: boss-intro-out 350ms ease-in both !important; }',

@@ -8,9 +8,10 @@ Vanilla JS + Tailwind CDN, no build, GitHub Pages.
 
 - Open `index.html` or `python3 -m http.server 8000`
 - Tests:
-  - `node tests/regression.js` → **846 pass / 0 fail** (structural regex lock-in, cycle 53–110)
+  - `node tests/regression.js` → **854 pass / 0 fail** (structural regex lock-in, cycle 53–111)
   - `node tests/generator-audit.js` → **4585 pass / 0 fail** (functional truth-table, cycle 101+ · T108 Adaptive ladder · T109 Stage/提示階梯 · T110 里程碑 · T110b 接力)
   - `node tests/audio-audit.js` → **12 pass / 0 fail** (audio call-site × export cross-check, cycle 105+)
+  - `node tests/asset-audit.js` → **22 pass / 0 fail** (像素資產品質, cycle 111a — 座標 / 倍率 / crispEdges / 死 symbol)
 - No lint / typecheck / build
 - Live: https://ihateusingai-beep.github.io/math-guardian/
 - **Deploy domain**: `CNAME` file 已移除(cycle 107)—— 站喺 `.github.io` 服務。
@@ -21,7 +22,7 @@ Vanilla JS + Tailwind CDN, no build, GitHub Pages.
 
 ```
 .
-├── index.html              # entire runtime (~559 KB raw / ~140 KB gzip)
+├── index.html              # entire runtime (~562 KB raw / ~141 KB gzip)
 ├── TODO.md                 # project plan / next backlog
 ├── docs/                   # current engineering docs
 │   ├── VISUAL_QUALITY_RUBRIC.md   # cycle106 — 視覺 rubric + 評分 + state matrix + profiles
@@ -35,6 +36,7 @@ Vanilla JS + Tailwind CDN, no build, GitHub Pages.
 ├── tests/regression.js     # structural regex lock-in
 ├── tests/generator-audit.js # functional truth-table (generators × 30 trials + T108 Adaptive ladder)
 ├── tests/audio-audit.js    # audio pipeline audit (call-site × export cross-check)
+├── tests/asset-audit.js    # 像素資產品質 audit (cycle111a — 8 組 check: viewBox / 重複 id / 座標 / 整數倍 / 死 symbol / crispEdges)
 └── .harness/               # changelogs, docs, plans
 ```
 
@@ -43,6 +45,7 @@ Vanilla JS + Tailwind CDN, no build, GitHub Pages.
 1. `node tests/regression.js` → 0 fail  
 1b. `node tests/generator-audit.js` → 0 fail  
 1c. `node tests/audio-audit.js` → 0 fail  
+1d. `node tests/asset-audit.js` → 0 fail（改咗 sprite / icon 尺寸就要跑）  
 2. Extract largest inline `<script>` → `node --check`  
 3. Optional live probe: easy startGame per scope + dual arena  
 3b. **Visual change? → re-capture affected states + re-measure contrast** (見下)  
@@ -69,7 +72,7 @@ Rubric / 目標風格 / 基準喺 **`docs/VISUAL_QUALITY_RUBRIC.md`**。
 
 - Every behavior change lands a matching assertion in `tests/regression.js`
 - Assertions = source regex only (no DOM)
-- File budget: `index.html` raw **< 600 KB** (current: ~559 KB / 572,527 bytes)
+- File budget: `index.html` raw **< 600 KB** (current: ~562 KB / 575,627 bytes)
 - **Functional truth-table** (`tests/generator-audit.js`) catches arithmetic / math correctness
   bugs that regex tests cannot see (e.g. cycle55 orderAsc/Desc20 random-as-arithmetic).
   Runs all 23 generators x 30 trials with deterministic randInt -- catches infinite loops,
@@ -103,6 +106,18 @@ Rubric / 目標風格 / 基準喺 **`docs/VISUAL_QUALITY_RUBRIC.md`**。
   → 概念卡 / 島嶼要喺 `end-stats` **上面**；掣行 `position: sticky; bottom: 0`（唔使捲到底先撳到）。
   → 雙隊 medal 係兩個 emoji 併埋（🥇🥇）,`.end-medal` 一定要 `white-space: nowrap`
     （之前喺窄 box 換行,疊落標題「完成！」上面）。
+- **Pixel asset lock-in** (cycle111a, T111 + `tests/asset-audit.js`): 像素品質缺陷 **regex 同數值測試都捉唔到**
+  （座標非整數 / 顯示倍率非整數 → 淨係畫面睇得出「邊緣有灰」）。所以有獨立嘅 `tests/asset-audit.js`:
+  1. viewBox ∈ 4 個標準 2. 冇重複 symbol id 3. 座標全整數（path d / x / y / cx / cy / r / width / height）
+  4. width/height 整數 5. bytes ≤ 預算 6. 冇死 symbol 7. 顯示尺寸 = viewBox × 整數倍 8. 每個 symbol 有 `crispEdges`
+  ⚠️ **寫 asset-audit 時踩過嘅坑（唔好再犯）**：
+  - `stroke-width` **唔係座標** —— 唔可以用 `\b(width|height)` 配對（會匹配 `stroke-width`）。
+    `stroke-width="0.5"` 喺 2× 顯示 = 1 個 device px,係**正確**嘅像素畫法,唔好改。
+  - CSS cascade：**同一個 selector 出現多次 → 最後一個贏**。讀第一個會「假通過」
+    （實測 `.pic-card-svg` 84px 版本喺後面贏咗,audit 話 OK 但畫面係 84px）。
+  - 抽 CSS rule 前要**先剝註解 + 剝 @keyframes/@media 嵌套**,否則 selector capture 會連註解一齊食埋。
+  - 像素 icon 容器**唔可以用 em / vw / clamp** → 隨父字體 / 視窗浮動,非整數倍。
+    16×16 → 16 / 32 / 48px（1× / 2× / 3×）。
 - Student UI: **no** stigma「SEN」label; MC **A/B/C** badges by **render order**
 - `startGame`/resume helpers must be **module scope** (not nested in `setupMenu`)
 

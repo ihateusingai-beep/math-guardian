@@ -1547,11 +1547,11 @@ assert('BTN82-05 solo Boss mage badge logic fixed',
 // V3.6 cycle83: 3 new bosses + win-chain unlock + teacher challenge
 console.log('\n[T67] V3.6 audit cycle-83 (boss roster + teacher pwd)');
 assert('BOSS83-01 lava-giant sprite present',
-  /<symbol id="px-lava" viewBox="0 0 16 16">/.test(src));
+  /<symbol id="px-lava" viewBox="0 0 16 16"[^>]*>/.test(src));
 assert('BOSS83-02 shadow-dragon sprite present',
-  /<symbol id="px-shadow" viewBox="0 0 16 16">/.test(src));
+  /<symbol id="px-shadow" viewBox="0 0 16 16"[^>]*>/.test(src));
 assert('BOSS83-03 crystal-golem sprite present',
-  /<symbol id="px-crystal" viewBox="0 0 16 16">/.test(src));
+  /<symbol id="px-crystal" viewBox="0 0 16 16"[^>]*>/.test(src));
 assert('BOSS83-04 lava-giant registered in Bosses.list',
   /id: 'lava-giant'[\s\S]{0,300}scene: 'lava'/.test(src));
 assert('BOSS83-05 shadow-dragon registered with unlockWins: 5',
@@ -1900,9 +1900,10 @@ assert('L-ASSET-03 SEN branch uses svgId',
 const svgIdCount = (src.match(/it\.svgId\s*\?\s*[\s\S]{0,200}<use href="#/g) || []).length;
 assert('L-ASSET-02b renderer + SEN both have svgId rendering',
   svgIdCount >= 2, `found ${svgIdCount} occurrences`);
-assert('L-ASSET-04 CSS .pic-card-svg sized 84x84 (polished look)',
-  /\.pic-card-svg\s*\{[\s\S]{0,200}width:\s*84px/.test(src) &&
-  /\.pic-card-svg\s*\{[\s\S]{0,200}height:\s*84px/.test(src));
+// V3.6 cycle111: 64×64 symbol 嘅整數倍 → 84px 改 128px（2×）
+assert('L-ASSET-04 CSS .pic-card-svg sized 128x128 (64×64 symbol 嘅 2× 整數倍)',
+  /\.pic-card-svg\s*\{[\s\S]{0,200}width:\s*128px/.test(src) &&
+  /\.pic-card-svg\s*\{[\s\S]{0,200}height:\s*128px/.test(src));
 assert('L-ASSET-05 SVG drop-shadow filter for depth',
   /\.pic-card-svg\s*\{[\s\S]{0,200}filter:\s*drop-shadow/.test(src));
 assert('L-ASSET-06 file size still under 600 KB',
@@ -2523,6 +2524,47 @@ assert('T110-20 雙隊 medal 唔准換行（🥇🥇 換行會疊落標題上面
 assert('T110-21 概念卡 + 島嶼一定要喺 end-stats 上面（學生最想睇嘅新卡）',
   /id="end-island"[\s\S]{0,200}id="end-concept-cards"[\s\S]{0,200}id="end-stats"/.test(src) &&
   /id="end-stats"[\s\S]{0,400}id="end-badges"/.test(src));
+
+// =========== T111: V3.6 cycle111a — 像素資產品質（座標 / 倍率 / crispEdges / 死 symbol） ===========
+// cycle111a：proposal §4.3 嘅 3 個實測缺陷 —— 座標非整數、顯示倍率非整數、冇 crispEdges。
+// 呢啲缺陷 regex 測試捉唔到（要睇畫面），所以有獨立嘅 tests/asset-audit.js（8 組 check）。
+// 呢段做「結構層」交叉鎖：確保 asset-audit 本身唔會被改到失效。
+console.log('\n[T111] V3.6 cycle-111a (pixel asset quality: crispEdges / integer scale / dead asset)');
+assert('T111-01 每個 symbol 都有 shape-rendering="crispEdges"（像素邊唔會有灰邊）',
+  (() => {
+    const syms = src.match(/<symbol\b[^>]*>/g) || [];
+    return syms.length > 0 && syms.every((t) => /shape-rendering="crispEdges"/.test(t));
+  })());
+assert('T111-02 冇重複 symbol id（重複嗰份永遠 render 唔到 = 死碼）',
+  (() => {
+    const ids = (src.match(/<symbol\b[^>]*id="([^"]+)"/g) || []).map((t) => t.match(/id="([^"]+)"/)[1]);
+    return new Set(ids).size === ids.length;
+  })());
+assert('T111-03 像素 icon 容器用 px（唔用 em/vw/clamp → 保證整數倍）',
+  /\.icon-mini \{ width: 16px; height: 16px; \}/.test(src) &&
+  /\.icon-md   \{ width: 32px; height: 32px; \}/.test(src) &&
+  /\.icon-lg   \{ width: 48px; height: 48px; \}/.test(src) &&
+  !/\.icon-mini \{[^}]*em/.test(src));
+assert('T111-04 座標係整數（抽查 4 個改過嘅 symbol）',
+  !/r="1\.5" fill="#fbbf24"/.test(src) &&      // pkg-detergent bubble
+  !/d="M8 1 L9\.5 6 L15 6\.5/.test(src) &&     // badge-star 舊星形
+  !/x="7\.5" y="1\.5"/.test(src) &&             // clock-base 舊刻度
+  !/<rect x="13" y="8\.5"/.test(src));         // char-knight 舊面罩
+assert('T111-05 8 個 L 項每個都有專屬精靈（唔會讀到錯嘅容量）',
+  /svgId:'pkg-milk-1l'/.test(src) && /svgId:'pkg-juice-1l'/.test(src) &&
+  /svgId:'pkg-detergent-1l'/.test(src) && /svgId:'pkg-bleach-2l'/.test(src) &&
+  /svgId:'pkg-soda-15l'/.test(src) && /svgId:'pkg-soymilk-1l'/.test(src) &&
+  /svgId:'pkg-soysauce-1l'/.test(src) && /svgId:'pkg-paint-5l'/.test(src));
+assert('T111-06 svgId 真係傳到 pic-card renderer（之前斷咗 → 6 個精靈從來冇 render 過）',
+  /items: items\.map\(it => \(\{ emoji: it\.emoji, svgId: it\.svgId,/.test(src) &&
+  /const visual = it\.svgId\s*\?\s*`<svg class="pic-card-svg"/.test(src));
+assert('T111-07 像素容器 selector 唔准重複定義（cascade 只會贏最後一個 → 前面嗰個係死碼）',
+  (src.match(/^  \.pic-card-svg \{/gm) || []).length === 1 &&
+  (src.match(/^  \.boss-svg \{/gm) || []).length === 1);
+assert('T111-08 獨立嘅 asset audit 存在而且有 8 組 check',
+  fs.existsSync(path.join(__dirname, '..', 'tests', 'asset-audit.js')) &&
+  /A111-C8/.test(fs.readFileSync(path.join(__dirname, '..', 'tests', 'asset-audit.js'), 'utf8')) &&
+  /A111-C3/.test(fs.readFileSync(path.join(__dirname, '..', 'tests', 'asset-audit.js'), 'utf8')));
 
 // =========== summary ===========
 console.log(`\n========== ${pass} pass / ${fail} fail ==========`);
