@@ -441,6 +441,160 @@ try {
   check('T108 Adaptive audit 執行得到（唔好 throw）', false, e.message);
 }
 
+// ============================================================
+// T109: Stage / 進度格 / 提示階梯 functional audit (cycle 109)
+// ============================================================
+// 行為 bug（進度推錯、提示層錯、局長計錯）regex 結構測試捉唔到，
+// 所以喺呢度抽出真實模組、mock 環境實際執行、斷言實際數值。
+
+function loadStageModule() {
+  const html = fs.readFileSync(INDEX, 'utf8');
+  const scripts = html.match(/<script>[\s\S]*?<\/script>/g) || [];
+  let body = '';
+  for (const s of scripts) {
+    const candidate = s.replace(/^<script>/, '').replace(/<\/script>$/, '');
+    if (candidate.length > body.length) body = candidate;
+  }
+  if (!body) throw new Error('No <script> found in index.html');
+
+  // balanced-brace extractor for a named function declaration
+  function grabFn(name) {
+    const marker = `function ${name}(`;
+    const i = body.indexOf(marker);
+    if (i === -1) throw new Error(`${name} not found`);
+    let depth = 0, started = false, end = -1;
+    for (let j = i; j < body.length; j++) {
+      if (body[j] === '{') { depth++; started = true; }
+      else if (body[j] === '}') { depth--; if (started && depth === 0) { end = j + 1; break; } }
+    }
+    if (end === -1) throw new Error(`${name} end not found`);
+    return body.slice(i, end);
+  }
+
+  const consts = (body.match(/const STAGE_CELLS = 3;/) || [''])[0] + '\n' +
+                 (body.match(/const CELL_UNITS = 4;/) || [''])[0];
+  const fns = ['_cellUnits', '_applyStageUnits', '_stageCellFills', '_stageGoalQuestions',
+               '_easyHintL1', '_easyHintL2', '_easyHintL3', '_easyHintL4', '_easyHintText']
+    .map(grabFn).join('\n');
+
+  const code = `
+    ${consts}
+    ${fns}
+    return { STAGE_CELLS, CELL_UNITS, _cellUnits, _applyStageUnits, _stageCellFills,
+             _stageGoalQuestions, _easyHintText };
+  `;
+  const __Game = {
+    state: {
+      stage: {
+        knight: { index: 0, units: 0, cleared: 0 },
+        mage:   { index: 0, units: 0, cleared: 0 },
+      },
+    },
+    settings: { goalStages: 3 },
+  };
+  const fn = new Function('Game', code);
+  return { mod: fn(__Game), Game: __Game };
+}
+
+console.log('\n[T109] V3.6 cycle-109 (Stage / 進度格 / 提示階梯 functional audit)');
+
+try {
+  const { mod, Game } = loadStageModule();
+  const { STAGE_CELLS, CELL_UNITS, _cellUnits, _applyStageUnits, _stageCellFills,
+          _stageGoalQuestions, _easyHintText } = mod;
+
+  // --- 1) 一次答題填幾多段 ---
+  check('答啱冇用提示 = 1 格（4 段）', _cellUnits(true, 0, false) === 4, `got ${_cellUnits(true, 0, false)}`);
+  check('答啱用提示 L1 = ½ 格（2 段）', _cellUnits(true, 1, false) === 2, `got ${_cellUnits(true, 1, false)}`);
+  check('答啱用提示 L2 = ½ 格（2 段）', _cellUnits(true, 2, false) === 2, `got ${_cellUnits(true, 2, false)}`);
+  check('答啱用提示 L3 = ¼ 格（1 段）', _cellUnits(true, 3, false) === 1, `got ${_cellUnits(true, 3, false)}`);
+  check('答啱用提示 L4 = ¼ 格（1 段）', _cellUnits(true, 4, false) === 1, `got ${_cellUnits(true, 4, false)}`);
+  check('重播答啱 = ½ 格（2 段）', _cellUnits(true, 0, true) === 2, `got ${_cellUnits(true, 0, true)}`);
+  check('答錯 = 0 段', _cellUnits(false, 0, false) === 0, `got ${_cellUnits(false, 0, false)}`);
+  check('答錯即使有提示都係 0 段', _cellUnits(false, 4, false) === 0, `got ${_cellUnits(false, 4, false)}`);
+
+  // --- 2) Stage 推進 + 過關 ---
+  const resetStage = () => { Game.state.stage.knight = { index: 0, units: 0, cleared: 0 }; };
+  resetStage();
+  let r = _applyStageUnits('knight', 4);
+  check('答 1 題（1 格）未過關', r.cleared === false && Game.state.stage.knight.units === 4,
+    `cleared=${r.cleared} units=${Game.state.stage.knight.units}`);
+  _applyStageUnits('knight', 4);
+  _applyStageUnits('knight', 4);
+  check('第 3 格填滿 = 過關（cleared 1, index 1）',
+    Game.state.stage.knight.cleared === 1 && Game.state.stage.knight.index === 1,
+    `cleared=${Game.state.stage.knight.cleared} index=${Game.state.stage.knight.index}`);
+
+  // 過關後新 Stage 進度歸零
+  check('過關後新 Stage 進度歸零', Game.state.stage.knight.units === 0, `units=${Game.state.stage.knight.units}`);
+
+  // 半格推進
+  resetStage();
+  _applyStageUnits('knight', 2);
+  const fillsHalf = _stageCellFills('knight');
+  check('半格 → 第一格填 50%', Math.abs(fillsHalf[0] - 0.5) < 1e-9, `fills=${JSON.stringify(fillsHalf)}`);
+  _applyStageUnits('knight', 4);
+  const fillsFull = _stageCellFills('knight');
+  check('1 格 + ½ 格 → 第一格滿、第二格 50%',
+    Math.abs(fillsFull[0] - 1) < 1e-9 && Math.abs(fillsFull[1] - 0.5) < 1e-9,
+    `fills=${JSON.stringify(fillsFull)}`);
+
+  // 一次填過成個 Stage（3 格 = 12 段）→ 過關
+  resetStage();
+  const r2 = _applyStageUnits('knight', 12);
+  check('一次填滿 3 格 = 即時過關', r2.cleared === true && Game.state.stage.knight.cleared === 1,
+    `cleared=${Game.state.stage.knight.cleared}`);
+  // 只填 2 格（8 段）未夠 3 格 → 唔應該過關
+  resetStage();
+  const r3 = _applyStageUnits('knight', 8);
+  check('只填 2 格（8 段）未夠 3 格 → 唔過關',
+    r3.cleared === false && Game.state.stage.knight.units === 8,
+    `cleared=${r3.cleared} units=${Game.state.stage.knight.units}`);
+
+  // 隊伍之間進度互不干擾
+  resetStage();
+  Game.state.stage.mage = { index: 0, units: 0, cleared: 0 };
+  _applyStageUnits('knight', 4);
+  check('隊伍之間進度互不干擾（knight 有進度、mage 冇）',
+    Game.state.stage.knight.units === 4 && Game.state.stage.mage.units === 0,
+    `knight=${Game.state.stage.knight.units} mage=${Game.state.stage.mage.units}`);
+
+  // --- 3) 局長 = Stage 數 ---
+  Game.settings.goalStages = 3;
+  let g = _stageGoalQuestions();
+  check('局長 3 Stage → 目標 9 題、硬上限 18 題',
+    g.stages === 3 && g.target === 9 && g.hardCap === 18, JSON.stringify(g));
+  Game.settings.goalStages = 1;
+  g = _stageGoalQuestions();
+  check('局長 1 Stage → 目標 3 題、硬上限 6 題',
+    g.stages === 1 && g.target === 3 && g.hardCap === 6, JSON.stringify(g));
+  Game.settings.goalStages = 0;
+  g = _stageGoalQuestions();
+  check('goalStages = 0 唔會出 0 Stage（fallback 到預設 3）', g.stages === 3 && g.target === 9, JSON.stringify(g));
+  Game.settings.goalStages = 3;
+
+  // --- 4) 提示階梯 4 層 ---
+  const qCount = { type: 'count20', answer: 7, parts: ['🌟🌟🌟🌟🌟🌟🌟'] };
+  const l1 = _easyHintText(qCount, 1);
+  const l2 = _easyHintText(qCount, 2);
+  const l3 = _easyHintText(qCount, 3);
+  const l4 = _easyHintText(qCount, 4);
+  check('提示 L1 = 重述（唔會出現答案數字）', !l1.includes('7'), l1);
+  check('提示 L2 = 聚焦（唔會出現答案數字）', !l2.includes('7'), l2);
+  check('提示 L3 = 部分結果（唔會出現答案數字）', !l3.includes('7'), l3);
+  check('提示 L4 = 完整答案', l4.includes('7'), l4);
+  check('提示 4 層係唔同內容', new Set([l1, l2, l3, l4]).size === 4, JSON.stringify([l1, l2, l3, l4]));
+  check('提示層數越界會 clamp（L0 → L1、L9 → L4）',
+    _easyHintText(qCount, 0) === l1 && _easyHintText(qCount, 9) === l4,
+    `L0=${_easyHintText(qCount, 0)} L9=${_easyHintText(qCount, 9)}`);
+  check('L4 保留舊行為（count20 → 答案係 N 個）', l4 === '答案係 7 個', l4);
+  check('compareLength L4 用 optionLabels',
+    _easyHintText({ type: 'compareLength', answer: '1', optionLabels: { '1': '左', '2': '右' } }, 4) === '答案係 左',
+    _easyHintText({ type: 'compareLength', answer: '1', optionLabels: { '1': '左', '2': '右' } }, 4));
+} catch (e) {
+  check('T109 Stage audit 執行得到（唔好 throw）', false, e.message);
+}
+
 // summary
 console.log(`\n========== ${pass} pass / ${fail} fail ==========`);
 if (fail > 0) {

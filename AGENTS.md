@@ -8,8 +8,8 @@ Vanilla JS + Tailwind CDN, no build, GitHub Pages.
 
 - Open `index.html` or `python3 -m http.server 8000`
 - Tests:
-  - `node tests/regression.js` → **810 pass / 0 fail** (structural regex lock-in, cycle 53–108)
-  - `node tests/generator-audit.js` → **4527 pass / 0 fail** (functional truth-table, cycle 101+ · T108 Adaptive ladder)
+  - `node tests/regression.js` → **825 pass / 0 fail** (structural regex lock-in, cycle 53–109)
+  - `node tests/generator-audit.js` → **4554 pass / 0 fail** (functional truth-table, cycle 101+ · T108 Adaptive ladder · T109 Stage/提示階梯)
   - `node tests/audio-audit.js` → **12 pass / 0 fail** (audio call-site × export cross-check, cycle 105+)
 - No lint / typecheck / build
 - Live: https://ihateusingai-beep.github.io/math-guardian/
@@ -28,7 +28,7 @@ Vanilla JS + Tailwind CDN, no build, GitHub Pages.
 │   ├── ART_STYLE_GUIDE.md         # cycle106 — 美術實作規則 (grid / palette / timing / export)
 │   ├── UI_STYLE_GUIDE.md          # cycle106 — 遊戲 UI 規則 (構圖 / 掣狀態 / a11y)
 │   ├── GAME_DESIGN_REVIEW.md      # cycle108 — 遊戲設計檢討 (核心 loop + 6 個設計缺口)
-│   ├── GAMEPLAY_ASSET_PROPOSAL.md # cycle109p — 玩法 + 資產設計方案 (未實作,待 review)
+│   ├── GAMEPLAY_ASSET_PROPOSAL.md # cycle109p — 玩法 + 資產設計方案 (cycle 109 開始實作)
 │   ├── AUDIO_VIDEO_OPTIMIZATION.md # cycle104/105 — media pipeline audit
 │   ├── ARCHITECTURE_REVIEW.md     # cycle96 — code architecture review
 │   └── screenshots/                # cycle106 — before/after evidence 幀 (17 張 JPEG)
@@ -76,6 +76,12 @@ Rubric / 目標風格 / 基準喺 **`docs/VISUAL_QUALITY_RUBRIC.md`**。
   out-of-range values, broken arithmetic invariants.
 - **Visual lock-in** (cycle106, T106): dead CSS / 高度鏈 / 對比度 / off-by-one 全部有 assertion。
   最重要嗰條: **全檔唔准再出現 Tailwind `apply` 指令**(見 Design system)。
+- **Gameplay lock-in** (cycle109, T109): Stage 進度格 / 提示階梯 / 局長 嘅數值邏輯
+  同樣要真實執行（`tests/generator-audit.js` T109 抽出 `_cellUnits` / `_applyStageUnits` /
+  `_stageGoalQuestions` / `_easyHintText` 實際跑）。
+  ⚠️ **唔可以用 `Number(x) || default`** —— `0` 係 falsy 會被當成 default
+  （cycle 109 實測：`Number(layer) || 4` 令 layer=0 跳去第 4 層直接講答案）。
+  要用 `Number.isFinite(n) ? n : default`。
 - **Behavioural lock-in** (cycle108, T108): 涉及**狀態被改寫**嘅 bug,regex 結構檢查 100% 捉唔到
   (cycle 108 P0: easy scope 被 Adaptive 換成 `add10`,實測先見到)。
   → 喺 `tests/generator-audit.js` 抽出**真實模組**、用 mock 環境**實際執行**、斷言實際 state 變化。

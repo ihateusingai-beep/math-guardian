@@ -1109,7 +1109,47 @@
     background: rgba(15,23,42,0.45) !important;
     border-color: rgba(255,255,255,0.18) !important;
   }
-  /* V3.6 cycle97: 全 opt-* (track / play / solo-skin / mode / bridge / scope) unselected — 統一用 design tokens
+  /* ===== V3.6 cycle109 — Stage 進度格 / 提示行 / 錯題重練 banner =====
+   全部 0-byte CSS（冇新 asset）。進度格用 --p 做 0..100% 漸層填充，
+   對應每格 4 段（0.25 精度）：答啱 1 格 = 100%、用提示 = 50% / 25%。 */
+.sen-stage {
+  display: flex; align-items: center; gap: 0.5rem;
+  padding: 0.25rem 0.75rem 0.1rem 0.75rem;
+}
+.sen-stage-label {
+  font-size: 0.8rem; font-weight: 800; color: #fde68a;
+  white-space: nowrap;
+}
+.sen-cells { display: inline-flex; gap: 6px; }
+.sen-cell {
+  display: block; width: 44px; height: 14px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.14);
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  box-sizing: border-box;
+}
+.sen-cell.is-filled {
+  background: linear-gradient(90deg,
+    #34d399 0%, #34d399 var(--p, 0%),
+    rgba(255, 255, 255, 0.14) var(--p, 0%));
+  border-color: rgba(52, 211, 153, 0.85);
+}
+.sen-cell.is-active { border-color: rgba(253, 230, 138, 0.95); }
+.sen-hintline {
+  font-size: 1.15rem; font-weight: 800; color: #fde68a;
+  text-align: center; padding: 0 0.75rem; line-height: 1.35;
+}
+.sen-hintline:empty { display: none; }
+.sen-retry-banner {
+  margin: 0.5rem auto 0; padding: 0.5rem 1rem;
+  font-size: 1rem; font-weight: 800; color: #fde68a;
+  background: rgba(15, 23, 42, 0.85);
+  border: 2px solid rgba(253, 230, 138, 0.5);
+  border-radius: 14px; text-align: center;
+  max-width: 90vw;
+}
+
+/* V3.6 cycle97: 全 opt-* (track / play / solo-skin / mode / bridge / scope) unselected — 統一用 design tokens
      改用 .text-on-light / .bg-card-light-translucent / .border-light → snow theme 自動翻轉, 唔再 override */
   .opt-track:not(.opt-selected),
   .opt-play:not(.opt-selected),
@@ -4006,6 +4046,8 @@
       </div>
       <div id="sen-arena-status" class="sen-arena-status">準備…</div>
     </div>
+    <!-- V3.6 cycle109: 局完「錯題重練」關卡 banner -->
+    <div id="sen-retry-banner" class="sen-retry-banner hidden" role="status" aria-live="polite">🔁 錯題重練：同一條題，連續答啱兩次就過關</div>
     <div id="sen-board" class="sen-board sen-board-solo">
       <!-- 左 / 單人 = knight -->
       <div id="sen-panel-knight" class="sen-panel sen-panel-knight" data-team="knight">
@@ -4015,11 +4057,20 @@
             <div id="sen-q-count-knight" class="text-amber-200 font-extrabold text-sm bg-white/10 rounded-lg px-2 py-1" style="min-width:3rem;text-align:center;">第 0 題</div>
             <div id="sen-correct-knight" class="text-green-300 font-extrabold text-xl">✅ 0</div>
             <div id="sen-wrong-knight" class="text-red-300 font-extrabold text-xl">❌ 0</div>
+            <button id="sen-hint-knight" class="text-white text-xl w-11 h-11 rounded-xl bg-white/10 flex items-center justify-center" aria-label="提示" title="提示">💡</button>
             <button id="sen-tts-knight" class="text-white text-xl w-11 h-11 rounded-xl bg-white/10 flex items-center justify-center" aria-label="朗讀左隊題目">🔊</button>
+          </div>
+        </div>
+        <!-- V3.6 cycle109: 關卡 + 進度格（3 格，每格 0.25 精度） -->
+        <div class="sen-stage">
+          <span id="sen-stage-label-knight" class="sen-stage-label">關卡 1 / 3</span>
+          <div id="sen-cells-knight" class="sen-cells" role="progressbar" aria-valuemin="0" aria-valuemax="3" aria-valuenow="0" aria-label="關卡進度">
+            <span class="sen-cell"></span><span class="sen-cell"></span><span class="sen-cell"></span>
           </div>
         </div>
         <div id="sen-q-emoji-knight" class="sen-q-emoji" aria-live="polite"></div>
         <div id="sen-q-text-knight" class="sen-q-text"></div>
+        <div id="sen-hintline-knight" class="sen-hintline" role="status" aria-live="polite"></div>
         <div id="sen-options-knight" class="sen-options"></div>
         <div id="sen-feedback-knight" class="sen-fb"></div>
         <div id="sen-done-knight" class="sen-done-mask hidden">✅ 完成！<br><span class="text-base font-bold text-amber-200">等另一邊…</span></div>
@@ -4032,11 +4083,20 @@
             <div id="sen-q-count-mage" class="text-amber-200 font-extrabold text-sm bg-white/10 rounded-lg px-2 py-1" style="min-width:3rem;text-align:center;">第 0 題</div>
             <div id="sen-correct-mage" class="text-green-300 font-extrabold text-xl">✅ 0</div>
             <div id="sen-wrong-mage" class="text-red-300 font-extrabold text-xl">❌ 0</div>
+            <button id="sen-hint-mage" class="text-white text-xl w-11 h-11 rounded-xl bg-white/10 flex items-center justify-center" aria-label="提示" title="提示">💡</button>
             <button id="sen-tts-mage" class="text-white text-xl w-11 h-11 rounded-xl bg-white/10 flex items-center justify-center" aria-label="朗讀右隊題目">🔊</button>
+          </div>
+        </div>
+        <!-- V3.6 cycle109: 關卡 + 進度格（3 格，每格 0.25 精度） -->
+        <div class="sen-stage">
+          <span id="sen-stage-label-mage" class="sen-stage-label">關卡 1 / 3</span>
+          <div id="sen-cells-mage" class="sen-cells" role="progressbar" aria-valuemin="0" aria-valuemax="3" aria-valuenow="0" aria-label="關卡進度">
+            <span class="sen-cell"></span><span class="sen-cell"></span><span class="sen-cell"></span>
           </div>
         </div>
         <div id="sen-q-emoji-mage" class="sen-q-emoji" aria-live="polite"></div>
         <div id="sen-q-text-mage" class="sen-q-text"></div>
+        <div id="sen-hintline-mage" class="sen-hintline" role="status" aria-live="polite"></div>
         <div id="sen-options-mage" class="sen-options"></div>
         <div id="sen-feedback-mage" class="sen-fb"></div>
         <div id="sen-done-mage" class="sen-done-mask hidden">✅ 完成！<br><span class="text-base font-bold text-amber-200">等另一邊…</span></div>
@@ -6823,6 +6883,11 @@ const Game = {
     arenaSkin: 'retro',             // V3.6 cycle62: 'classic' | 'retro' (ruler tug / bridge)
     soloMode: 'bridge',             // V3.6 cycle65: solo mini-game 'boat' | 'bridge' | 'ruler'
     menuTrack: 'class',             // V3.6 cycle63: 'class' 課堂 | 'boss' 戰役
+    // V3.6 cycle109: 局長 = Stage 數（每 Stage 3 格 → 目標 9 題，硬上限 ×2）
+    goalStages: 3,
+    // V3.6 cycle109: 提示階梯層數上限（1 重述 / 2 聚焦 / 3 部分 / 4 答案）
+    // Ken 2026-10-25 決定：可以畀答案，但分層遞進，最後一層先講答案。老師可調低。
+    hintMaxLevel: 4,
   },
 
   state: {
@@ -6866,6 +6931,20 @@ const Game = {
     // V3.5-AUDIT7-F07: per-team cache of la
     // (visual-type ladder fallback Option C — chain 2: cached last-good)
     lastResumableType: { knight: null, mage: null },
+
+    // ===== V3.6 cycle109: Stage / 進度格 / 提示階梯 / 錯題原地重播 =====
+    // Stage 進度係 per-team（雙隊各自答各自嘅題，唔應該共用同一條進度條）
+    stage: {
+      knight: { index: 0, units: 0, cleared: 0 },
+      mage:   { index: 0, units: 0, cleared: 0 },
+    },
+    stagesTotal: 3,         // 一局有幾多 Stage
+    hintLevel: { knight: 0, mage: 0 },  // 當前題目已用提示層數（0 = 未用）
+    replay: { knight: null, mage: null },  // 原地重播：答錯嗰條原題（唔抽新題）
+    retryMode: false,       // 局完「錯題重練」關卡
+    retryList: [],          // 要重練嘅題（保留完整 payload）
+    retryIndex: 0,
+    retryStreak: 0,         // 連續答啱次數（>= 2 先算鞏固）
   },
 
   /* ---- internal helpers ---- */
@@ -6900,9 +6979,21 @@ const Game = {
 
     // V3.6-SEN: ultra-simple mode — feedback + stats only, skip boss/castle/energy
     if (Game.settings.difficulty === 'easy') {
+      // V3.6 cycle109: 局完「錯題重練」關卡（同一條題，連續答啱 2 次先算鞏固）
+      // ⚠️ 呢個檢查一定要行喺 _easyTeamDone 之前 —— 重練時該隊已被標記為 done，
+      //    如果先做 done 檢查，重練答題會被擋死。
+      if (Game.state.retryMode) {
+        const retryCorrect = _compareAnswer(q.answer, value, q.type).correct;
+        Game.handleRetryAnswer(team, value, btn, q, retryCorrect);
+        return;
+      }
       if (Game.state._easyEnding) return;
       if (Game.state._easyTeamDone && Game.state._easyTeamDone[team]) return;
       const correct = _compareAnswer(q.answer, value, q.type).correct;
+
+      // V3.6 cycle109: 呢條係咪「原地重播」嗰條？（答錯之後再問同一條，唔抽新題）
+      const isReplay = !!Game.state.replay[team];
+      const usedHint = Game.state.hintLevel[team] || 0;
 
       // V3.6 cycle75/76: length/height = tap real bar only；錯唔罰、唔跳題、只重播題
       if (_isTapPairCompare(q)) {
@@ -6924,33 +7015,37 @@ const Game = {
         Game.state.teams[team].total++;
         Game.state.teams[team].correct++;
         _recordAnswerStats(team, q, true);
+        // V3.6 cycle109: tap-pair 答啱一樣推進 Stage 進度
+        _applyStageUnits(team, _cellUnits(true, usedHint, isReplay));
+        Game.state.replay[team] = null;
+        Game.state.hintLevel[team] = 0;
         UI.refreshSENScreen();
         UI.refreshSENArena(team, true);
-        const goal = Game.state.easyGoalTotal || 0;
-        const dual = Game.settings.playLayout === 'dual';
-        if (goal > 0 && Game.state.teams[team].total >= goal) {
-          if (!Game.state._easyTeamDone) Game.state._easyTeamDone = { knight: false, mage: false };
-          Game.state._easyTeamDone[team] = true;
-          UI.markSENTeamDone(team);
-          const bothDone = dual
-            ? (Game.state._easyTeamDone.knight && Game.state._easyTeamDone.mage)
-            : true;
-          if (bothDone) {
-            Game.state._easyEnding = true;
-            Game.state.running = false;
-            setTimeout(() => { if (!Game.state.ended) endGame(true); }, 700);
-          }
-          return;
-        }
+        if (_easyGameComplete(team)) return;
         _scheduleNextQuestion(team, 900);
         return;
       }
 
-      if (!correct && Game.settings.instantHint !== false) {
-        UI._senShowFeedback(false, _easyHintText(q), team);
+      // V3.6 cycle109: 答啱先推進進度；答錯 → 原地重播同一條
+      const units = _cellUnits(correct, usedHint, isReplay);
+      if (correct) {
+        UI._senShowFeedback(true, null, team);
+        Game.state.replay[team] = null;
+        Game.state.hintLevel[team] = 0;
       } else {
-        UI._senShowFeedback(correct, null, team);
+        // 答錯：記住同一條題，下一輪再問（唔抽新題 — spaced repetition 靠重播同一 stimulus）
+        Game.state.replay[team] = q;
+        Game.state.hintLevel[team] = 0;
+        // 提示只出層 1（重述），唔會直接講答案；學生可以撳「提示」逐層深入
+        if (Game.settings.instantHint !== false) {
+          UI._senShowFeedback(false, _easyHintText(q, 1), team);
+        } else {
+          UI._senShowFeedback(false, null, team);
+        }
+        // 記錄錯題（保留完整 payload，局完重練用同一條）
+        Game.state.review.push({ ...q, retryCount: 0, retryStreak: 0 });
       }
+
       Game.state.teams[team].total++;
       if (correct) {
         Game.state.teams[team].correct++;
@@ -6961,6 +7056,7 @@ const Game = {
           if (_isCoopTeam()) Audio.boatRow && Audio.boatRow();
           else Audio.tugPull && Audio.tugPull();
         }
+        _applyStageUnits(team, units);
       } else {
         Game.state.teams[team].wrong++;
         _haptic(false);  // V3.6 cycle84 C3
@@ -6969,23 +7065,7 @@ const Game = {
       _recordAnswerStats(team, q, correct);
       UI.refreshSENScreen();
       UI.refreshSENArena(team, correct);
-      const goal = Game.state.easyGoalTotal || 0;
-      const dual = Game.settings.playLayout === 'dual';
-      if (goal > 0 && Game.state.teams[team].total >= goal) {
-        if (!Game.state._easyTeamDone) Game.state._easyTeamDone = { knight: false, mage: false };
-        Game.state._easyTeamDone[team] = true;
-        UI.markSENTeamDone(team);
-        const bothDone = dual
-          ? (Game.state._easyTeamDone.knight && Game.state._easyTeamDone.mage)
-          : true;
-        if (bothDone) {
-          Game.state._easyEnding = true;
-          Game.state.running = false;
-          const delay = correct ? 500 : 900;
-          setTimeout(() => { if (!Game.state.ended) endGame(true); }, delay);
-        }
-        return;
-      }
+      if (_easyGameComplete(team)) return;
       _scheduleNextQuestion(team, correct ? 650 : 1000);
       return;
     }
@@ -6999,6 +7079,35 @@ const Game = {
     _recordAnswerStats(team, q, correct);
     UI.updateTeam(team);
     _scheduleNextQuestion(team);
+  },
+
+  // V3.6 cycle109: 局完「錯題重練」關卡 —— 同一條題，連續答啱 2 次先算鞏固
+  handleRetryAnswer(team, value, btn, q, correct) {
+    const st = Game.state;
+    const item = st.retryList[st.retryIndex];
+    if (!item) { _easyRetryFinish(); return; }
+    if (correct) {
+      st.retryStreak = (st.retryStreak || 0) + 1;
+      item.retryStreak = st.retryStreak;
+      item.retryCount = (item.retryCount || 0) + 1;
+      if (typeof UI !== 'undefined' && UI._senShowFeedback) UI._senShowFeedback(true, null, team);
+      if (Audio.correct) Audio.correct();
+      if (st.retryStreak >= 2) {
+        // 呢條已經鞏固 → 跳去下一條
+        st.retryIndex += 1;
+        st.retryStreak = 0;
+        if (st.retryIndex >= st.retryList.length) { _easyRetryFinish(); return; }
+      }
+    } else {
+      st.retryStreak = 0;
+      item.retryStreak = 0;
+      if (typeof UI !== 'undefined' && UI._senShowFeedback) UI._senShowFeedback(false, _easyHintText(q, 1), team);
+      if (Audio.wrong) Audio.wrong();
+    }
+    st.teams[team].total++;
+    if (correct) st.teams[team].correct++; else st.teams[team].wrong++;
+    if (typeof UI !== 'undefined' && UI.refreshSENScreen) UI.refreshSENScreen();
+    setTimeout(() => { _nextRetryQuestion(team); }, correct ? 700 : 1000);
   },
 };
 
@@ -7934,6 +8043,10 @@ const UI = {
     const t = team || 'knight';
     const { emojiEl, textEl, optsArea, fb, done } = UI._senEls(t);
     if (fb) fb.innerHTML = '';
+    // V3.6 cycle109: 新題目 → 提示層數歸零 + 清空提示行
+    if (Game.state.hintLevel) Game.state.hintLevel[t] = 0;
+    const hintLine = $(`sen-hintline-${t}`);
+    if (hintLine) hintLine.textContent = '';
     if (done) done.classList.add('hidden');
     if (emojiEl) {
       emojiEl.classList.remove('sen-count-dense', 'sen-q-visual');
@@ -8144,7 +8257,44 @@ const UI = {
         const side = dual ? (tm === 'knight' ? '⬅ ' : '➡ ') : '';
         who.textContent = side + (labels[tm] || '同學');
       }
+      // V3.6 cycle109: Stage 進度格（3 格，每格 0.25 精度）+ 關卡標籤
+      const cellsWrap = $(`sen-cells-${tm}`);
+      if (cellsWrap) {
+        const fills = _stageCellFills(tm);
+        const cellEls = cellsWrap.querySelectorAll('.sen-cell');
+        let activeIdx = fills.findIndex(f => f < 1);
+        if (activeIdx < 0) activeIdx = fills.length - 1;
+        cellEls.forEach((el, i) => {
+          const pct = Math.round((fills[i] || 0) * 100);
+          el.style.setProperty('--p', pct + '%');
+          el.classList.toggle('is-filled', pct > 0);
+          el.classList.toggle('is-active', i === activeIdx);
+        });
+        const done = fills.reduce((a, b) => a + b, 0);
+        cellsWrap.setAttribute('aria-valuenow', String(Math.round(done)));
+      }
+      const stageLabel = $(`sen-stage-label-${tm}`);
+      if (stageLabel) {
+        const sg = (Game.state.stage && Game.state.stage[tm]) || { index: 0 };
+        const goal = _stageGoalQuestions();
+        stageLabel.textContent = `關卡 ${Math.min(sg.index + 1, goal.stages)} / ${goal.stages}`;
+      }
     });
+  },
+
+  // V3.6 cycle109: 提示行（層 1-4 階梯提示顯示喺呢度，唔會蓋住題目）
+  _senShowHint(hintText, team) {
+    const t = team || 'knight';
+    const el = $(`sen-hintline-${t}`);
+    if (!el) return;
+    el.textContent = hintText ? String(hintText) : '';
+  },
+
+  // V3.6 cycle109: 錯題重練關卡 banner
+  showSENRetryBanner(show) {
+    const el = $('sen-retry-banner');
+    if (!el) return;
+    el.classList.toggle('hidden', !show);
   },
 };
 
@@ -8252,6 +8402,23 @@ function _wireSENScreen() {
     const menu = $('screen-menu'); if (menu) menu.classList.remove('hidden');
   };
   ['knight', 'mage'].forEach(tm => {
+    // V3.6 cycle109: 提示階梯掣（每撳一次深入一層，最後一層先講答案）
+    const hintBtn = $(`sen-hint-${tm}`);
+    if (hintBtn) {
+      hintBtn.onclick = () => {
+        const q = Game.state.current[tm];
+        if (!q) return;
+        const maxL = Math.max(1, Math.min(4, Number(Game.settings.hintMaxLevel) || 4));
+        const cur = Game.state.hintLevel[tm] || 0;
+        if (cur >= maxL) return;
+        const next = cur + 1;
+        Game.state.hintLevel[tm] = next;
+        const text = _easyHintText(q, next);
+        UI._senShowHint(text, tm);
+        if (Game.settings.ttsEnabled !== false && TTS && TTS.speak) TTS.speak(text, null, {});
+        UI.refreshSENScreen();
+      };
+    }
     const ttsBtn = $(`sen-tts-${tm}`);
     if (ttsBtn) {
       ttsBtn.onclick = () => {
@@ -9242,7 +9409,20 @@ function startGame() {
   // 重設 adaptive
   Adaptive.reset();
   // V3.6-SEN cycle37: easy = N-question practice goal (boss HP never drops in easy)
-  Game.state.easyGoalTotal = isEasy ? 10 : 0;
+  // V3.6 cycle109: 局長 = Stage 數（每 Stage 3 格）→ 目標題數 = stages × 3
+  const _easyGoal = isEasy ? _stageGoalQuestions() : { stages: 0, target: 0, hardCap: 0 };
+  Game.state.easyGoalTotal = isEasy ? _easyGoal.target : 0;
+  Game.state.stagesTotal = _easyGoal.stages;
+  Game.state.stage = {
+    knight: { index: 0, units: 0, cleared: 0 },
+    mage:   { index: 0, units: 0, cleared: 0 },
+  };
+  Game.state.hintLevel = { knight: 0, mage: 0 };
+  Game.state.replay = { knight: null, mage: null };
+  Game.state.retryMode = false;
+  Game.state.retryList = [];
+  Game.state.retryIndex = 0;
+  Game.state.retryStreak = 0;
   Game.state._easyEnding = false;
   Game.state._easyTeamDone = { knight: false, mage: false };
   // V3.6 cycle47/64/65: dual keeps user team pick (versus=扯大欖 / coop=推船) via dualTeam
@@ -9595,9 +9775,16 @@ function _scheduleNextQuestion(team, delayMs) {
     const dual = Game.settings.playLayout === 'dual';
     const nextTeam = dual ? team : 'knight';
     setTimeout(() => {
-      if (Game.state.running && !Game.state.ended && !(Game.state._easyTeamDone && Game.state._easyTeamDone[nextTeam])) {
-        nextQuestion(nextTeam);
+      if (!(Game.state.running && !Game.state.ended && !(Game.state._easyTeamDone && Game.state._easyTeamDone[nextTeam]))) return;
+      // V3.6 cycle109: 答錯 → 原地重播「同一條」（唔抽新題，spaced repetition 靠重播同一 stimulus）
+      const replayQ = Game.state.replay[nextTeam];
+      if (replayQ) {
+        Game.state.current[nextTeam] = replayQ;
+        Game.state.hintLevel[nextTeam] = 0;
+        if (typeof UI !== 'undefined' && UI.showQuestion) UI.showQuestion(nextTeam);
+        return;
       }
+      nextQuestion(nextTeam);
     }, delay || 700);
     return;
   }
@@ -9621,8 +9808,203 @@ function _scheduleNextQuestion(team, delayMs) {
   }
 }
 
-// V3.6 cycle41: short wrong-answer hint for easy ultra-simple screen
-function _easyHintText(q) {
+// ============================================================
+// V3.6 cycle109: Stage / 進度格 / 提示階梯
+// ============================================================
+// 每個 Stage = 3 格；每格 4 段（0.25 精度）→ 答啱 1 格 = 4 段。
+// 進度只喺「同一個 scope 內」推進（cycle 108 P0 教訓：永遠唔換 scope）。
+const STAGE_CELLS = 3;
+const CELL_UNITS = 4;
+
+// 一次答題填幾多「段」
+//   答啱冇用提示 = 4 段（1 格）
+//   答啱用提示 L1-2 = 2 段（½ 格）
+//   答啱用提示 L3-4 = 1 段（¼ 格）
+//   重播答啱       = 2 段（½ 格）
+//   答錯           = 0 段（原地重播同一條）
+function _cellUnits(correct, usedHintLevel, isReplay) {
+  if (!correct) return 0;
+  if (isReplay) return 2;
+  if (!usedHintLevel) return CELL_UNITS;
+  if (usedHintLevel <= 2) return 2;
+  return 1;
+}
+
+// 推進 Stage 進度；回傳 { cleared, stageIndex }
+function _applyStageUnits(team, units) {
+  const st = Game.state;
+  const s = st.stage[team] || (st.stage[team] = { index: 0, units: 0, cleared: 0 });
+  if (!units || units <= 0) return { cleared: false, stageIndex: s.index };
+  s.units += units;
+  const need = STAGE_CELLS * CELL_UNITS;
+  let cleared = false;
+  while (s.units >= need) {
+    s.units -= need;
+    s.cleared += 1;
+    s.index += 1;
+    cleared = true;
+  }
+  return { cleared, stageIndex: s.index };
+}
+
+// 當前 Stage 進度（每格 0..1）
+function _stageCellFills(team) {
+  const s = (Game.state.stage && Game.state.stage[team]) || { units: 0 };
+  const cells = [];
+  for (let i = 0; i < STAGE_CELLS; i++) {
+    const lo = i * CELL_UNITS;
+    const got = Math.max(0, Math.min(CELL_UNITS, s.units - lo));
+    cells.push(got / CELL_UNITS);
+  }
+  return cells;
+}
+
+// 局長：Stage 數 → 目標題數（每 Stage 3 格）＋ 硬上限（容錯 ×2）
+function _stageGoalQuestions() {
+  const stages = Math.max(1, Number(Game.settings.goalStages) || 3);
+  return { stages, target: stages * STAGE_CELLS, hardCap: stages * STAGE_CELLS * 2 };
+}
+
+// 呢個隊伍做完未？（全部 Stage 通關 或者 撞硬上限）
+function _easyGameComplete(team) {
+  const st = Game.state;
+  const goal = _stageGoalQuestions();
+  const s = st.stage[team] || { cleared: 0 };
+  const allCleared = s.cleared >= goal.stages;
+  const hitCap = st.teams[team].total >= goal.hardCap;
+  if (!allCleared && !hitCap) return false;
+  if (!st._easyTeamDone) st._easyTeamDone = { knight: false, mage: false };
+  st._easyTeamDone[team] = true;
+  if (typeof UI !== 'undefined' && UI.markSENTeamDone) UI.markSENTeamDone(team);
+  const dual = Game.settings.playLayout === 'dual';
+  const bothDone = dual ? (st._easyTeamDone.knight && st._easyTeamDone.mage) : true;
+  if (bothDone) {
+    st._easyEnding = true;
+    st.running = false;
+    setTimeout(() => { _easyFinishOrRetry(); }, 700);
+  }
+  return true;
+}
+
+// 主線完 → 如果有錯題，開「錯題重練」關卡；冇錯題就直接完場
+function _easyFinishOrRetry() {
+  const st = Game.state;
+  const missed = (st.review || []).filter(r => r && r.type && (r.retryStreak || 0) < 2);
+  if (missed.length) {
+    st.retryMode = true;
+    st.retryList = missed.map(r => ({ ...r }));
+    st.retryIndex = 0;
+    st.retryStreak = 0;
+    st._easyEnding = false;
+    st.running = true;
+    if (typeof UI !== 'undefined' && UI.showSENRetryBanner) UI.showSENRetryBanner(true);
+    // 隱藏「✅ 完成！」mask（佢會遮住重練題目）
+    ['knight', 'mage'].forEach(tm => {
+      const mask = document.getElementById(`sen-done-${tm}`);
+      if (mask) mask.classList.add('hidden');
+    });
+    _nextRetryQuestion('knight');
+    return;
+  }
+  if (!st.ended) endGame(true);
+}
+
+// 錯題重練：出下一條要重練嘅題（同一條，唔抽新題）
+function _nextRetryQuestion(team) {
+  const st = Game.state;
+  const t = team || 'knight';
+  const item = st.retryList[st.retryIndex];
+  if (!item) { _easyRetryFinish(); return; }
+  Game.state.current[t] = { ...item };
+  st.hintLevel[t] = 0;
+  if (typeof UI !== 'undefined' && UI.showQuestion) UI.showQuestion(t);
+}
+
+// 錯題全部重練完 → 完場
+function _easyRetryFinish() {
+  const st = Game.state;
+  st.retryMode = false;
+  st.running = false;
+  st._easyEnding = true;
+  if (typeof UI !== 'undefined' && UI.showSENRetryBanner) UI.showSENRetryBanner(false);
+  if (!st.ended) endGame(true);
+}
+
+// ---------- 提示階梯 4 層 ----------
+// 1 重述（重複題目，冇答案資訊）· 2 聚焦 · 3 部分（畀一半）· 4 答案
+// Ken 2026-10-25 決定：可以畀答案，但分層遞進，最後一層先講答案。
+function _easyHintL1(q) {
+  if (!q) return '再試一次';
+  const t = q.type;
+  if (t === 'count20' || t === 'count10' || t === 'count1to3') {
+    return `再數一次：${(q.parts && q.parts[0]) || ''}`;
+  }
+  if (t === 'groupAdd') return `加埋兩堆：${(q.parts || []).join(' ')}`;
+  if (t === 'compareGroup') return `兩邊都數一數：${(q.parts || []).join(' ')}`;
+  if (t === 'compareLength') return '再睇一次兩條，邊條長？';
+  if (t === 'compareHeight') return '再睇一次兩個，邊個高？';
+  if (t === 'orderAsc20' || t === 'orderDesc20') {
+    return `再睇一次：${(q.parts && q.parts[0]) || ''}`;
+  }
+  if (t === 'learnL' || t === 'findLDrink' || t === 'findLItem') return '睇清楚每樣嘢上面寫住幾多';
+  return '再試一次，慢慢嚟';
+}
+
+function _easyHintL2(q) {
+  if (!q) return '慢慢睇，一步一步嚟';
+  const t = q.type;
+  if (t === 'count20' || t === 'count10' || t === 'count1to3') return '由左邊開始數：1、2、3⋯';
+  if (t === 'groupAdd') return '先數第一堆有幾多，再數第二堆';
+  if (t === 'compareGroup') return '由左邊嗰堆開始數';
+  if (t === 'compareLength') return '由頭到尾數第一條有幾多格';
+  if (t === 'compareHeight') return '由底開始數第一個有幾多格';
+  if (t === 'orderAsc20' || t === 'orderDesc20') {
+    return t === 'orderAsc20' ? '由最少嗰個開始，每次加多啲' : '由最多嗰個開始，每次減少啲';
+  }
+  if (t === 'learnL' || t === 'findLDrink' || t === 'findLItem') return '先睇第一件，上面寫住幾多';
+  return '慢慢睇，一步一步嚟';
+}
+
+function _easyHintL3(q) {
+  if (!q) return '再諗多陣';
+  const t = q.type;
+  const ex = q.extra || {};
+  if (t === 'count20' || t === 'count10' || t === 'count1to3') {
+    const n = Number(q.answer);
+    if (Number.isFinite(n) && n > 1) return `數咗 ${n - 1} 個，仲有 1 個`;
+  }
+  if (t === 'groupAdd') {
+    const a = ((q.parts && q.parts[0]) || '').length;
+    const b = ((q.parts && q.parts[2]) || '').length;
+    if (a > 0 && b > 0) return `第一堆 ${a} 個，第二堆 ${b} 個`;
+  }
+  if (t === 'compareGroup') {
+    const a = ((q.parts && q.parts[0]) || '').length;
+    const b = ((q.parts && q.parts[2]) || '').length;
+    if (a > 0 && b > 0) return `左邊 ${a} 個，右邊 ${b} 個`;
+  }
+  if (t === 'compareLength' || t === 'compareHeight') {
+    if (ex.a !== undefined && ex.b !== undefined) {
+      const first = ex.ask === 'short' ? '長嗰個' : '短嗰個';
+      return `第一個 ${ex.a} 格，第二個 ${ex.b} 格（${first}有 ${Math.max(ex.a, ex.b)} 格）`;
+    }
+  }
+  if (t === 'orderAsc20' || t === 'orderDesc20') {
+    const stem = q.displayNums || [];
+    if (Array.isArray(stem) && stem.length >= 2) {
+      const step = Number(stem[1]) - Number(stem[0]);
+      const next = t === 'orderAsc20' ? Number(stem[0]) + step : Number(stem[0]) - step;
+      return `每次${step >= 0 ? '加' : '減'}${Math.abs(step)}，下一個係 ${next}`;
+    }
+  }
+  if (t === 'learnL' || t === 'findLDrink' || t === 'findLItem') {
+    if (ex.pkg) return `有一件寫住 ${ex.pkg}`;
+  }
+  return '再諗多陣';
+}
+
+// L4 = 原本嘅「答案係 X」（cycle 41 舊邏輯，保留做最後一層）
+function _easyHintL4(q) {
   if (!q) return '再試一次';
   if (q.type === 'count1to3' || q.type === 'count10' || q.type === 'count20') return `答案係 ${q.answer} 個`;
   if (q.type === 'groupAdd') return `答案係 ${q.answer}`;
@@ -9647,6 +10029,19 @@ function _easyHintText(q) {
     return `答案係 ${q.optionLabels[q.answer]}`;
   }
   return `答案係 ${q.answer}`;
+}
+
+// V3.6 cycle41: short wrong-answer hint for easy ultra-simple screen
+// V3.6 cycle109: 升級做 4 層提示階梯（layer 預設 4 = 舊行為 = 直接畀答案）
+function _easyHintText(q, layer) {
+  // ⚠️ 唔可以用 `Number(layer) || 4`：layer=0 係 falsy → 會跳去 4（直接講答案）。
+  // 同 cycle 108 嘅 indexOf(-1) 係同一類 falsy/邊界陷阱。
+  const n = Number(layer);
+  const L = Math.max(1, Math.min(4, Number.isFinite(n) ? n : 4));
+  if (L >= 4) return _easyHintL4(q);
+  if (L === 1) return _easyHintL1(q);
+  if (L === 2) return _easyHintL2(q);
+  return _easyHintL3(q);
 }
 
 function highlightBtn(btn, correct) {

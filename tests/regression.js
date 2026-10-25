@@ -852,7 +852,7 @@ assert('R5-6  _recordAnswerStats called after correct/wrong effects',
   /_recordAnswerStats\(team, q, correct\);/.test(src));
 // R5-7: next-question routing extracted to _scheduleNextQuestion
 assert('R5-7  _scheduleNextQuestion contains null-out + coop/versus branch',
-  /function _scheduleNextQuestion\s*\(\s*team[\s\S]{0,40}\)[\s\S]{0,900}current\[team\] = null[\s\S]{0,700}coop/.test(src));
+  /function _scheduleNextQuestion\s*\(\s*team[\s\S]{0,40}\)[\s\S]{0,900}current\[team\] = null[\s\S]{0,1500}coop/.test(src));
 // R5-8: ordering ordering compare still in helper
 assert('R5-8  _compareAnswer ordering check uses length+JSON',
   /function _compareAnswer[\s\S]{0,800}type\s*===\s*'ordering'[\s\S]{0,300}actual\.length\s*===\s*expected\.length[\s\S]{0,300}JSON\.stringify/.test(src));
@@ -1089,10 +1089,14 @@ assert('EASY-56 _wireSENScreen is module-scope (before setupMenu, not nested)', 
       src.slice(setup, src.indexOf('function startGame'))
     );
 })());
-assert('EASY-57 startGame sets easyGoalTotal for easy practice end',
-  /easyGoalTotal\s*=\s*isEasy\s*\?\s*10\s*:\s*0/.test(src));
+// V3.6 cycle109: 局長 = Stage 數（每 Stage 3 格）→ 目標題數 = stages × 3
+assert('EASY-57 startGame sets easyGoalTotal for easy practice end (derived from Stage count)',
+  /easyGoalTotal\s*=\s*isEasy\s*\?\s*_easyGoal\.target\s*:\s*0/.test(src) &&
+  /_stageGoalQuestions\(\)/.test(src));
+// V3.6 cycle109: 完場路徑改成 _easyGameComplete → _easyFinishOrRetry →（有錯題）重練關卡 → endGame(true)
 assert('EASY-58 easy handleAnswer ends session via endGame(true) on goal',
-  /easyGoalTotal[\s\S]{0,900}endGame\(\s*true\s*\)/.test(src) &&
+  /_easyGameComplete/.test(src) &&
+  /function _easyFinishOrRetry[\s\S]{0,1200}endGame\(true\)/.test(src) &&
   /_easyEnding/.test(src));
 assert('EASY-59 btn-easy-start one-click calls startGame (not scroll-only)', (() => {
   const i = src.indexOf('easyStartBtn.onclick');
@@ -1119,7 +1123,7 @@ assert('EASY-65 easy wrong answers use _easyHintText + delayed next Q',
 assert('EASY-66 compareGroup optionLabels are Chinese (not bare emoji)',
   /optionLabels:\{1:'左邊多',2:'右邊多',3:'一樣多'\}/.test(src));
 assert('EASY-67 easy mode schedule defaults delay (not bare 0)',
-  /function _scheduleNextQuestion[\s\S]{0,800}delay \|\| 700/.test(src));
+  /function _scheduleNextQuestion[\s\S]{0,1500}delay \|\| 700/.test(src));
 
 // V3.6 cycle42: touch hard rules + identity + 金銀銅
 console.log('\n[T34] V3.6 audit cycle-42 (touch / identity / medals)');
@@ -2395,6 +2399,49 @@ assert('T108-05 唔准再出現會令 indexOf(-1) 通過嘅降級條件',
   !/TYPE_ORDER\.indexOf\(type\)\s*>\s*0/.test(ADAPTIVE_CODE));
 assert('T108-06 type 置換只可以發生喺 Adaptive 升級/降級兩處',
   (src.match(/Game\.settings\.types = Game\.settings\.types\.map\(/g) || []).length === 2);
+
+// =========== T109: V3.6 cycle109 — Stage / 進度格 / 提示階梯 / 錯題原地重播 ===========
+// cycle 109 玩法骨架：局長 = Stage 數、3 格進度（0.25 精度）、4 層提示階梯、
+// 答錯原地重播同一條 + 局完錯題重練關卡。
+// 行為鎖喺 tests/generator-audit.js T109（真實執行 Stage/提示模組）。
+console.log('\n[T109] V3.6 cycle-109 (gameplay: Stage + 進度格 + 提示階梯 + 錯題重播)');
+assert('T109-01 Stage 常數：3 格 × 4 段（0.25 精度）',
+  /const STAGE_CELLS = 3;/.test(src) && /const CELL_UNITS = 4;/.test(src));
+assert('T109-02 局長 = Stage 數（goalStages 設定存在）',
+  /goalStages:\s*3/.test(src) && /hintMaxLevel:\s*4/.test(src));
+assert('T109-03 Stage 進度係 per-team（雙隊各自有進度）',
+  /stage:\s*\{\s*\n\s*knight:\s*\{\s*index:\s*0,\s*units:\s*0,\s*cleared:\s*0\s*\}/.test(src) &&
+  /mage:\s*\{\s*index:\s*0,\s*units:\s*0,\s*cleared:\s*0\s*\}/.test(src));
+assert('T109-04 答錯會記住同一條題（replay state + 原地重播）',
+  /Game\.state\.replay\[team\]\s*=\s*q;/.test(src) &&
+  /const replayQ = Game\.state\.replay\[nextTeam\];/.test(src) &&
+  /Game\.state\.current\[nextTeam\]\s*=\s*replayQ;/.test(src));
+assert('T109-05 重播唔抽新題（唔會再 call QuestionGen.make）',
+  /const replayQ = Game\.state\.replay\[nextTeam\];[\s\S]{0,320}?UI\.showQuestion\(nextTeam\)/.test(src));
+assert('T109-06 錯題保留完整 payload（局完重練用同一條）',
+  /Game\.state\.review\.push\(\{\s*\.\.\.q,\s*retryCount:\s*0,\s*retryStreak:\s*0\s*\}\)/.test(src));
+assert('T109-07 提示階梯 4 層（L1 重述 / L2 聚焦 / L3 部分 / L4 答案）',
+  /function _easyHintL1\(/.test(src) && /function _easyHintL2\(/.test(src) &&
+  /function _easyHintL3\(/.test(src) && /function _easyHintL4\(/.test(src) &&
+  /function _easyHintText\(q, layer\)/.test(src));
+assert('T109-08 提示層數上限由 settings 控制（老師可調）',
+  /hintMaxLevel/.test(src) && /if \(cur >= maxL\) return;/.test(src));
+assert('T109-09 答錯只出層 1（唔會直接講答案）',
+  /UI\._senShowFeedback\(false,\s*_easyHintText\(q,\s*1\),\s*team\)/.test(src));
+assert('T109-10 局完有「錯題重練」關卡（retryMode + retryList）',
+  /retryMode:\s*false/.test(src) && /retryList:\s*\[\]/.test(src) &&
+  /_easyFinishOrRetry/.test(src) && /handleRetryAnswer/.test(src));
+assert('T109-11 重練要連續答啱 2 次先算鞏固',
+  /if \(st\.retryStreak >= 2\)/.test(src));
+assert('T109-12 retryMode 檢查行喺 _easyTeamDone 之前（否則重練答題會被擋死）',
+  /if \(Game\.state\.retryMode\)[\s\S]{0,400}?if \(Game\.state\._easyEnding\) return;[\s\S]{0,200}?_easyTeamDone/.test(src));
+assert('T109-13 進度格 UI（3 格 + role=progressbar + 提示掣）',
+  /id="sen-cells-knight"/.test(src) && /id="sen-cells-mage"/.test(src) &&
+  /role="progressbar"/.test(src) && /id="sen-hint-knight"/.test(src) && /id="sen-hint-mage"/.test(src));
+assert('T109-14 進度格用 0-byte CSS（--p 漸層填充，冇新 asset 檔）',
+  /\.sen-cell\.is-filled[\s\S]{0,200}?--p/.test(src) && !/<img[^>]*sen-cell/.test(src));
+assert('T109-15 錯題重練 banner 存在',
+  /id="sen-retry-banner"/.test(src) && /showSENRetryBanner/.test(src));
 
 // =========== summary ===========
 console.log(`\n========== ${pass} pass / ${fail} fail ==========`);

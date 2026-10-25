@@ -15,8 +15,8 @@
 
 | 項 | 值 |
 |---|---|
-| Version | **v3.6** · cycle **108** |
-| Tests | **5349 pass / 0 fail**（810 regression + 4527 generator-audit + 12 audio-audit） |
+| Version | **v3.6** · cycle **109** |
+| Tests | **5391 pass / 0 fail**（825 regression + 4554 generator-audit + 12 audio-audit） |
 | Size | `index.html` **541,798 bytes**（budget < 600 KB） |
 | Media payload | **0 bytes**（全部 runtime 合成） |
 | Visual readiness | **6.3 / 10**（Before cycle 106 = 4.56）· 見 `docs/VISUAL_QUALITY_RUBRIC.md` |
@@ -65,7 +65,7 @@
 > 路線已定：**B 鞏固化 → C 結構化 → A 適應化**
 
 - [ ] **review 方案**（Ken / 老師）→ 回饋 §7 七條未決問題（課堂長度 / 學生能力基線 / 課程要求 / 機數 / 提示政策 / 獎勵個人定班級 / 同儕比較）
-- [ ] **cycle 109** 玩法骨架：Stage + 進度格（3 格 · 半格）+ 局長 = Stage 數 + 提示階梯 4 層 + 錯題原地重播 + 局完重練關卡（**0 新 asset**）
+- [x] **cycle 109** 玩法骨架：Stage + 進度格（3 格 · 半格）+ 局長 = Stage 數 + 提示階梯 4 層 + 錯題原地重播 + 局完重練關卡（**0 新 asset**）✅ 已 ship
 - [ ] **cycle 110** 協作 L1 接力（答錯傳手）+ 概念卡 4 里程碑 + 班級島進度（重用 6 個死 symbol）
 - [ ] **cycle 111** Boss 重新入場 + scope 內 3 級難度（生成器加 level 參數）+ **像素品質全修** + 新 16 個 symbol + `tests/asset-audit.js`
 - [ ] **cycle 112** 教師台 8 項控制 + 班級模式 + 概念卡 UI
@@ -162,8 +162,8 @@
 
 **Gates（每 cycle 必跑）**
 ```
-node tests/regression.js       # 810 pass / 0 fail
-node tests/generator-audit.js  # 4527 pass / 0 fail
+node tests/regression.js       # 825 pass / 0 fail
+node tests/generator-audit.js  # 4554 pass / 0 fail
 node tests/audio-audit.js      # 12 pass / 0 fail
 ```
 改咗 UI / CSS / token → 額外：headless Chrome + CDP 重 capture 受影響 state + 重量對比度（見 `docs/VISUAL_QUALITY_RUBRIC.md` §4 驗證方法）。
