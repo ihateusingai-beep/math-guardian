@@ -8,8 +8,8 @@ Vanilla JS + Tailwind CDN, no build, GitHub Pages.
 
 - Open `index.html` or `python3 -m http.server 8000`
 - Tests:
-  - `node tests/regression.js` → **854 pass / 0 fail** (structural regex lock-in, cycle 53–111)
-  - `node tests/generator-audit.js` → **4585 pass / 0 fail** (functional truth-table, cycle 101+ · T108 Adaptive ladder · T109 Stage/提示階梯 · T110 里程碑 · T110b 接力)
+  - `node tests/regression.js` → **875 pass / 0 fail** (structural regex lock-in, cycle 53–111b)
+  - `node tests/generator-audit.js` → **4665 pass / 0 fail** (functional truth-table, cycle 101+ · T108 Adaptive ladder · T109 Stage/提示階梯 · T110 里程碑 · T110b 接力 · T111b 級數階梯)
   - `node tests/audio-audit.js` → **12 pass / 0 fail** (audio call-site × export cross-check, cycle 105+)
   - `node tests/asset-audit.js` → **22 pass / 0 fail** (像素資產品質, cycle 111a — 座標 / 倍率 / crispEdges / 死 symbol)
 - No lint / typecheck / build
@@ -22,7 +22,7 @@ Vanilla JS + Tailwind CDN, no build, GitHub Pages.
 
 ```
 .
-├── index.html              # entire runtime (~562 KB raw / ~141 KB gzip)
+├── index.html              # entire runtime (~575 KB raw / ~154 KB gzip)
 ├── TODO.md                 # project plan / next backlog
 ├── docs/                   # current engineering docs
 │   ├── VISUAL_QUALITY_RUBRIC.md   # cycle106 — 視覺 rubric + 評分 + state matrix + profiles
@@ -34,7 +34,7 @@ Vanilla JS + Tailwind CDN, no build, GitHub Pages.
 │   ├── ARCHITECTURE_REVIEW.md     # cycle96 — code architecture review
 │   └── screenshots/                # cycle106 — before/after evidence 幀 (17 張 JPEG)
 ├── tests/regression.js     # structural regex lock-in
-├── tests/generator-audit.js # functional truth-table (generators × 30 trials + T108 Adaptive ladder)
+├── tests/generator-audit.js # functional truth-table (generators × 30 trials + T108 Adaptive ladder + T111b 級數階梯)
 ├── tests/audio-audit.js    # audio pipeline audit (call-site × export cross-check)
 ├── tests/asset-audit.js    # 像素資產品質 audit (cycle111a — 8 組 check: viewBox / 重複 id / 座標 / 整數倍 / 死 symbol / crispEdges)
 └── .harness/               # changelogs, docs, plans
@@ -102,6 +102,21 @@ Rubric / 目標風格 / 基準喺 **`docs/VISUAL_QUALITY_RUBRIC.md`**。
      → 冇人再答題 = **死鎖**。→ 接力要先 `if (done[nextTeam]) nextTeam = other`。
   ⚠️ **新 screen / 新 panel 加落去嘅時候,要確認係同一個 screen** ——
   classic game screen 同 SEN screen 兩套 DOM,唔好照抄 selector。
+- **Scope-level lock-in** (cycle111b, T111b): scope 內 3 級難度（proposal §3.6）
+  要真實執行（`tests/generator-audit.js` T111b 抽出 `ScopeLevel` 模組 + `Generators`，
+  用 mock `Profile` / `Game` / `FX` 實際跑）。結構鎖喺 `tests/regression.js` T111b。
+  1. **級數只有一個真實來源** = `_scopeLevelOf(type)`。生成器路徑同 bank 路徑都讀佢，
+     唔好各自開一個 level 欄位（cycle110b `turnTeam`/`currentTeam` 教訓）。
+  2. ⚠️ **bank 題目一定要按級數過濾**（`_bankMatchesLevel`）—— bank 種子係固定難度舊題
+     （count20 答案 1–8、compareLength 全部 1:2、順序題 step 2–6），
+     唔過濾嘅話 **L1（上限 3 個）會收到 8 個蘋果嘅題**，級數契約有 30%（weak type 70%）漏洞。
+     過濾唔啱 → `pickFromBank` 返 `null` → 交俾生成器（契約 100% 成立）。
+  3. ⚠️ **比較題嘅 bank 題 ratio < 2 一律唔用** —— `_normalizeBankQuestion` 嘅
+     「ensure visible 1:2」會改寫成 1:2，改完就唔喺原本級數 → L3（1:1.5）一律行生成器。
+  4. ⚠️ **適應只准喺同一個 scope 內發生**（同 cycle108 教訓）：`SCOPE_LEVEL_PARAMS` 只收
+     easy scope type；classic type 唔准入表，`_scopeSupportsLevel()` 一律 false。
+  5. **`Profile.data.levelByType` / `levelStreak` 要 lazy-init**（`Profile.load()`），
+     跟 V3.5-AUDIT8-F11 慣例，唔好靠呼叫點即場 `= {}`。
 - **End-screen lock-in** (cycle110b, T110-19..21): 學校 iPad 係 **639×669**,end screen 內容一多就 overflow。
   → 概念卡 / 島嶼要喺 `end-stats` **上面**；掣行 `position: sticky; bottom: 0`（唔使捲到底先撳到）。
   → 雙隊 medal 係兩個 emoji 併埋（🥇🥇）,`.end-medal` 一定要 `white-space: nowrap`
@@ -191,6 +206,16 @@ symbols (~42 KB). Media payload downloaded: **0 bytes**.
 - One-click start: `types = scopes` · 10 Q goal · identity card · 金銀銅
 - Play: `solo` | `dual` touch-board；dual arena `versus` 扯大欖 / `coop` 推船
 - **cycle52**: dual easy-start must **keep** versus/coop pick (never force coop)
+
+### Easy scope 級數階梯 (cycle 111b)
+- 每個 easy scope 有 **3 級**（`SCOPE_LEVEL_PARAMS`）：連續 **4 對 → 升級** · 連續 **3 錯 → 降級**
+  · 級數存 `Profile.data.levelByType[type]`（跨課堂保留）
+- **級數只改同一個 type 嘅難度**（`count20` 個數上限 · `compareLength/Height` 比例 ·
+  `orderAsc/Desc` 步長 · `learnL/findL*` L 容量干擾項數量），**永遠唔換 scope**
+- 目標容量固定 **1L** → prompt 唔使跟級數改文案（「邊件有 1L?」）
+- **唯一真實來源 = `_scopeLevelOf(type)`**（生成器路徑 + bank 路徑共用）
+- 級數表：`count20` 1–3 / 1–5 / 1–10 · `compare*` 1:2 / 1:3 / 1:1.5 ·
+  `order*` 步長 2 / 1 / 1+干擾 · `L` 干擾 1L+2L / 1L+1.5L / 1L+1.5L+2L
 
 ### Easy dual 接力 (cycle 110)
 - **接力**: easy dual 每答完一題就**傳手**（之前同一隊一直答,第二個學生根本冇得出手）。

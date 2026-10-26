@@ -1180,8 +1180,8 @@ assert('EASY-81 TYPE_REGISTRY cycle44 types',
   /count20:\s*\{/.test(src) && /compareLength:\s*\{/.test(src) &&
   /orderAsc20:\s*\{/.test(src) && /orderDesc20:\s*\{/.test(src));
 assert('EASY-82 Generators count20 + compareLength + orderAsc/Desc',
-  /count20\s*\(mode\)/.test(src) && /compareLength\s*\(\)/.test(src) &&
-  /orderAsc20\s*\(\)/.test(src) && /orderDesc20\s*\(\)/.test(src));
+  /count20\s*\(mode,\s*level\)/.test(src) && /compareLength\s*\(level\)/.test(src) &&
+  /orderAsc20\s*\(level\)/.test(src) && /orderDesc20\s*\(level\)/.test(src));
 assert('EASY-83 layouts bars + seq-choice dispatched',
   /layout === 'bars'/.test(src) && /layout === 'seq-choice'/.test(src));
 assert('EASY-84 easy-start uses scopes not legacy senTypes only',
@@ -1296,9 +1296,10 @@ assert('COUNT-04 emoji ranges include 2Bxx (star)',
 assert('COUNT-05 normal render expands count parts',
   /renderQuestionTextFor[\s\S]{0,1200}fruit\.repeat\(n\)/.test(src));
 assert('COUNT-06 count20 range is 1-10 (not 20)',
-  /count20\(mode\)[\s\S]{0,250}randInt\(1,\s*10\)/.test(src) &&
+  /count20\(mode,\s*level\)[\s\S]{0,400}randInt\(1,\s*maxN\)/.test(src) &&
+  /count20:\s*\[\{ max: 3 \}, \{ max: 5 \}, \{ max: 10 \}\]/.test(src) &&
   /數數 1–10/.test(src) &&
-  !/count20\(mode\)[\s\S]{0,250}randInt\(1,\s*20\)/.test(src));
+  !/count20\(mode,\s*level\)[\s\S]{0,400}randInt\(1,\s*20\)/.test(src));
 
 // V3.6 cycle52: dual versus not overwritten by easy-start
 console.log('\n[T43] V3.6 audit cycle-52 (dual versus stick)');
@@ -1332,7 +1333,7 @@ assert('PLAN-02 count grid rows of 5',
   /sen-count-row/.test(src) && /i \+= 5/.test(src) &&
   /Math\.min\(n, i \+ 5\)/.test(src));
 assert('PLAN-03 order next-number path',
-  /_nextInSeq\(dir\)/.test(src) &&
+  /_nextInSeq\(dir,\s*level\)/.test(src) &&
   /邊個跟住？/.test(src) &&
   /\$\{stem\.join\('  ·  '\)\}  ·  ？/.test(src));
 assert('PLAN-04 diff-helper scopes copy',
@@ -1785,9 +1786,9 @@ assert('CAP-02 all 3 use pic-grid layout',
   /findLDrink:[\s\S]{0,200}layout:'pic-grid'/.test(src) &&
   /findLItem:[\s\S]{0,200}layout:'pic-grid'/.test(src));
 assert('CAP-03 generators: learnL / findLDrink / findLItem',
-  /learnL\(\)\s*\{[\s\S]{0,80}_lPickMC\('learnL'\)/.test(src) &&
-  /findLDrink\(\)\s*\{[\s\S]{0,80}_lPickMC\('findLDrink'\)/.test(src) &&
-  /findLItem\(\)\s*\{[\s\S]{0,80}_lPickMC\('findLItem'\)/.test(src));
+  /learnL\(level\)\s*\{[\s\S]{0,80}_lPickMC\('learnL',\s*level\)/.test(src) &&
+  /findLDrink\(level\)\s*\{[\s\S]{0,80}_lPickMC\('findLDrink',\s*level\)/.test(src) &&
+  /findLItem\(level\)\s*\{[\s\S]{0,80}_lPickMC\('findLItem',\s*level\)/.test(src));
 assert('CAP-04 item pool includes L + non-L + distractor helper',
   /_lItemPool:/.test(src) &&
   /_nonLDrinkPool:/.test(src) &&
@@ -2126,11 +2127,11 @@ console.log('\n[T99] V3.6 cycle-99 (debug: orderAsc/Desc20 random → arithmetic
 // cycle100: refactor — d = randInt 移到 _nextInSeq function body (仍然存在),
 //          clamp 邏輯入咗 _seqFill3 tier 2/3, 唔再用 opts.size anchor
 assert('T99-01 _nextInSeq still generates arithmetic sequence with d = randInt(1, 3)',
-  /_nextInSeq\(dir\)\s*\{[\s\S]{0,400}randInt\(1,\s*3\)/.test(src));
+  /_nextInSeq\(dir,\s*level\)\s*\{[\s\S]{0,600}randInt\(1,\s*3\)/.test(src));
 assert('T99-02 orderAsc20 calls _nextInSeq with asc direction',
-  /orderAsc20\(\)\s*\{[\s\S]{0,100}_nextInSeq\(['"]asc['"]\)/.test(src));
+  /orderAsc20\(level\)\s*\{[\s\S]{0,100}_nextInSeq\(['"]asc['"],\s*level\)/.test(src));
 assert('T99-03 orderDesc20 calls _nextInSeq with desc direction',
-  /orderDesc20\(\)\s*\{[\s\S]{0,100}_nextInSeq\(['"]desc['"]\)/.test(src));
+  /orderDesc20\(level\)\s*\{[\s\S]{0,100}_nextInSeq\(['"]desc['"],\s*level\)/.test(src));
 assert('T99-04 option generation bounded to [1,20] (Math.max/Math.min clamp)',
   /Math\.max\(1,\s*Math\.min\(20,/.test(src));
 assert('T99-05 asc start range: 1 to 18-2d (ensures start+2d ≤ 20)',
@@ -2159,11 +2160,11 @@ assert('T100-04 _seqFill3 tier 3 (brute-force scan) bounded by n <= 20',
 assert('T100-05 _seqFill3 tier 2 dedups via opts.has() check',
   /!opts\.has\(v\)/.test(src));
 assert('T100-06 _nextInSeq throws on invalid dir (防 NaN 污染)',
-  /_nextInSeq\(dir\)[\s\S]{0,300}throw new Error/.test(src));
+  /_nextInSeq\(dir,\s*level\)[\s\S]{0,300}throw new Error/.test(src));
 assert('T100-07 _nextInSeq dir guard checks both asc and desc',
   /dir !== ['"]asc['"]\s*&&\s*dir !== ['"]desc['"]/.test(src));
 assert('T100-08 _nextInSeq delegates option generation to _seqFill3',
-  /Generators\._seqFill3\(stem,\s*answer\)/.test(src));
+  /Generators\._seqFill3\(stem,\s*answer,\s*decoy\)/.test(src));
 assert('T100-09 cycle100 comment documents refactor rationale',
   /cycle100:\s*提取\s*_seqFill3\s*helper|cycle100.*防 padding 迴圈 infinite loop/.test(src));
 
@@ -2565,6 +2566,68 @@ assert('T111-08 獨立嘅 asset audit 存在而且有 8 組 check',
   fs.existsSync(path.join(__dirname, '..', 'tests', 'asset-audit.js')) &&
   /A111-C8/.test(fs.readFileSync(path.join(__dirname, '..', 'tests', 'asset-audit.js'), 'utf8')) &&
   /A111-C3/.test(fs.readFileSync(path.join(__dirname, '..', 'tests', 'asset-audit.js'), 'utf8')));
+
+// ============================================================
+// V3.6 cycle111b: scope 內 3 級難度（proposal §3.6）
+// ============================================================
+console.log('\n[T111b] V3.6 cycle-111b (scope 內 3 級難度: level 參數 + 適應 + bank 過濾)');
+
+assert('T111b-01 ScopeLevel 模組常數齊全（上限 3 / 4 對升 / 3 錯降）',
+  /const SCOPE_LEVEL_MAX = 3;/.test(src) &&
+  /const LEVEL_UP_STREAK = 4;/.test(src) &&
+  /const LEVEL_DOWN_STREAK = 3;/.test(src) &&
+  /const SCOPE_LEVEL_PARAMS = \{/.test(src));
+
+for (const _t of ['count20','compareLength','compareHeight','orderAsc20',
+                  'orderDesc20','learnL','findLDrink','findLItem']) {
+  assert(`T111b-02 級數表覆蓋 ${_t}`,
+    new RegExp(`\\n\\s*${_t}:\\s*\\[\\{`).test(src));
+}
+assert('T111b-02 classic type 唔喺級數表入面（適應唔可以跨 scope）',
+  !/\n\s*(add10|sub10|add20|sub20|add2d|sub2d|ordering|whatTime|shapeMatch):\s*\[\{/.test(src));
+
+assert('T111b-03 _scopeLevelOf 用 Number.isFinite（0 係 falsy，唔可以用 || default）',
+  /function _scopeLevelOf\(type\)[\s\S]{0,320}Number\.isFinite\(v\)/.test(src) &&
+  !/function _scopeLevelOf\(type\)[\s\S]{0,320}\|\|\s*1\b/.test(src));
+
+assert('T111b-04 _updateScopeLevel 寫返 Profile 並存檔（跨課堂保留級數）',
+  /function _updateScopeLevel\(type, correct\)[\s\S]{0,1200}P\.levelByType\[type\] = next;[\s\S]{0,120}Profile\.save\(\)/.test(src));
+
+assert('T111b-05 QuestionGen.make 收 level 參數並派落生成器',
+  /function make\(type, mode = 'choice', level = 1\)/.test(src) &&
+  /Generators\[type\]\(mode, level\)/.test(src) &&
+  /Generators\.compareLength\(level\)/.test(src) &&
+  /Generators\.compareHeight\(level\)/.test(src) &&
+  /Generators\[type\]\(level\)/.test(src));
+
+assert('T111b-06 出題時用 _scopeLevelOf 決定級數（3 個呼叫點）',
+  (src.match(/QuestionGen\.make\(type, (?:mode|Game\.settings\.mode), _scopeLevelOf\(type\)\)/g) || []).length === 3);
+
+assert('T111b-07 答題後呼叫 _updateScopeLevel（easy 分支）',
+  /_checkMilestones\(q\.type, correct, usedHint, isReplay\);\s*\n\s*\/\/[^\n]*\n\s*_updateScopeLevel\(q\.type, correct\);/.test(src));
+
+assert('T111b-08 bank 題目按級數過濾（級數契約唔可以有 30% 漏洞）',
+  /function _bankMatchesLevel\(type, q, level\)/.test(src) &&
+  /const lv = _scopeLevelOf\(typeId\);/.test(src) &&
+  /arr\.filter\(\(q\) => _bankMatchesLevel\(typeId, q, lv\)\)/.test(src));
+
+assert('T111b-09 Profile lazy-init levelByType / levelStreak',
+  /if \(!this\.data\.levelByType \|\| typeof this\.data\.levelByType !== 'object'\) this\.data\.levelByType = \{\};/.test(src) &&
+  /if \(!this\.data\.levelStreak \|\| typeof this\.data\.levelStreak !== 'object'\) this\.data\.levelStreak = \{\};/.test(src));
+
+assert('T111b-10 L 容量題目標固定 1L，prompt 統一',
+  /'邊個有 1L\?'/.test(src) && /'邊支飲品有 1L\?'/.test(src) && /'邊件有 1L\?'/.test(src));
+
+assert('T111b-11 L 項有飲品旗標（findLDrink 唔會抽到洗潔精）',
+  /drink:true/.test(src) && /drink:false/.test(src) &&
+  /lPool\.filter\(\(it\) => it\.pkg === TARGET && \(!drinkOnly \|\| it\.drink\)\)/.test(src));
+
+assert('T111b-12 2L 飲品精靈存在（orange juice，俾 L1/L3 級做 2L 干擾項）',
+  /<symbol id="pkg-orange-2l"/.test(src) && /svgId:'pkg-orange-2l'/.test(src));
+
+assert('T111b-13 generator-audit 有 T111b 真實執行段（行為鎖，唔係淨係 regex）',
+  /T111b/.test(fs.readFileSync(path.join(__dirname, '..', 'tests', 'generator-audit.js'), 'utf8')) &&
+  /loadScopeLevel/.test(fs.readFileSync(path.join(__dirname, '..', 'tests', 'generator-audit.js'), 'utf8')));
 
 // =========== summary ===========
 console.log(`\n========== ${pass} pass / ${fail} fail ==========`);

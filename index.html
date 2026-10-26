@@ -2477,6 +2477,7 @@
   .pic-card-btn:hover .pkg-det-cap,
   .pic-card-btn:hover .pkg-soy-cap,
   .pic-card-btn:hover .pkg-bleach-cap,
+  .pic-card-btn:hover .pkg-orange-cap,
   .pic-card-btn:hover .pkg-paint-lid {
     animation: pkg-cap-lift 0.6s ease-out;
   }
@@ -2527,8 +2528,18 @@
   }
   /* 汽水 + 醬油 label 微微高亮 */
   .pic-card-btn:hover .pkg-soda-label,
+  .pic-card-btn:hover .pkg-orange-label,
   .pic-card-btn:hover .pkg-soy-label {
     filter: drop-shadow(0 0 6px rgba(252, 211, 77, 0.6));
+  }
+  /* 橙汁 slice pulse */
+  .pic-card-btn:hover .pkg-orange-slice {
+    transform-origin: 24px 24px;
+    animation: pkg-orange-pulse 0.5s ease-in-out;
+  }
+  @keyframes pkg-orange-pulse {
+    0%, 100% { transform: scale(1); }
+    50%      { transform: scale(1.2); }
   }
   /* SEN screen mini variant — 4 cards in emojiEl */
   .pic-grid-mini {
@@ -3298,6 +3309,23 @@
       <text x="32" y="40" text-anchor="middle" font-size="8" font-weight="900" fill="#7f1d1d" font-family="sans-serif">汽水</text>
       <text x="32" y="46" text-anchor="middle" font-size="9" font-weight="900" fill="#dc2626" font-family="sans-serif">1.5L</text>
     </symbol>
+    <symbol id="pkg-orange-2l" viewBox="0 0 64 64" shape-rendering="crispEdges">
+      <!-- cap (animated: lift) -->
+      <rect class="pkg-orange-cap" x="26" y="2" width="12" height="4" fill="#15803d"/>
+      <rect class="pkg-orange-cap" x="25" y="1" width="14" height="2" fill="#166534"/>
+      <!-- neck -->
+      <path d="M28 6 L26 12 L26 18 L38 18 L38 12 L36 6 Z" fill="#fdba74" stroke="#c2410c" stroke-width="0.8"/>
+      <!-- bottle body (wide 2L jug, orange) -->
+      <path d="M20 18 L44 18 L48 22 L48 56 Q48 60 44 60 L20 60 Q16 60 16 56 L16 22 Z" fill="#f97316" stroke="#9a3412" stroke-width="1.2"/>
+      <!-- highlight -->
+      <path d="M20 22 L23 22 L23 52 L20 52 Z" fill="#fed7aa" opacity="0.6"/>
+      <!-- label -->
+      <rect class="pkg-orange-label" x="18" y="30" width="28" height="20" fill="#fff7ed" stroke="#c2410c" stroke-width="0.8"/>
+      <text x="32" y="40" text-anchor="middle" font-size="8" font-weight="900" fill="#9a3412" font-family="sans-serif">橙汁</text>
+      <text x="32" y="47" text-anchor="middle" font-size="9" font-weight="900" fill="#ea580c" font-family="sans-serif">2L</text>
+      <!-- orange slice (animated: pulse) -->
+      <circle class="pkg-orange-slice" cx="24" cy="24" r="5" fill="#fb923c" stroke="#c2410c" stroke-width="0.8"/>
+    </symbol>
     <symbol id="pkg-juice-1l" viewBox="0 0 64 64" shape-rendering="crispEdges">
       <!-- carton body (paper, orange) -->
       <rect x="14" y="6" width="36" height="54" fill="#fed7aa" stroke="#c2410c" stroke-width="1.2"/>
@@ -3733,7 +3761,7 @@
             🥛 找 L 飲品<br><span class="text-xs opacity-70">邊支用 L?</span>
           </button>
           <button type="button" class="opt-scope btn btn-ghost opt-selected py-3 text-left" data-scope="findLItem" aria-pressed="true">
-            🪣 找 L 物品<br><span class="text-xs opacity-70">邊件用 L?</span>
+            🪣 找 L 物品<br><span class="text-xs opacity-70">邊件有 1L?</span>
           </button>
         </div>
         <div id="scope-helper" class="menu-section-sub">已選 8 個範疇 · 撳掣可開關（最少 1 個）</div>
@@ -5597,7 +5625,7 @@ const TYPE_REGISTRY = {
   orderDesc20: { id:'orderDesc20', label:'1-20 倒序', emoji:'📉', difficulty:1, category:'math', icon:null, mode:['choice'], layout:'seq-choice', desc:'兩數後邊個跟住（大→細）' },
   // V3.6 cycle89: 容量 (L) — life skills 觀察常見物品包裝
   learnL: { id:'learnL', label:'學用 L', emoji:'🧃', difficulty:1, category:'life', icon:null, mode:['choice'], layout:'pic-grid', desc:'觀察包裝學 L' },
-  findLDrink: { id:'findLDrink', label:'找 L 飲品', emoji:'🥛', difficulty:1, category:'life', icon:null, mode:['choice'], layout:'pic-grid', desc:'邊支飲品用 L?' },
+  findLDrink: { id:'findLDrink', label:'找 L 飲品', emoji:'🥛', difficulty:1, category:'life', icon:null, mode:['choice'], layout:'pic-grid', desc:'邊支飲品有 1L?' },
   findLItem: { id:'findLItem', label:'找 L 物品', emoji:'🪣', difficulty:1, category:'life', icon:null, mode:['choice'], layout:'pic-grid', desc:'邊件物品用 L?' },
 };
 
@@ -5615,6 +5643,28 @@ const SCOPE_CATALOG = [
 const DEFAULT_SCOPES = SCOPE_CATALOG.map(s => s.id);
 
 // === Generator helpers — per type specific math ===
+// V3.6 cycle111b: 長短 / 高矮嘅「短柱 + 長柱」配對（按難度比例）
+//   ratio 2   → 短 2–4 / 長 = 短×2（一眼就知，cycle 75 舊行為）
+//   ratio 3   → 短 2   / 長 6
+//   ratio 1.5 → 短 2 或 4 / 長 3 或 6（最接近，最有挑戰）
+// ⚠️ 長柱上限 8（bar 係 ch.repeat(n)，太長會爆版）
+function _comparePair(ratio) {
+  const MAXN = 8;
+  if (ratio === 1.5) {
+    const shortN = (Math.random() < 0.5) ? 2 : 4;
+    return { shortN, longN: shortN * 1.5 };
+  }
+  if (ratio === 3) {
+    return { shortN: 2, longN: 6 };
+  }
+  // ratio 2（預設）
+  const shortN = randInt(2, 4);
+  let longN = shortN * 2;
+  if (longN > MAXN) longN = MAXN;
+  if (longN < shortN * 2) longN = Math.min(MAXN, shortN * 2);
+  return { shortN, longN };
+}
+
 const Generators = {
   // numeric standard; easy mode narrows range for SEN 中度 students
   numeric(type, mode) {
@@ -5775,21 +5825,24 @@ const Generators = {
     };
   },
   // V3.6 cycle44/51: 數數 1-10（中度唔好超過 10 個難數）
-  count20(mode) {
+  count20(mode, level) {
     // avoid ⭐ (edge glyph) — keep high-visibility fruit/ball set
     const fruits = ['🍎','🍌','🍇','🍓','🍊','🍉','🌟','🔵'];
     const f = fruits[randInt(0, fruits.length - 1)];
-    const n = randInt(1, 10);
+    // V3.6 cycle111b: scope 內 3 級難度 —— L1 1–3 個 · L2 1–5 個 · L3 1–10 個
+    const p = _scopeLevelParams('count20', level);
+    const maxN = (p && p.max) ? p.max : 10;
+    const n = randInt(1, maxN);
     return { parts: [f.repeat(n), '= ?'], answer: n, type:'count20', answerDisplay: String(n) };
   },
   // V3.6 cycle45/53/61/72/75: 長短比較 — SEN 純撳實物（同色、≥1:2、無 A/B）
-  compareLength() {
+  compareLength(level) {
     const block = (n, ch) => ch.repeat(n);
-    // cycle75: 純比長短 — short 2–4，long = 至少 2×（一眼 1:2）
-    const shortN = randInt(2, 4);
-    let longN = shortN * 2;
-    if (longN > 8) longN = 8;
-    if (longN < shortN * 2) longN = Math.min(8, shortN * 2);
+    // V3.6 cycle111b: 比例 by level —— L1 1:2（明顯）· L2 1:3 · L3 1:1.5（最難）
+    const p = _scopeLevelParams('compareLength', level);
+    const ratio = (p && p.ratio) ? p.ratio : 2;
+    const pair = _comparePair(ratio);
+    const shortN = pair.shortN, longN = pair.longN;
     // 萬一 short=4 → long=8；short=3 → 6
     const leftIsLong = Math.random() < 0.5;
     const a = leftIsLong ? longN : shortN;
@@ -5822,11 +5875,12 @@ const Generators = {
     };
   },
   // V3.6 cycle76: 高矮比較 — 直立同色柱，撳高／矮嗰條
-  compareHeight() {
-    const shortN = randInt(2, 4);
-    let tallN = shortN * 2;
-    if (tallN > 8) tallN = 8;
-    if (tallN < shortN * 2) tallN = Math.min(8, shortN * 2);
+  compareHeight(level) {
+    // V3.6 cycle111b: 比例 by level（同長短）
+    const p = _scopeLevelParams('compareHeight', level);
+    const ratio = (p && p.ratio) ? p.ratio : 2;
+    const pair = _comparePair(ratio);
+    const shortN = pair.shortN, tallN = pair.longN;
     const leftIsTall = Math.random() < 0.5;
     const a = leftIsTall ? tallN : shortN;
     const b = leftIsTall ? shortN : tallN;
@@ -5908,12 +5962,16 @@ const Generators = {
     }
     return out;
   },
-  _seqFill3(stem, answer) {
+  _seqFill3(stem, answer, decoy) {
     // 3-tier fill, 每次都 bounded, 必 terminate:
     //   tier 1: random pool (40 tries)
     //   tier 2: sequential offset (10 tries, dedup + stem-exclusion)
     //   tier 3: brute-force scan 1..20 (一定搵到 3 個 unique)
     const opts = new Set([answer]);
+    // V3.6 cycle111b: L3 干擾數字優先入選（跳級答案 = 小朋友最常犯嘅錯）
+    if (decoy !== null && decoy !== undefined && decoy !== answer && !stem.includes(decoy)) {
+      opts.add(decoy);
+    }
     let g = 0;
     while (opts.size < 3 && g++ < 40) {
       const c = randInt(1, 20);
@@ -5932,13 +5990,14 @@ const Generators = {
     }
     return opts;
   },
-  _nextInSeq(dir) {
+  _nextInSeq(dir, level) {
     // dir 'asc' | 'desc' — explicit guard 防 NaN 污染
     if (dir !== 'asc' && dir !== 'desc') {
       throw new Error('_nextInSeq: invalid dir "' + dir + '" (expected asc | desc)');
     }
-    // 公差 1-3, 全部 3 terms 必須喺 [1, 20]
-    const d = randInt(1, 3);
+    // V3.6 cycle111b: 步長 by level —— L1 步長 2 · L2 步長 1 連續 · L3 步長 1 + 干擾數字
+    const p = _scopeLevelParams(dir === 'asc' ? 'orderAsc20' : 'orderDesc20', level);
+    const d = (p && p.step) ? p.step : randInt(1, 3);
     let seq;
     if (dir === 'asc') {
       // start, start+d, start+2d 全部 1-20 → start+2d ≤ 20 → start ≤ 18-2d
@@ -5951,7 +6010,11 @@ const Generators = {
     }
     const stem = [seq[0], seq[1]];
     const answer = seq[2];
-    const opts = Generators._seqFill3(stem, answer);
+    // L3 干擾數字：跳級答案（asc → +2，desc → −2），係小朋友最常犯嘅錯
+    const decoy = (p && p.decoy)
+      ? Math.max(1, Math.min(20, dir === 'asc' ? answer + 2 : answer - 2))
+      : null;
+    const opts = Generators._seqFill3(stem, answer, decoy);
     return {
       stem,
       answer: String(answer),
@@ -5959,8 +6022,8 @@ const Generators = {
       displayNums: stem,
     };
   },
-  orderAsc20() {
-    const { stem, answer, options, displayNums } = Generators._nextInSeq('asc');
+  orderAsc20(level) {
+    const { stem, answer, options, displayNums } = Generators._nextInSeq('asc', level);
     return {
       parts: [`${stem.join('  ·  ')}  ·  ？`],
       answer,
@@ -5969,8 +6032,8 @@ const Generators = {
       displayNums,
     };
   },
-  orderDesc20() {
-    const { stem, answer, options, displayNums } = Generators._nextInSeq('desc');
+  orderDesc20(level) {
+    const { stem, answer, options, displayNums } = Generators._nextInSeq('desc', level);
     return {
       parts: [`${stem.join('  ·  ')}  ·  ？`],
       answer,
@@ -5982,14 +6045,16 @@ const Generators = {
   // V3.6 cycle89: 容量 (L) — life skills 觀察常見物品包裝
   // cycle93: L items 用 custom SVG (更真實、更 polished); non-L 維持 emoji
   _lItemPool: [
-    { emoji:'🥛', svgId:'pkg-milk-1l',      name:'鮮奶',   pkg:'1L' },
-    { emoji:'🧃', svgId:'pkg-juice-1l',     name:'果汁',   pkg:'1L' },
-    { emoji:'🧴', svgId:'pkg-detergent-1l', name:'洗潔精', pkg:'1L' },
-    { emoji:'🪣', svgId:'pkg-bleach-2l',    name:'漂白水', pkg:'2L' },
-    { emoji:'🥤', svgId:'pkg-soda-15l',     name:'汽水',   pkg:'1.5L' },
-    { emoji:'🧃', svgId:'pkg-soymilk-1l',   name:'豆漿',   pkg:'1L' },
-    { emoji:'🍶', svgId:'pkg-soysauce-1l',  name:'醬油',   pkg:'1L' },
-    { emoji:'🛢️', svgId:'pkg-paint-5l',     name:'油漆',   pkg:'5L' },
+    { emoji:'🥛', svgId:'pkg-milk-1l',      name:'鮮奶',   pkg:'1L',   drink:true },
+    { emoji:'🧃', svgId:'pkg-juice-1l',     name:'果汁',   pkg:'1L',   drink:true },
+    { emoji:'🧴', svgId:'pkg-detergent-1l', name:'洗潔精', pkg:'1L',   drink:false },
+    { emoji:'🪣', svgId:'pkg-bleach-2l',    name:'漂白水', pkg:'2L',   drink:false },
+    { emoji:'🥤', svgId:'pkg-soda-15l',     name:'汽水',   pkg:'1.5L', drink:true },
+    { emoji:'🧃', svgId:'pkg-soymilk-1l',   name:'豆漿',   pkg:'1L',   drink:true },
+    { emoji:'🍶', svgId:'pkg-soysauce-1l',  name:'醬油',   pkg:'1L',   drink:false },
+    { emoji:'🛢️', svgId:'pkg-paint-5l',     name:'油漆',   pkg:'5L',   drink:false },
+    // cycle111b: 2L 飲品（俾「邊支飲品有 1L?」嘅 L3 級做 2L 干擾項）
+    { emoji:'🍊', svgId:'pkg-orange-2l',    name:'橙汁',   pkg:'2L',   drink:true },
   ],
   // 飲品池 (非 L) — 用嚟做 findLDrink 嘅 distractor
   _nonLDrinkPool: [
@@ -6023,20 +6088,40 @@ const Generators = {
     return out;
   },
   // 4 選 1 L item：1 個 L + 3 個 distractor
-  _lPickMC(type) {
+  // V3.6 cycle111b: 難度 = 干擾項有幾多個「都係 L」嘅候選
+  //   L1 → 1L vs 2L（明顯）· L2 → 1L vs 1.5L · L3 → 1L vs 1.5L vs 2L（三選一）
+  //   目標容量固定 1L（單一 prompt，唔使跟級數改文案）
+  _lPickMC(type, level) {
     const lPool = Generators._lItemPool;
     const dPool = (type === 'findLDrink') ? Generators._nonLDrinkPool : Generators._nonLItemPool;
-    const lItem = lPool[randInt(0, lPool.length - 1)];
-    const distractors = Generators._pickDistractors(dPool, 3);
+    const drinkOnly = (type === 'findLDrink');
+    const TARGET = '1L';
+    // 目標 item（容量 = 1L）。⚠️ cycle111b 修 pre-existing bug：
+    //   之前「邊支飲品用 L?」可能抽到洗潔精 / 漂白水做答案（唔係飲品）。
+    const targetPool = lPool.filter((it) => it.pkg === TARGET && (!drinkOnly || it.drink));
+    if (!targetPool.length) return Generators._lPickMC(type, 1);   // 冇可用 target → 降級
+    const lItem = targetPool[randInt(0, targetPool.length - 1)];
+    // 級數指定嘅「其他 L 容量」干擾項
+    const p = _scopeLevelParams(type, level);
+    const altVols = (p && p.lvls) ? p.lvls : [2];
+    const altItems = [];
+    for (const v of altVols) {
+      const cand = lPool.find((it) => it.pkg === (String(v) + 'L') && it.name !== lItem.name &&
+        (!drinkOnly || it.drink));
+      if (cand) altItems.push(cand);
+    }
+    // 剩低嘅位用非 L 干擾項填（保持總數 4）
+    const needNonL = Math.max(0, 3 - altItems.length);
+    const distractors = Generators._pickDistractors(dPool, needNonL);
     // 保證 distractor 唔會同 L item 重複
     const filtered = distractors.filter(d => d.name !== lItem.name);
-    while (filtered.length < 3) filtered.push(dPool[randInt(0, dPool.length - 1)]);
-    const items = shuffle([lItem, ...filtered.slice(0, 3)]);
+    while (filtered.length < needNonL) filtered.push(dPool[randInt(0, dPool.length - 1)]);
+    const items = shuffle([lItem, ...altItems, ...filtered.slice(0, needNonL)]);
     const ansIdx = items.findIndex(x => x === lItem);
     const LETTERS = ['1', '2', '3', '4'];
-    const prompt = (type === 'findLItem') ? '邊件用 L?'
-      : (type === 'findLDrink') ? '邊支飲品用 L?'
-      : '邊個用 L?';
+    const prompt = (type === 'findLItem') ? '邊件有 1L?'
+      : (type === 'findLDrink') ? '邊支飲品有 1L?'
+      : '邊個有 1L?';
     return {
       parts: [prompt],
       answer: LETTERS[ansIdx],
@@ -6054,16 +6139,16 @@ const Generators = {
     };
   },
   // V3.6 cycle89: 學 L — 觀察包裝學 L
-  learnL() {
-    return Generators._lPickMC('learnL');
+  learnL(level) {
+    return Generators._lPickMC('learnL', level);
   },
   // V3.6 cycle89: 找 L 飲品
-  findLDrink() {
-    return Generators._lPickMC('findLDrink');
+  findLDrink(level) {
+    return Generators._lPickMC('findLDrink', level);
   },
   // V3.6 cycle89: 找 L 物品
-  findLItem() {
-    return Generators._lPickMC('findLItem');
+  findLItem(level) {
+    return Generators._lPickMC('findLItem', level);
   },
 };
 
@@ -6243,7 +6328,7 @@ function _normalizeBankQuestion(type, mode, q, reg) {
       // 冇 items → reject，generator 會重生
       return null;
     }
-    q.parts = [ex.prompt || q.parts?.[0] || '邊個用 L?'];
+    q.parts = [ex.prompt || q.parts?.[0] || '邊個有 1L?'];
   } else if (type === 'count10' || type === 'count20' || type === 'count1to3') {
     // bank often packs "🍎🍎🍎= ?" in one part → split + rebuild visual stem
     const n = Number(q.answer);
@@ -6268,7 +6353,7 @@ const QuestionGen = (() => {
    * 回傳 q object 含 parts array (UI render 決定用 parts[i] 還是 text)
    * 兼容: 舊 code 用 q.text / q.options / q.answer / q.type 全部 keep working
    */
-  function make(type, mode = 'choice') {
+  function make(type, mode = 'choice', level = 1) {
     const reg = TYPE_REGISTRY[type];
     if (!reg) return Generators.numeric('add10', mode);
     // V3.5-AUDIT10: Question Bank rotation 
@@ -6295,16 +6380,17 @@ const QuestionGen = (() => {
     // 按 layout dispatch (如果 bank 唔適用)
     if (!q) {
       // layout → generator (keep strings for regression locks)
+      // V3.6 cycle111b: level 參數落落去（scope 內 3 級難度）
       if (reg.layout === 'numeric') q = Generators.numeric(type, mode);
-      else if (reg.layout === 'parts-emoji') q = Generators[type](mode);
+      else if (reg.layout === 'parts-emoji') q = Generators[type](mode, level);
       else if (reg.layout === 'sym-button') q = Generators.compare10();
       else if (reg.layout === 'clock') q = Generators.whatTime();
       else if (reg.layout === 'shape') q = Generators.shapeMatch();
       else if (reg.layout === 'order') q = Generators.ordering(mode);
-      else if (reg.layout === 'bars') q = Generators.compareLength();
-      else if (reg.layout === 'height') q = Generators.compareHeight();
-      else if (reg.layout === 'seq-choice') q = Generators[type](mode);
-      else if (reg.layout === 'pic-grid') q = Generators[type]();
+      else if (reg.layout === 'bars') q = Generators.compareLength(level);
+      else if (reg.layout === 'height') q = Generators.compareHeight(level);
+      else if (reg.layout === 'seq-choice') q = Generators[type](mode, level);
+      else if (reg.layout === 'pic-grid') q = Generators[type](level);
       else q = Generators.numeric(type, mode);
     }
     // legacy compat: 舊 code 讀 q.text
@@ -6595,12 +6681,17 @@ const QuestionBank = (() => {
   }
 
   // 從 bank 抽一條 type 嘅 question。冇 bank → null。
+  // V3.6 cycle111b: scope 內有級數階梯嘅 type → 淨係攞**同級數夾**嘅題。
+  //   ⚠️ 級數來源只有一個：_scopeLevelOf(type)（同生成器路徑共用）。
+  //   冇同級數嘅 bank 題 → 返 null，交俾生成器（級數契約唔會有 30% 漏洞）。
   function pickFromBank(typeId) {
     const bank = load();
     const arr = bank[typeId];
     if (!Array.isArray(arr) || arr.length === 0) return null;
-    const idx = Math.floor(Math.random() * arr.length);
-    const q = arr[idx];
+    const lv = _scopeLevelOf(typeId);
+    const pool = arr.filter((q) => _bankMatchesLevel(typeId, q, lv));
+    if (!pool.length) return null;
+    const q = pool[Math.floor(Math.random() * pool.length)];
     // 加 legacy compat field (text)
     return {
       parts: q.parts,
@@ -7165,6 +7256,8 @@ const Game = {
       _recordAnswerStats(team, q, correct);
       // V3.6 cycle110: 概念卡里程碑（M1 首次答啱 / M2 冇提示連對 5 / M3 錯咗救回 / M4 連對 10）
       _checkMilestones(q.type, correct, usedHint, isReplay);
+      // V3.6 cycle111b: scope 內 3 級難度適應（4 對升級 / 3 錯降級；永遠唔換 scope）
+      _updateScopeLevel(q.type, correct);
       UI.refreshSENScreen();
       UI.refreshSENArena(team, correct);
       // V3.6 cycle110: 就算呢隊完成咗，都要繼續傳手（雙隊模式下另一隊仲有題要答）
@@ -7237,9 +7330,10 @@ const SEN_COPY = {
   orderAsc20:    { text: '邊個跟住？', tts: '邊個跟住' },
   ordering:      { text: '由細到大？', tts: '由細到大' },
   // V3.6 cycle89: 容量 (L) — prompt 嚟自 extra.prompt
-  learnL:        { text: '邊個用 L？', ttsFrom: 'extra.prompt' },
-  findLDrink:    { text: '邊支飲品用 L？', ttsFrom: 'extra.prompt' },
-  findLItem:     { text: '邊件用 L？', ttsFrom: 'extra.prompt' },
+  // V3.6 cycle111b: 目標容量固定 1L（級數改變干擾項數量，唔改 prompt）
+  learnL:        { text: '邊個有 1L？', ttsFrom: 'extra.prompt' },
+  findLDrink:    { text: '邊支飲品有 1L？', ttsFrom: 'extra.prompt' },
+  findLItem:     { text: '邊件有 1L？', ttsFrom: 'extra.prompt' },
   orderDesc20:   { text: '邊個跟住？', tts: '邊個跟住' },
   compare10:     { text: '邊個大？', tts: '邊個大？' },
 };
@@ -8226,7 +8320,7 @@ const UI = {
         return `<div class="pic-card-mini"><span class="sen-opt-letter" aria-hidden="true">${letter}</span>${visual}<span class="pic-card-name">${it.name || ''}</span><span class="pic-card-pkg ${isL ? 'is-l' : ''}">${it.pkg || ''}</span></div>`;
       }).join('');
       emojiEl.innerHTML = `<div class="pic-grid-mini" role="group" aria-label="4 個物品">${cards}</div>`;
-      if (textEl) textEl.textContent = _senCopyText(q) || q.extra?.prompt || '邊個用 L?';
+      if (textEl) textEl.textContent = _senCopyText(q) || q.extra?.prompt || '邊個有 1L?';
     } else if (q.parts) {
       const { emojiParts, textTokens } = _splitPartsEmojiText(q.parts);
       if (emojiEl) {
@@ -9712,7 +9806,8 @@ function nextQuestion(team) {
     }
     announceToA11y(`題型已切換：原本嘅 ${type} 唔適合目前操作模式，已自動調整。`);
   }
-  const q = QuestionGen.make(type, mode);
+  // V3.6 cycle111b: scope 內 3 級難度（level 由 Profile 決定，classic mode 一律 L1）
+  const q = QuestionGen.make(type, mode, _scopeLevelOf(type));
     // V3.5-AUDIT7-F07: 答啱嘅題 cache 入 lastRes
   // (只 cache type，唔 cache 答案，因為同 type 嘅 question 內容每次 random)
   Game.state.current[team] = { ...q, type, pickedAt: now() };
@@ -10034,6 +10129,124 @@ function _stageGoalQuestions() {
   return { stages, target: stages * STAGE_CELLS, hardCap: stages * STAGE_CELLS * 2 };
 }
 
+// ============================================================
+// V3.6 cycle111b: scope 內 3 級難度（proposal §3.6）
+// ============================================================
+// ⚠️ **適應只准喺同一個 scope 內發生** —— 呢度只改「同一個 type 嘅難度級數」，
+//    type 本身永遠唔會變（cycle 108 P0 教訓：easy scope 被 Adaptive 換成 add10）。
+//    同時亦唔會影響 classic mode（classic 有自己嘅 Adaptive ladder）。
+const SCOPE_LEVEL_MAX = 3;
+const LEVEL_UP_STREAK = 4;     // 連續 4 題答啱 → 升一級
+const LEVEL_DOWN_STREAK = 3;   // 連續 3 題答錯 → 降一級
+
+// 每個 scope 嘅 3 級參數（proposal §3.6 表）
+//   count20       個數上限        L1 1–3 · L2 1–5 · L3 1–10
+//   compareLength 長短比例        L1 1:2 · L2 1:3 · L3 1:1.5（最有挑戰）
+//   compareHeight 高矮比例        同上
+//   orderAsc/Desc 步長            L1 步長 2 · L2 步長 1 · L3 步長 1 + 干擾數字
+//   learnL/findL* L 容量干擾      L1 1L vs 2L · L2 1L vs 1.5L · L3 1L vs 1.5L vs 2L（三選一）
+const SCOPE_LEVEL_PARAMS = {
+  count20:       [{ max: 3 }, { max: 5 }, { max: 10 }],
+  compareLength: [{ ratio: 2 }, { ratio: 3 }, { ratio: 1.5 }],
+  compareHeight: [{ ratio: 2 }, { ratio: 3 }, { ratio: 1.5 }],
+  orderAsc20:    [{ step: 2 }, { step: 1 }, { step: 1, decoy: true }],
+  orderDesc20:   [{ step: 2 }, { step: 1 }, { step: 1, decoy: true }],
+  learnL:        [{ lvls: [2] }, { lvls: [1.5] }, { lvls: [1.5, 2] }],
+  findLDrink:    [{ lvls: [2] }, { lvls: [1.5] }, { lvls: [1.5, 2] }],
+  findLItem:     [{ lvls: [2] }, { lvls: [1.5] }, { lvls: [1.5, 2] }],
+};
+
+// 呢個 type 有冇 scope 難度階梯？（classic type 冇 → 完全唔受影響）
+function _scopeSupportsLevel(type) {
+  return !!(type && SCOPE_LEVEL_PARAMS[type]);
+}
+
+// 目前級數（1..3）。classic mode 一律 L1 —— 避免 easy 練習嘅級數影響經典題。
+function _scopeLevelOf(type) {
+  if (!_scopeSupportsLevel(type)) return 1;
+  if (Game.settings.difficulty !== 'easy') return 1;
+  const v = Number(Profile.data.levelByType && Profile.data.levelByType[type]);
+  if (!Number.isFinite(v)) return 1;
+  return Math.max(1, Math.min(SCOPE_LEVEL_MAX, Math.round(v)));
+}
+
+// 目前級數嘅參數（唔支援就 null）
+function _scopeLevelParams(type, level) {
+  if (!_scopeSupportsLevel(type)) return null;
+  const lv = Math.max(1, Math.min(SCOPE_LEVEL_MAX, level || 1));
+  return SCOPE_LEVEL_PARAMS[type][lv - 1];
+}
+
+// 呢條 bank 題夾唔夾目前級數？（嚴格：只喺同級數先用）
+//
+// ⚠️ **為咩要過濾**：bank 種子係 cycle57 時代嘅固定難度舊題 ——
+//    count20 答案 1–8、compareLength/Height 全部 1:2 或 1:3、順序題步長 2–6
+//    而且順序題嘅 step 同答案根本唔一致（例如 [4,6] → 答 11，但 4+2 應該係 8）。
+//    如果照攞，30%（weak type 70%）嘅機會會送出「唔合級數」嘅題 ——
+//    L1（上限 3 個）會收到 8 個蘋果，**破壞對老師嘅級數承諾**。
+//    → 唔夾就交返俾生成器，級數契約 100% 成立。
+function _bankMatchesLevel(type, q, level) {
+  if (!_scopeSupportsLevel(type)) return true;   // 冇級數階梯（classic type）→ 照用
+  const p = _scopeLevelParams(type, level);
+  if (!p || !q) return true;
+  if (type === 'count20') {
+    // bank 題嘅答案 = 水果數 → 直接同級數上限比
+    const n = Number(q.answer);
+    return Number.isFinite(n) && n >= 1 && n <= p.max;
+  }
+  if (type === 'compareLength' || type === 'compareHeight') {
+    const ex = q.extra || {};
+    const a = Number(ex.a != null ? ex.a : ex.left);
+    const b = Number(ex.b != null ? ex.b : ex.right);
+    if (!Number.isFinite(a) || !Number.isFinite(b) || a <= 0 || b <= 0) return false;
+    const ratio = Math.max(a, b) / Math.min(a, b);
+    // ⚠️ ratio < 2 嘅題唔用：_normalizeBankQuestion 嘅「ensure visible 1:2」
+    //    會將佢改寫成 1:2 → 改完就唔喺原本級數（cycle111b 契約）→ L3 一律行生成器。
+    if (ratio < 2) return false;
+    return Math.abs(ratio - p.ratio) < 0.01;
+  }
+  if (type === 'orderAsc20' || type === 'orderDesc20') {
+    const stem = Array.isArray(q.displayNums) ? q.displayNums.map(Number) : null;
+    if (!stem || stem.length < 2) return false;
+    const step = Math.abs(stem[1] - stem[0]);
+    if (!Number.isFinite(step) || step !== p.step) return false;
+    // 答案要真係跟得住個步長（舊 bank 種子 step 同答案唔一致 → 唔用）
+    const ans = Number(q.answer);
+    if (!Number.isFinite(ans)) return false;
+    const expected = (type === 'orderAsc20') ? stem[1] + p.step : stem[1] - p.step;
+    return ans === expected;
+  }
+  // learnL / findLDrink / findLItem → 冇 bank 種子，一律行生成器
+  return true;
+}
+
+// 適應：連續 4 對 → 升級；連續 3 錯 → 降級。級數存 Profile（跨課堂保留）。
+// ⚠️ 永遠唔換 scope —— 只改同一個 type 嘅級數。
+function _updateScopeLevel(type, correct) {
+  if (!_scopeSupportsLevel(type)) return null;
+  if (Game.settings.difficulty !== 'easy') return null;
+  const P = Profile.data;
+  if (!P.levelByType) P.levelByType = {};
+  if (!P.levelStreak) P.levelStreak = {};
+  const cur = _scopeLevelOf(type);
+  const st = P.levelStreak[type] || (P.levelStreak[type] = { right: 0, wrong: 0 });
+  if (correct) { st.right = (st.right || 0) + 1; st.wrong = 0; }
+  else { st.wrong = (st.wrong || 0) + 1; st.right = 0; }
+  let next = cur;
+  if (st.right >= LEVEL_UP_STREAK && cur < SCOPE_LEVEL_MAX) { next = cur + 1; st.right = 0; }
+  else if (st.wrong >= LEVEL_DOWN_STREAK && cur > 1) { next = cur - 1; st.wrong = 0; }
+  if (next === cur) return cur;
+  P.levelByType[type] = next;
+  Profile.save();
+  const reg = TYPE_REGISTRY[type];
+  const label = reg ? reg.label : type;
+  if (typeof FX !== 'undefined' && FX.screenAlert) {
+    FX.screenAlert(next > cur ? `⬆️ 升級！${label} 而家係第 ${next} 級` : `⬇️ 降級 → ${label} 第 ${next} 級`,
+      next > cur ? '#34d399' : '#fbbf24');
+  }
+  return next;
+}
+
 // V3.6 cycle110: 概念卡 4 里程碑
 //   M1 首次答啱 · M2 冇用提示連對 5 題 · M3 錯咗之後救回 · M4 同一局連對 10 題
 function _checkMilestones(type, correct, usedHint, wasReplay) {
@@ -10279,7 +10492,7 @@ Game.askReReview = function(idx) {
     : (Game.settings.team === 'coop' ? Game.state.currentTeam : 'knight');
   // 用同 type 出一道新題（等同重練）
   const type = item.type;
-  const q = QuestionGen.make(type, Game.settings.mode);
+  const q = QuestionGen.make(type, Game.settings.mode, _scopeLevelOf(type));
   Game.state.current[team] = q;
   UI.showQuestion(team);
   FX.screenAlert(`${TEAM_META[team].name} 重練：${item.text.replace('?', ` = ${item.answer}`)}`, '#fbbf24');
@@ -10434,7 +10647,7 @@ function setupUltButtons() {
       // 用當前題型出一道臨時題
       const types = Game.settings.types;
       const type = types[randInt(0, types.length - 1)];
-      const q = QuestionGen.make(type, Game.settings.mode);
+      const q = QuestionGen.make(type, Game.settings.mode, _scopeLevelOf(type));
       Game.state.pendingUltQ = q;
       // 直接覆蓋該隊伍題目
       Game.state.current[tm] = q;
@@ -11735,6 +11948,9 @@ const Profile = {
     if (!this.data.masteredByType || typeof this.data.masteredByType !== 'object') this.data.masteredByType = {};
     if (typeof this.data.masteredCount !== 'number') this.data.masteredCount = 0;
     if (typeof this.data.studentName !== 'string') this.data.studentName = '';
+    // V3.6 cycle111b: scope 內 3 級難度 — 級數 + 連對/連錯 streak（跨課堂保留）
+    if (!this.data.levelByType || typeof this.data.levelByType !== 'object') this.data.levelByType = {};
+    if (!this.data.levelStreak || typeof this.data.levelStreak !== 'object') this.data.levelStreak = {};
   },
   save() { STORAGE.save(STORAGE.PROFILE_KEY, this.data); },
   isUnlocked(kind, id) {

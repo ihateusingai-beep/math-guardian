@@ -11,13 +11,13 @@
 
 ---
 
-## 0. 現況（baseline · 2026-10-24 · post cycle 106）
+## 0. 現況（baseline · 2026-10-26 · post cycle 111b）
 
 | 項 | 值 |
 |---|---|
-| Version | **v3.6** · cycle **110** |
-| Tests | **5391 pass / 0 fail**（825 regression + 4554 generator-audit + 12 audio-audit） |
-| Size | `index.html` **541,798 bytes**（budget < 600 KB） |
+| Version | **v3.6** · cycle **111b** |
+| Tests | **5574 pass / 0 fail**（875 regression + 4665 generator-audit + 12 audio-audit + 22 asset-audit） |
+| Size | `index.html` **588,029 bytes**（budget < 600 KB · 餘 26,371） |
 | Media payload | **0 bytes**（全部 runtime 合成） |
 | Visual readiness | **6.3 / 10**（Before cycle 106 = 4.56）· 見 `docs/VISUAL_QUALITY_RUBRIC.md` |
 | Core done | easy scopes · solo/dual arena · 黃/紫長短 · 數數分5 · 順序跟住 · bank v3 · 視覺 P0 修清 |
@@ -79,8 +79,20 @@
       └ **修好靜靜壞咗嘅功能**：`_lPickMC` 冇傳 `svgId` → 6 個 pkg 精靈從來冇 render 過
       └ 新增 2 個精靈（`pkg-soymilk-1l` 豆漿 1L / `pkg-paint-5l` 油漆 5L）—— 之前「油漆 5L」借用
         「漂白水 2L」精靈，學生會讀到錯嘅容量
-- [ ] **cycle 111b** Boss 重新入場（進度格驅動）· scope 內 3 級難度（生成器加 level 參數）· 新 16 個 symbol（5 boss + island + 4 scope icon + 3 UI icon）+ emoji-as-chrome 置換
+- [x] **cycle 111b** scope 內 3 級難度（生成器加 level 參數）+ 4 對升 / 3 錯降適應 + 跨課堂保留 ✅ 已 ship
+      └ `ScopeLevel` 模組（`SCOPE_LEVEL_PARAMS` 表 + `_scopeLevelOf` / `_updateScopeLevel`）
+      └ 級數表：count20 1–3/1–5/1–10 · compareLength/Height 1:2/1:3/1:1.5 ·
+        orderAsc/Desc 步長 2/1/1+干擾 · learnL/findL* 干擾 1L+2L / 1L+1.5L / 1L+1.5L+2L
+      └ **bank 題目按級數過濾**（`_bankMatchesLevel`）—— 舊 bank 種子係固定難度舊題，
+        唔過濾嘅話 L1（上限 3 個）會收到 8 個蘋果嘅題，級數契約有 30%（weak type 70%）漏洞
+      └ 修 pre-existing bug：「邊支飲品有 1L?」可能抽到洗潔精 / 漂白水做答案（加 `drink` 旗標）
+      └ 新增 `pkg-orange-2l` 精靈（2L 飲品干擾項）· 目標容量固定 1L，prompt 統一「邊件有 1L?」
+      └ T111b lock-in：generator-audit 真實執行 + regression 結構鎖 + 8 條還原驗證
+- [ ] **cycle 111c** Boss 重新入場（進度格驅動 + HP）· 5 個 boss 守護者 sprite
+- [ ] **cycle 111d** 4 scope icon + 3 UI icon + emoji-as-chrome 置換（合共 16 個新 symbol）
 - [ ] **cycle 112** 教師台 8 項控制 + 班級模式 + 概念卡 UI
+      └ ⚠️ **老師級數可見性**（cycle111b 留低嘅一項）：學生而家喺第幾級，老師喺教師台
+        或結算畫面都睇唔到 → 級數系統對老師係「隱形」嘅
 
 ### P1 · 遊戲設計（細項 · 已記錄喺 design review §3）
 
@@ -91,10 +103,11 @@
 - [ ] **C2** scope 選單結構化 + 教師可控局長 — D6
 - [ ] **A1** 分層提示 4 級 scaffold（重述 → 聚焦 → 部分 → 完整答案）— D1
       ✅ Ken 2026-10-25 決定：**可以畀答案**，分層遞進，最後一層先講答案
-- [ ] **A2** scope 內難度分級 + 自適應（count20 1–3→1–10、compareLength 1:2→1:1.5）— D4
-      ⚠️ 最大項，要喺 B/C 穩定咗先做
-- [ ] **像素品質修復**（asset 層，優先過新 asset）：座標對整數（15/35 失敗）·
+- [x] **A2** scope 內難度分級 + 自適應（count20 1–3→1–10、compareLength 1:2→1:1.5）— D4
+      ✅ **cycle 111b 已 ship**（4 對升 / 3 錯降 · 跨課堂保留 · bank 題目按級數過濾）
+- [x] **像素品質修復**（asset 層，優先過新 asset）：座標對整數（15/35 失敗）·
       顯示尺寸用整數倍（40px/36px/em-based 全部不合格）· 加 `crispEdges`（全檔 0 次）
+      ✅ **cycle 111a 已 ship**（+ `tests/asset-audit.js` 8 組 check 做長期守門）
 - [ ] **emoji-as-chrome 置換**（42 種喺 UI chrome 位置）· 題目內容 emoji 保留（教學具體物體）
 - [ ] **數數題固定單一水果種類**（而家 8 種混 → 減少一個認知變因）
 

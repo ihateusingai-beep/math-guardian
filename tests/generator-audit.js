@@ -80,6 +80,34 @@ AudioCtx.prototype = { createOscillator: () => ({ connect: () => {}, start: () =
 const console_ = { log: () => {}, warn: () => {}, error: () => {} };
 
 // ============================================================
+// extract a balanced statement `const X = { ... }` starting from a marker
+// (naive brace counting — same approach the existing loadGenerators uses)
+function extractBalancedStatement(body, marker) {
+  const startIdx = body.indexOf(marker);
+  if (startIdx === -1) throw new Error(`Not found: ${marker}`);
+  const braceIdx = body.indexOf('{', startIdx);
+  if (braceIdx === -1) throw new Error(`No brace after: ${marker}`);
+  let depth = 0, endIdx = -1;
+  for (let i = braceIdx; i < body.length; i++) {
+    if (body[i] === '{') depth++;
+    else if (body[i] === '}') { depth--; if (depth === 0) { endIdx = i + 1; break; } }
+  }
+  if (endIdx === -1) throw new Error(`Unbalanced braces: ${marker}`);
+  return body.slice(startIdx, endIdx);
+}
+
+// V3.6 cycle111b: ScopeLevel 模組（級數階梯 + bank 過濾 + 適應）
+// 由 `const SCOPE_LEVEL_MAX` 到 cycle110 概念卡註解之前。
+function extractScopeLevelSource(body) {
+  const startMarker = 'const SCOPE_LEVEL_MAX =';
+  const startIdx = body.indexOf(startMarker);
+  if (startIdx === -1) throw new Error('SCOPE_LEVEL_MAX not found');
+  const endMarker = '// V3.6 cycle110: 概念卡 4 里程碑';
+  const endIdx = body.indexOf(endMarker, startIdx);
+  if (endIdx === -1) throw new Error('ScopeLevel end marker not found');
+  return body.slice(startIdx, endIdx);
+}
+
 // extract Generators from index.html
 // ============================================================
 
@@ -94,41 +122,74 @@ function loadGenerators() {
   if (!body) throw new Error('No <script> found in index.html');
 
   // Capture the Generators object literal — start at "const Generators = {"
-  // and balance braces to find the end.
-  const startMarker = 'const Generators = {';
-  const startIdx = body.indexOf(startMarker);
-  if (startIdx === -1) throw new Error('Generators not found');
-  let depth = 0, endIdx = -1;
-  for (let i = startIdx + startMarker.length - 1; i < body.length; i++) {
-    if (body[i] === '{') depth++;
-    else if (body[i] === '}') { depth--; if (depth === 0) { endIdx = i + 1; break; } }
-  }
-  if (endIdx === -1) throw new Error('Generators end not found');
-  const genSrc = body.slice(startIdx, endIdx);
+  const genSrc = extractBalancedStatement(body, 'const Generators = {');
+
+  // V3.6 cycle111b: 長短 / 高矮嘅比例 helper（喺 Generators 上面一層）
+  const comparePairSrc = extractBalancedStatement(body, 'function _comparePair(ratio) {');
 
   // Capture TYPE_REGISTRY similarly
-  const regMarker = 'const TYPE_REGISTRY = {';
-  const regStart = body.indexOf(regMarker);
-  if (regStart === -1) throw new Error('TYPE_REGISTRY not found');
-  let regEnd = -1; depth = 0;
-  for (let i = regStart + regMarker.length - 1; i < body.length; i++) {
-    if (body[i] === '{') depth++;
-    else if (body[i] === '}') { depth--; if (depth === 0) { regEnd = i + 1; break; } }
-  }
-  const regSrc = body.slice(regStart, regEnd);
+  const regSrc = extractBalancedStatement(body, 'const TYPE_REGISTRY = {');
+
+  // V3.6 cycle111b: Generators.count20 / compareLength / _nextInSeq / _lPickMC
+  // 會問 _scopeLevelParams() → 一定要一齊抽 ScopeLevel 模組入嚟，
+  // 否則真實執行會 ReferenceError（cycle111b 實測）。
+  const scopeSrc = extractScopeLevelSource(body);
 
   // Wrap in a Function that injects our mocks
   const code = `
     ${regSrc}
+    ${scopeSrc}
+    ${comparePairSrc}
     ${genSrc}
     return { TYPE_REGISTRY, Generators };
   `;
   // The Generators object literal references randInt, shuffle, Game — all in scope via the wrapper
   const fn = new Function(
     'randInt', 'shuffle', 'Game', 'document', 'window', 'localStorage', 'AudioCtx', 'console',
+    'Profile', 'FX',
     code
   );
-  return fn(randInt, shuffle, Game, document, window, localStorage, AudioCtx, console_);
+  const Profile = { data: {}, save() {} };
+  const FX = { screenAlert: () => {} };
+  return fn(randInt, shuffle, Game, document, window, localStorage, AudioCtx, console_, Profile, FX);
+}
+
+// V3.6 cycle111b: 抽出真實 ScopeLevel 模組 + 真實 TYPE_REGISTRY，
+// 用 mock Profile / Game / FX 實際執行，斷言實際 state 變化。
+function loadScopeLevel(env) {
+  const html = fs.readFileSync(INDEX, 'utf8');
+  const scripts = html.match(/<script>[\s\S]*?<\/script>/g) || [];
+  let body = '';
+  for (const s of scripts) {
+    const candidate = s.replace(/^<script>/, '').replace(/<\/script>$/, '');
+    if (candidate.length > body.length) body = candidate;
+  }
+  const scopeSrc = extractScopeLevelSource(body);
+  const regSrc = extractBalancedStatement(body, 'const TYPE_REGISTRY = {');
+  const code = `
+    ${regSrc}
+    ${scopeSrc}
+    return {
+      SCOPE_LEVEL_MAX, LEVEL_UP_STREAK, LEVEL_DOWN_STREAK, SCOPE_LEVEL_PARAMS,
+      _scopeSupportsLevel, _scopeLevelOf, _scopeLevelParams,
+      _bankMatchesLevel, _updateScopeLevel,
+    };
+  `;
+  const fn = new Function('Game', 'Profile', 'FX', code);
+  return fn(env.Game, env.Profile, env.FX);
+}
+
+// V3.6 cycle111b: 真實 bank 種子數據（用嚟驗 _bankMatchesLevel 對住真內容）
+function loadBankSeed() {
+  const html = fs.readFileSync(INDEX, 'utf8');
+  const scripts = html.match(/<script>[\s\S]*?<\/script>/g) || [];
+  let body = '';
+  for (const s of scripts) {
+    const candidate = s.replace(/^<script>/, '').replace(/<\/script>$/, '');
+    if (candidate.length > body.length) body = candidate;
+  }
+  const seedSrc = extractBalancedStatement(body, 'const seed = {');
+  return new Function(`${seedSrc}; return seed;`)();
 }
 
 // ============================================================
@@ -913,6 +974,319 @@ try {
   }
 } catch (e) {
   check('T110b relay audit 執行得到（唔好 throw）', false, e.message);
+}
+
+// ============================================================
+// V3.6 cycle111b: scope 內 3 級難度 —— 真實執行
+// ============================================================
+console.log('\n[T111b] V3.6 cycle-111b (scope 內 3 級難度 functional audit)');
+
+function mkScopeEnv(difficulty) {
+  const Game = { settings: { difficulty: difficulty || 'easy', mode: 'choice' }, state: {} };
+  const Profile = {
+    data: { levelByType: {}, levelStreak: {} },
+    saved: 0,
+    save() { this.saved++; },
+  };
+  const FX = { alerts: [], screenAlert(t) { this.alerts.push(t); } };
+  return { Game, Profile, FX };
+}
+
+try {
+  const { Generators } = loadGenerators();
+  const env0 = mkScopeEnv('easy');
+  const SL = loadScopeLevel(env0);
+
+  // --- 1. 級數階梯表完整性 ---
+  {
+    const LEVELS = Object.keys(SL.SCOPE_LEVEL_PARAMS);
+    check('T111b-1 有級數階梯嘅 scope type = 8 個',
+      LEVELS.length === 8, `got ${LEVELS.length}: ${LEVELS.join(',')}`);
+    for (const t of LEVELS) {
+      const params = SL.SCOPE_LEVEL_PARAMS[t];
+      check(`T111b-1 級數表 ${t} 有 3 級`,
+        Array.isArray(params) && params.length === 3, JSON.stringify(params));
+    }
+    check('T111b-1 級數上限 = 3', SL.SCOPE_LEVEL_MAX === 3);
+    check('T111b-1 升級門檻 = 連續 4 對', SL.LEVEL_UP_STREAK === 4);
+    check('T111b-1 降級門檻 = 連續 3 錯', SL.LEVEL_DOWN_STREAK === 3);
+    // ⚠️ 適應只准喺同一 scope 內發生 → classic type 唔可以有級數階梯
+    check('T111b-1 classic type 唔支援級數',
+      !SL._scopeSupportsLevel('add10') && !SL._scopeSupportsLevel('sub10') &&
+      !SL._scopeSupportsLevel('ordering'));
+    check('T111b-1 easy scope type 支援級數',
+      SL._scopeSupportsLevel('count20') && SL._scopeSupportsLevel('compareLength') &&
+      SL._scopeSupportsLevel('compareHeight') && SL._scopeSupportsLevel('orderAsc20') &&
+      SL._scopeSupportsLevel('orderDesc20') && SL._scopeSupportsLevel('learnL') &&
+      SL._scopeSupportsLevel('findLDrink') && SL._scopeSupportsLevel('findLItem'));
+  }
+
+  // --- 2. _scopeLevelOf 邊界（falsy default 陷阱） ---
+  {
+    const { Game, Profile } = mkScopeEnv('easy');
+    const S = loadScopeLevel({ Game, Profile, FX: { screenAlert: () => {} } });
+    check('T111b-2 classic type 一律 L1', S._scopeLevelOf('add10') === 1);
+    check('T111b-2 未設定嘅 scope type = L1', S._scopeLevelOf('count20') === 1);
+    Profile.data.levelByType.count20 = 3;
+    check('T111b-2 L3 讀得到', S._scopeLevelOf('count20') === 3);
+    Profile.data.levelByType.count20 = 2;
+    // ⚠️ 若果用 `Number(x) || 1`，level=2 會被當成 falsy → 走咗 default
+    check('T111b-2 L2 唔會被當成 falsy default', S._scopeLevelOf('count20') === 2,
+      `got ${S._scopeLevelOf('count20')}`);
+    Profile.data.levelByType.count20 = 0;
+    check('T111b-2 level=0 要夾返 L1', S._scopeLevelOf('count20') === 1,
+      `got ${S._scopeLevelOf('count20')}`);
+    Profile.data.levelByType.count20 = 99;
+    check('T111b-2 越界值夾到上限 L3', S._scopeLevelOf('count20') === 3);
+    Profile.data.levelByType.count20 = '2';
+    check('T111b-2 string 數字都讀得到', S._scopeLevelOf('count20') === 2);
+    Profile.data.levelByType.count20 = NaN;
+    check('T111b-2 NaN → L1', S._scopeLevelOf('count20') === 1);
+
+    // classic mode 一律 L1（easy 嘅級數唔會漏入 classic）
+    const hard = mkScopeEnv('normal');
+    const S2 = loadScopeLevel(hard);
+    hard.Profile.data.levelByType.count20 = 3;
+    check('T111b-2 classic mode 一律 L1', S2._scopeLevelOf('count20') === 1);
+  }
+
+  // --- 3. _updateScopeLevel 真實 state 變化 ---
+  {
+    const env = mkScopeEnv('easy');
+    const S = loadScopeLevel(env);
+    const P = env.Profile;
+
+    // 連續 3 錯 → 降級（L2 → L1）
+    P.data.levelByType.count20 = 2;
+    P.data.levelStreak.count20 = { right: 0, wrong: 0 };
+    S._updateScopeLevel('count20', false);
+    S._updateScopeLevel('count20', false);
+    check('T111b-3 L2 連錯 2 次未降級', S._scopeLevelOf('count20') === 2,
+      `got ${S._scopeLevelOf('count20')}`);
+    S._updateScopeLevel('count20', false);
+    check('T111b-3 L2 連錯 3 次 → 降到 L1', S._scopeLevelOf('count20') === 1,
+      `got ${S._scopeLevelOf('count20')}`);
+    check('T111b-3 降級後連錯 streak 歸零', P.data.levelStreak.count20.wrong === 0,
+      JSON.stringify(P.data.levelStreak.count20));
+
+    // 連續 4 對 → 升級（L1 → L2）
+    P.data.levelByType.count20 = 1;
+    P.data.levelStreak.count20 = { right: 0, wrong: 0 };
+    for (let i = 0; i < 3; i++) S._updateScopeLevel('count20', true);
+    check('T111b-3 L1 連對 3 次未升級', S._scopeLevelOf('count20') === 1,
+      `got ${S._scopeLevelOf('count20')}`);
+    S._updateScopeLevel('count20', true);
+    check('T111b-3 L1 連對 4 次 → 升到 L2', S._scopeLevelOf('count20') === 2,
+      `got ${S._scopeLevelOf('count20')}`);
+
+    // 答錯清空連對 streak
+    P.data.levelStreak.count20 = { right: 0, wrong: 0 };
+    S._updateScopeLevel('count20', true);
+    S._updateScopeLevel('count20', true);
+    S._updateScopeLevel('count20', false);
+    check('T111b-3 答錯清空連對 streak', P.data.levelStreak.count20.right === 0,
+      JSON.stringify(P.data.levelStreak.count20));
+
+    // 上限 / 下限
+    P.data.levelByType.count20 = 3;
+    P.data.levelStreak.count20 = { right: 0, wrong: 0 };
+    for (let i = 0; i < 10; i++) S._updateScopeLevel('count20', true);
+    check('T111b-3 L3 連對 10 次都唔會升過 L3', S._scopeLevelOf('count20') === 3,
+      `got ${S._scopeLevelOf('count20')}`);
+    P.data.levelByType.count20 = 1;
+    P.data.levelStreak.count20 = { right: 0, wrong: 0 };
+    for (let i = 0; i < 10; i++) S._updateScopeLevel('count20', false);
+    check('T111b-3 L1 連錯 10 次都唔會低過 L1', S._scopeLevelOf('count20') === 1,
+      `got ${S._scopeLevelOf('count20')}`);
+
+    // classic type / classic mode → 唔改 state
+    P.data.levelByType = {};
+    P.data.levelStreak = {};
+    const savedBefore = P.saved;
+    check('T111b-3 classic type → 返回 null', S._updateScopeLevel('add10', true) === null);
+    check('T111b-3 classic type 唔會寫 levelByType',
+      Object.keys(P.data.levelByType).length === 0, JSON.stringify(P.data.levelByType));
+    check('T111b-3 classic type 唔會存檔', P.saved === savedBefore, `saved ${savedBefore} → ${P.saved}`);
+
+    const env2 = mkScopeEnv('normal');
+    const S2 = loadScopeLevel(env2);
+    check('T111b-3 classic mode → 返回 null', S2._updateScopeLevel('count20', true) === null);
+    check('T111b-3 classic mode 唔會寫 levelByType',
+      Object.keys(env2.Profile.data.levelByType).length === 0);
+  }
+
+  // --- 4. 生成器真實產出符合級數 ---
+  {
+    // count20: L1 1–3 · L2 1–5 · L3 1–10
+    const maxes = { 1: 3, 2: 5, 3: 10 };
+    for (const lv of [1, 2, 3]) {
+      let ok = true, detail = '';
+      for (let i = 0; i < 80; i++) {
+        const q = Generators.count20('choice', lv);
+        if (typeof q.answer !== 'number' || q.answer < 1 || q.answer > maxes[lv]) {
+          ok = false; detail = `answer=${q.answer}`; break;
+        }
+        // emoji 數量要同答案一致（學生靠數圖）
+        const emojiLen = [...q.parts[0]].length;
+        if (emojiLen !== q.answer) { ok = false; detail = `emoji=${emojiLen} answer=${q.answer}`; break; }
+      }
+      check(`T111b-4 count20 L${lv} 答案喺 1–${maxes[lv]} 之內（圖數 = 答案）`, ok, detail);
+    }
+
+    // compareLength / compareHeight: L1 1:2 · L2 1:3 · L3 1:1.5
+    const ratios = { 1: 2, 2: 3, 3: 1.5 };
+    for (const fn of ['compareLength', 'compareHeight']) {
+      for (const lv of [1, 2, 3]) {
+        let ok = true, detail = '';
+        for (let i = 0; i < 60; i++) {
+          const q = Generators[fn](lv);
+          const ex = q.extra || {};
+          const a = Number(ex.a), b = Number(ex.b);
+          const r = Math.max(a, b) / Math.min(a, b);
+          if (Math.abs(r - ratios[lv]) > 0.001) { ok = false; detail = `a=${a} b=${b} r=${r}`; break; }
+          // 答案要真係對應問法
+          const askLong = ex.ask === 'long' || ex.ask === 'tall';
+          const shouldBe1 = askLong ? (a > b) : (a < b);
+          if ((q.answer === '1') !== shouldBe1) { ok = false; detail = `answer=${q.answer} ask=${ex.ask}`; break; }
+        }
+        check(`T111b-4 ${fn} L${lv} 比例 = ${ratios[lv]}（答案對應問法）`, ok, detail);
+      }
+    }
+
+    // 順序題: L1 步長 2 · L2/L3 步長 1
+    for (const [lv, step] of [[1, 2], [2, 1], [3, 1]]) {
+      let ok = true, detail = '';
+      for (const dir of ['asc', 'desc']) {
+        for (let i = 0; i < 60; i++) {
+          const s = Generators._nextInSeq(dir, lv);
+          const d = Math.abs(s.stem[1] - s.stem[0]);
+          if (d !== step) { ok = false; detail = `${dir} stem=${s.stem}`; break; }
+          if (Number(s.answer) !== s.stem[1] + (dir === 'asc' ? step : -step)) {
+            ok = false; detail = `${dir} ans=${s.answer} stem=${s.stem}`; break;
+          }
+          if (s.stem[0] < 1 || s.stem[1] < 1 || s.stem[0] > 20 || s.stem[1] > 20) {
+            ok = false; detail = `${dir} 範圍越界 ${s.stem}`; break;
+          }
+          if (!s.options.includes(String(s.answer))) {
+            ok = false; detail = `${dir} 答案唔喺選項入面`; break;
+          }
+        }
+      }
+      check(`T111b-4 順序題 L${lv} 步長 = ${step}（asc + desc）`, ok, detail);
+    }
+
+    // L3 干擾數字（跳級答案）一定喺選項入面
+    let decoyOK = true, decoyDetail = '';
+    for (const dir of ['asc', 'desc']) {
+      for (let i = 0; i < 80; i++) {
+        const s = Generators._nextInSeq(dir, 3);
+        const decoy = Math.max(1, Math.min(20, Number(s.answer) + (dir === 'asc' ? 2 : -2)));
+        if (!s.options.map(Number).includes(decoy)) {
+          decoyOK = false; decoyDetail = `${dir} ans=${s.answer} decoy=${decoy} opts=${s.options}`;
+          break;
+        }
+      }
+    }
+    check('T111b-4 順序題 L3 跳級干擾數字一定出現喺選項', decoyOK, decoyDetail);
+
+    // L 容量題: L1 → 1L vs 2L · L2 → 1L vs 1.5L · L3 → 1L vs 1.5L vs 2L
+    const expectAlt = { 1: ['2L'], 2: ['1.5L'], 3: ['1.5L', '2L'] };
+    for (const type of ['learnL', 'findLDrink', 'findLItem']) {
+      for (const lv of [1, 2, 3]) {
+        let ok = true, detail = '';
+        for (let i = 0; i < 50; i++) {
+          const q = Generators[type](lv);
+          const items = (q.extra && q.extra.items) || [];
+          if (items.length !== 4) { ok = false; detail = `items=${items.length}`; break; }
+          const alts = items
+            .filter((it) => /^\d+(\.\d+)?L$/.test(it.pkg) && it.pkg !== '1L')
+            .map((it) => it.pkg).sort().join(',');
+          const want = expectAlt[lv].slice().sort().join(',');
+          if (alts !== want) { ok = false; detail = `alts=${alts} want=${want}`; break; }
+          if (q.extra.answerPkg !== '1L') { ok = false; detail = `answerPkg=${q.extra.answerPkg}`; break; }
+        }
+        check(`T111b-4 ${type} L${lv} 干擾容量 = ${expectAlt[lv].join('+')}（共 4 選項）`, ok, detail);
+      }
+    }
+
+    // ⚠️ findLDrink 答案一定係飲品（cycle111b 修 pre-existing bug：
+    //    舊 code 可能抽到洗潔精 / 漂白水做答案）
+    {
+      const pool = Generators._lItemPool;
+      let bad = null;
+      for (let i = 0; i < 150; i++) {
+        const q = Generators.findLDrink(1 + (i % 3));
+        const it = pool.find((x) => x.name === q.extra.answerName);
+        if (!it) { bad = `unknown item ${q.extra.answerName}`; break; }
+        if (it.drink !== true) { bad = `${it.name}(${it.pkg}) 唔係飲品`; break; }
+        if (it.pkg !== '1L') { bad = `${it.name}(${it.pkg}) 唔係 1L`; break; }
+      }
+      check('T111b-4 findLDrink 答案一定係「1L 飲品」（唔會抽到洗潔精）', !bad, bad || '');
+    }
+  }
+
+  // --- 5. bank 過濾：對住真實 bank 種子內容 ---
+  {
+    const seed = loadBankSeed();
+    const env = mkScopeEnv('easy');
+    const S = loadScopeLevel(env);
+
+    const countSeeds = seed.count20 || [];
+    check('T111b-5 真實 bank 有 count20 種子', countSeeds.length > 0);
+    for (const lv of [1, 2, 3]) {
+      const max = { 1: 3, 2: 5, 3: 10 }[lv];
+      const accepted = countSeeds.filter((q) => S._bankMatchesLevel('count20', q, lv));
+      check(`T111b-5 count20 L${lv} 通過嘅 bank 題答案全部 ≤ ${max}`,
+        accepted.every((q) => Number(q.answer) >= 1 && Number(q.answer) <= max),
+        JSON.stringify(accepted.map((q) => q.answer)));
+    }
+    check('T111b-5 count20 L1 至少有一條 bank 題可用（過濾唔係空轉）',
+      countSeeds.filter((q) => S._bankMatchesLevel('count20', q, 1)).length > 0);
+
+    for (const t of ['compareLength', 'compareHeight']) {
+      const seeds = seed[t] || [];
+      check(`T111b-5 真實 bank 有 ${t} 種子`, seeds.length > 0);
+      for (const lv of [1, 2, 3]) {
+        const ratio = { 1: 2, 2: 3, 3: 1.5 }[lv];
+        const accepted = seeds.filter((q) => S._bankMatchesLevel(t, q, lv));
+        check(`T111b-5 ${t} L${lv} 通過嘅 bank 題比例全部 = ${ratio}`,
+          accepted.every((q) => {
+            const ex = q.extra || {};
+            const a = Number(ex.a != null ? ex.a : ex.left);
+            const b = Number(ex.b != null ? ex.b : ex.right);
+            if (!Number.isFinite(a) || !Number.isFinite(b) || a <= 0 || b <= 0) return false;
+            return Math.abs(Math.max(a, b) / Math.min(a, b) - ratio) < 0.01;
+          }), JSON.stringify(accepted.map((q) => (q.extra || {}).a)));
+      }
+    }
+
+    // ⚠️ 舊 order bank 種子嘅 step 同答案唔一致（例如 [4,6] → 答 11）
+    //    → 唔應該通過任何級數嘅過濾（否則學生會見到「4 · 6 · ？」答 11）
+    for (const t of ['orderAsc20', 'orderDesc20']) {
+      const seeds = seed[t] || [];
+      for (const lv of [1, 2, 3]) {
+        const accepted = seeds.filter((q) => S._bankMatchesLevel(t, q, lv));
+        const bad = accepted.filter((q) => {
+          const stem = (q.displayNums || []).map(Number);
+          if (stem.length < 2) return true;
+          const step = Math.abs(stem[1] - stem[0]);
+          const expected = (t === 'orderAsc20') ? stem[1] + step : stem[1] - step;
+          return Number(q.answer) !== expected;
+        });
+        check(`T111b-5 ${t} L${lv} 通過嘅 bank 題答案一定跟得住步長`,
+          bad.length === 0, JSON.stringify(bad.map((q) => [q.displayNums, q.answer])));
+      }
+    }
+
+    // classic type → 級數過濾唔應該影響 bank 行為
+    check('T111b-5 classic type 唔受級數過濾影響',
+      S._bankMatchesLevel('add10', { answer: 99, extra: {} }, 3) === true);
+    // L 容量 type 冇 bank 種子 → 過濾唔應該阻擋（行生成器）
+    check('T111b-5 learnL 過濾唔阻擋（bank 冇種子 → 生成器）',
+      S._bankMatchesLevel('learnL', { answer: '1', extra: { items: [] } }, 1) === true);
+  }
+} catch (e) {
+  check('T111b scope level audit 執行得到（唔好 throw）', false, e.message);
 }
 
 // summary

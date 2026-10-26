@@ -478,4 +478,6 @@ const q = QuestionGen.make(type, Game.settings.mode);   // 重練 = 抽一條全
 | 110b | 2026-10-25 | 修 3 個實測 bug：①「輪到邊隊」兩個真實來源（`turnTeam` vs `currentTeam`）→ 收埋成一個；② `setSENTurn` toggle 咗經典 screen 嘅 `#knight-card`（easy 行 SEN screen → dead code，實機見到兩條題同時顯示）→ 改 `#sen-panel-*` + 單欄全寬；③ 接力唔跳過已完成隊伍 → 一隊做完就死鎖。 |
 | 110c | 2026-10-25 | End screen 喺學校 iPad 639×669 overflow：概念卡 / 島嶼提到 `end-stats` 上面 + 掣行 `sticky` + 雙隊 medal `white-space: nowrap`（🥇🥇 之前換行疊落標題）。 |
 | 111a | 2026-10-26 | 資產品質落地（§4.3）。座標全整數 · 顯示尺寸改 viewBox × 整數倍 · 38 個 symbol 加 `crispEdges` · 刪重複 `px-castle` · **修好靜靜壞咗嘅 `svgId` 傳遞**（6 個 pkg 精靈從來冇 render 過）· 新增 `pkg-paint-5l` / `pkg-soymilk-1l`（之前「油漆 5L」借用「漂白水 2L」精靈會讀到錯容量）· 新增 `tests/asset-audit.js`（8 組 check）。 |
-| 111b | 下一步 | Boss 重新入場（進度格驅動）· scope 內 3 級難度（生成器加 level 參數）· 16 個新 symbol（5 boss + island + 4 scope icon + 3 UI icon）+ emoji-as-chrome 置換。 |
+| 111b | 2026-10-26 | **scope 內 3 級難度（§3.6）落地**。生成器加 `level` 參數（`count20` / `compareLength` / `compareHeight` / `_nextInSeq` / `_lPickMC`）· 新 `ScopeLevel` 模組（`SCOPE_LEVEL_PARAMS` 表 + 連續 4 對升級 / 3 錯降級 + `Profile.data.levelByType` 跨課堂保留）· **bank 題目按級數過濾**（`_bankMatchesLevel`）—— 舊 bank 種子係固定難度舊題，唔過濾嘅話 L1（上限 3 個）會收到 8 個蘋果嘅題，級數契約有 30%（weak type 70%）漏洞 · 修 pre-existing bug：「邊支飲品有 1L?」可能抽到洗潔精 / 漂白水做答案（加 `drink` 旗標）· 新增 `pkg-orange-2l` 精靈（2L 飲品干擾項）· 目標容量固定 1L，prompt 統一「邊件有 1L?」。 |
+| 111c | 下一步 | Boss 重新入場（進度格驅動 + HP）· 5 個 boss 守護者 sprite。 |
+| 111d | 下一步 | 4 scope icon + 3 UI icon + emoji-as-chrome 置換（合共 16 個新 symbol）。 |
