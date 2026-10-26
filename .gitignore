@@ -14,3 +14,6 @@
 # Mavis runtime artifacts (scope-locked per cycle 9-11)
 .mavis/
 .harness/plans/
+
+# Visual test artifacts (screenshots, cycle111e)
+tests/visual/.out/

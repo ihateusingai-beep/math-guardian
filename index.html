@@ -2562,7 +2562,16 @@
     text-align: center;
     position: relative;
     min-height: 90px;
+    /* V3.6 cycle111e: 呢啲卡片改咗做真 <button>（之前係冇 handler 嘅 <div>）——
+       button 有預設樣式（font / appearance），要 reset 返先至同原本 div 一模一樣。 */
+    font: inherit;
+    cursor: pointer;
+    -webkit-appearance: none;
+    appearance: none;
   }
+  .pic-card-mini:hover { transform: translateY(-2px); box-shadow: 0 6px 0 #b45309, 0 8px 16px rgba(0,0,0,.22); }
+  .pic-card-mini:active { transform: translateY(2px) scale(.98); box-shadow: 0 2px 0 #b45309; }
+  .pic-card-mini:focus-visible { outline: 3px solid #38bdf8; outline-offset: 2px; }
   .pic-card-mini .pic-card-emoji { font-size: 2.2rem; line-height: 1; }
   .pic-card-mini .pic-card-name { font-size: 0.9rem; font-weight: 700; }
   .pic-card-mini .pic-card-pkg {
@@ -8309,17 +8318,38 @@ const UI = {
     } else if ((q.type === 'learnL' || q.type === 'findLDrink' || q.type === 'findLItem') && emojiEl) {
       // V3.6 cycle89: SEN 容量 (L) — 4 個物品卡片放 emojiEl
       // V3.6 cycle93: SVG 插畫優先；emoji 落 fallback
+      // ⚠️ V3.6 cycle111e P0 修正：呢啲卡片之前係**冇 click handler 嘅 <div>** ——
+      //    學生喺 SEN 畫面根本撳唔到（3 個 L 容量 scope 由 cycle 89 起就係死路）。
+      //    經典畫面（pic-grid layout）一直用真 <button class="pic-card-btn">，
+      //    SEN 呢邊漏咗接 handler。→ 而家改成真 <button>：可撳 + 鍵盤可達 + 有 aria-label。
       emojiEl.classList.add('sen-q-visual');
       const items = (q.extra && Array.isArray(q.extra.items)) ? q.extra.items : [];
-      const cards = items.slice(0, 4).map((it, idx) => {
-        const letter = ['A','B','C','D'][idx] || String(idx+1);
+      const gridOpts = q.options || ['1', '2', '3', '4'];
+      const grid = document.createElement('div');
+      grid.className = 'pic-grid-mini';
+      grid.setAttribute('role', 'group');
+      grid.setAttribute('aria-label', '答案選項');
+      items.slice(0, 4).forEach((it, idx) => {
+        const letter = ['A', 'B', 'C', 'D'][idx] || String(idx + 1);
         const isL = /L$/.test(String(it.pkg || ''));
         const visual = it.svgId
           ? `<svg class="pic-card-svg" viewBox="0 0 64 64" aria-hidden="true"><use href="#${it.svgId}"/></svg>`
           : `<span class="pic-card-emoji" aria-hidden="true">${it.emoji || '📦'}</span>`;
-        return `<div class="pic-card-mini"><span class="sen-opt-letter" aria-hidden="true">${letter}</span>${visual}<span class="pic-card-name">${it.name || ''}</span><span class="pic-card-pkg ${isL ? 'is-l' : ''}">${it.pkg || ''}</span></div>`;
-      }).join('');
-      emojiEl.innerHTML = `<div class="pic-grid-mini" role="group" aria-label="4 個物品">${cards}</div>`;
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'pic-card-mini';
+        b.innerHTML = `<span class="sen-opt-letter" aria-hidden="true">${letter}</span>${visual}` +
+          `<span class="pic-card-name">${it.name || ''}</span>` +
+          `<span class="pic-card-pkg ${isL ? 'is-l' : ''}">${it.pkg || ''}</span>`;
+        b.setAttribute('aria-label', `${letter}. ${it.name || ''} ${it.pkg || ''}`);
+        b.dataset.letter = letter;
+        // 卡片 index ↔ 選項 index（_lPickMC 令 items 順序同 q.options 順序一致）
+        const opt = String(gridOpts[idx] || (idx + 1));
+        b.onclick = () => { Game.handleAnswer(team, opt, b); };
+        grid.appendChild(b);
+      });
+      emojiEl.innerHTML = '';
+      emojiEl.appendChild(grid);
       if (textEl) textEl.textContent = _senCopyText(q) || q.extra?.prompt || '邊個有 1L?';
     } else if (q.parts) {
       const { emojiParts, textTokens } = _splitPartsEmojiText(q.parts);

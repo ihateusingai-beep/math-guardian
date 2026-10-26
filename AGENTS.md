@@ -8,10 +8,11 @@ Vanilla JS + Tailwind CDN, no build, GitHub Pages.
 
 - Open `index.html` or `python3 -m http.server 8000`
 - Tests:
-  - `node tests/regression.js` → **875 pass / 0 fail** (structural regex lock-in, cycle 53–111b)
+  - `node tests/regression.js` → **882 pass / 0 fail** (structural regex lock-in, cycle 53–111e)
   - `node tests/generator-audit.js` → **4665 pass / 0 fail** (functional truth-table, cycle 101+ · T108 Adaptive ladder · T109 Stage/提示階梯 · T110 里程碑 · T110b 接力 · T111b 級數階梯)
   - `node tests/audio-audit.js` → **12 pass / 0 fail** (audio call-site × export cross-check, cycle 105+)
   - `node tests/asset-audit.js` → **22 pass / 0 fail** (像素資產品質, cycle 111a — 座標 / 倍率 / crispEdges / 死 symbol)
+  - `node tests/visual/run.mjs` → **30 pass / 0 fail** (實機視覺驗證, cycle 111e — 8 scope 可答 / 639×669 overflow / L 容量 / sprite；冇 Chrome 會 SKIP)
 - No lint / typecheck / build
 - Live: https://ihateusingai-beep.github.io/math-guardian/
 - **Deploy domain**: `CNAME` file 已移除(cycle 107)—— 站喺 `.github.io` 服務。
@@ -37,6 +38,7 @@ Vanilla JS + Tailwind CDN, no build, GitHub Pages.
 ├── tests/generator-audit.js # functional truth-table (generators × 30 trials + T108 Adaptive ladder + T111b 級數階梯)
 ├── tests/audio-audit.js    # audio pipeline audit (call-site × export cross-check)
 ├── tests/asset-audit.js    # 像素資產品質 audit (cycle111a — 8 組 check: viewBox / 重複 id / 座標 / 整數倍 / 死 symbol / crispEdges)
+├── tests/visual/           # 實機視覺驗證 (cycle111e — headless Chrome + CDP；4 個 scenario；見 tests/visual/README.md)
 └── .harness/               # changelogs, docs, plans
 ```
 
@@ -46,15 +48,41 @@ Vanilla JS + Tailwind CDN, no build, GitHub Pages.
 1b. `node tests/generator-audit.js` → 0 fail  
 1c. `node tests/audio-audit.js` → 0 fail  
 1d. `node tests/asset-audit.js` → 0 fail（改咗 sprite / icon 尺寸就要跑）  
+1e. `node tests/visual/run.mjs` → 0 fail（**改咗 UI / 版面 / 答題互動就要跑**，見下）  
 2. Extract largest inline `<script>` → `node --check`  
 3. Optional live probe: easy startGame per scope + dual arena  
 3b. **Visual change? → re-capture affected states + re-measure contrast** (見下)  
 4. One cycle = one commit message style: `Math Guardian v3.6 — cycle N (…)`  
 5. Ken **`Push`/`Live`/`順序`** = commit + push `main` (Pages). AGENTS “don’t push” overridden by Ken.
 
-### Visual verification (cycle 106 起)
+### Visual verification (cycle 106 起 · cycle111e 工具化)
 
-任何改動 UI / CSS / token 嘅 cycle,要用 headless Chrome + CDP 覆核,唔好靠肉眼:
+任何改動 UI / CSS / token 嘅 cycle,要用 headless Chrome + CDP 覆核,唔好靠肉眼。
+
+**cycle111e 起有咗自動化版本**（工具喺 repo 內,唔係 /tmp）:
+
+```bash
+node tests/visual/run.mjs                           # 跑晒 scenario
+node tests/visual/run.mjs --scenario end-screen-overflow
+```
+
+- 自己起 static server(random port)· 冇 Chrome → SKIP + exit 0(唔阻其他 gate)· 有 Chrome 但 assert 過 → exit 1
+- 現有 4 個 scenario:
+  - **`all-scopes-answerable`** —— 8 個 easy scope 學生都撳得到答案
+    ⚠️ cycle111e 實測捉到 P0:L 容量卡片曾經係**冇 click handler 嘅 `<div>`**,
+    由 cycle 89 起 3 個 L scope 喺 SEN 畫面就係死路(經典畫面正常所以冇人發現)
+  - **`end-screen-overflow`** —— 結算畫面喺 639×669 唔准 overflow(cycle110b P1 守門)
+  - **`sen-l-capacity`** —— L 容量級數干擾項 + 答案係飲品 + 精靈真係 render
+  - **`sprite-sheet`** —— 每個 `<symbol>` 都真係 render 到(唔係死 symbol)
+
+⚠️ **寫 scenario 嘅兩個陷阱**（cycle111e 實測踩過）:
+1. **答題目標唔止一種**:一般 MC 係 `.sen-opt-btn`、長短/高矮係 `.len-pair-hit[data-side]`、
+   L 容量卡片係 `.pic-card-mini` → **用 `tests/visual/helpers.mjs` 嘅 `ANSWER_TARGET_SRC`,唔好各寫一份**
+   （各寫一份 → 其中一份漏咗 pic-grid → 每逢 random 到 findLDrink 就 stall、場景 flaky）
+2. **場景要有「唔會 stall」嘅斷言**:答題 loop 搵唔到目標會空轉到 timeout,
+   症狀係「screen-end 仲係 hidden」而唔係「答案撳錯」——睇落似另一個問題
+
+### 手動視覺覆核（最低要求）
 
 ```bash
 # 1. 起 local server

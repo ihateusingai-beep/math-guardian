@@ -2109,11 +2109,13 @@ assert('T98-06 zero missing <symbol> references (no broken icons)',
   missingSyms.length === 0,
   `missing: ${missingSyms.join(',') || '(none)'}`);
 // Balanced tags
-const openSym = (src.match(/<symbol\s+id=/g) || []).length;
-const closeSym = (src.match(/<\/symbol>/g) || []).length;
+// ⚠️ 用 srcCode（已剝 JS 註解）而唔係 src —— 否則註解入面一提「<div>」就會誤報
+//    （cycle111e 實測：註解寫「之前係冇 handler 嘅 <div>」→ T98-08 假紅）
+const openSym = (srcCode.match(/<symbol\s+id=/g) || []).length;
+const closeSym = (srcCode.match(/<\/symbol>/g) || []).length;
 assert('T98-07 <symbol> open/close balanced', openSym === closeSym);
-const openDiv = (src.match(/<div[\s>]/g) || []).length;
-const closeDiv = (src.match(/<\/div>/g) || []).length;
+const openDiv = (srcCode.match(/<div[\s>]/g) || []).length;
+const closeDiv = (srcCode.match(/<\/div>/g) || []).length;
 assert('T98-08 <div> open/close balanced', openDiv === closeDiv);
 // Largest script syntax check
 assert('T98-09 largest <script> passes node --check (no syntax errors)',
@@ -2628,6 +2630,34 @@ assert('T111b-12 2L 飲品精靈存在（orange juice，俾 L1/L3 級做 2L 干�
 assert('T111b-13 generator-audit 有 T111b 真實執行段（行為鎖，唔係淨係 regex）',
   /T111b/.test(fs.readFileSync(path.join(__dirname, '..', 'tests', 'generator-audit.js'), 'utf8')) &&
   /loadScopeLevel/.test(fs.readFileSync(path.join(__dirname, '..', 'tests', 'generator-audit.js'), 'utf8')));
+
+// ============================================================
+// V3.6 cycle111e: SEN pic-grid 卡片可撳（P0）+ 視覺驗證工具入 repo
+// ============================================================
+console.log('\n[T111e] V3.6 cycle-111e (SEN pic-grid 卡片可撳 + 視覺驗證工具入 repo)');
+
+assert('T111e-01 SEN pic-grid 卡片用 <button> 渲染（唔係冇 handler 嘅 <div>）',
+  /b\.className = 'pic-card-mini'/.test(src) &&
+  /const b = document\.createElement\('button'\);/.test(src) &&
+  !/<div class="pic-card-mini">/.test(src));
+assert('T111e-02 每張卡片有 click handler → Game.handleAnswer',
+  /b\.onclick = \(\) => \{ Game\.handleAnswer\(team, opt, b\); \};/.test(src));
+assert('T111e-03 每張卡片有 aria-label（讀屏讀到「A. 橙汁 2L」）',
+  /b\.setAttribute\('aria-label', `\$\{letter\}\. \$\{it\.name \|\| ''\} \$\{it\.pkg \|\| ''\}`\);/.test(src));
+assert('T111e-04 .pic-card-mini 有 button reset + 互動狀態（font/cursor/focus）',
+  /\.pic-card-mini \{[\s\S]{0,1200}font: inherit/.test(src) &&
+  /\.pic-card-mini \{[\s\S]{0,1200}cursor: pointer/.test(src) &&
+  /\.pic-card-mini:focus-visible/.test(src));
+assert('T111e-05 視覺驗證工具入 repo（唔係擺 /tmp — 換部機就冇晒防線）',
+  fs.existsSync(path.join(__dirname, '..', 'tests', 'visual', 'run.mjs')) &&
+  fs.existsSync(path.join(__dirname, '..', 'tests', 'visual', 'cdp.mjs')) &&
+  fs.existsSync(path.join(__dirname, '..', 'tests', 'visual', 'scenarios', 'all-scopes-answerable.mjs')));
+assert('T111e-06 end-screen overflow 守門存在（639×669 學校 iPad）',
+  /end-screen-overflow/.test(fs.readFileSync(path.join(__dirname, '..', 'tests', 'visual', 'scenarios', 'end-screen-overflow.mjs'), 'utf8')) &&
+  /639/.test(fs.readFileSync(path.join(__dirname, '..', 'tests', 'visual', 'scenarios', 'end-screen-overflow.mjs'), 'utf8')));
+assert('T111e-07 視覺 runner 冇 Chrome 會 SKIP（唔會阻住其他 gate）',
+  /CHROME_NOT_FOUND/.test(fs.readFileSync(path.join(__dirname, '..', 'tests', 'visual', 'cdp.mjs'), 'utf8')) &&
+  /SKIP/.test(fs.readFileSync(path.join(__dirname, '..', 'tests', 'visual', 'run.mjs'), 'utf8')));
 
 // =========== summary ===========
 console.log(`\n========== ${pass} pass / ${fail} fail ==========`);

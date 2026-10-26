@@ -15,9 +15,9 @@
 
 | 項 | 值 |
 |---|---|
-| Version | **v3.6** · cycle **111b** |
-| Tests | **5574 pass / 0 fail**（875 regression + 4665 generator-audit + 12 audio-audit + 22 asset-audit） |
-| Size | `index.html` **588,029 bytes**（budget < 600 KB · 餘 26,371） |
+| Version | **v3.6** · cycle **111e** |
+| Tests | **5611 pass / 0 fail**（882 regression + 4665 generator-audit + 12 audio-audit + 22 asset-audit + 30 visual） |
+| Size | `index.html` **589,709 bytes**（budget < 600 KB · 餘 26,691） |
 | Media payload | **0 bytes**（全部 runtime 合成） |
 | Visual readiness | **6.3 / 10**（Before cycle 106 = 4.56）· 見 `docs/VISUAL_QUALITY_RUBRIC.md` |
 | Core done | easy scopes · solo/dual arena · 黃/紫長短 · 數數分5 · 順序跟住 · bank v3 · 視覺 P0 修清 |
@@ -88,6 +88,15 @@
       └ 修 pre-existing bug：「邊支飲品有 1L?」可能抽到洗潔精 / 漂白水做答案（加 `drink` 旗標）
       └ 新增 `pkg-orange-2l` 精靈（2L 飲品干擾項）· 目標容量固定 1L，prompt 統一「邊件有 1L?」
       └ T111b lock-in：generator-audit 真實執行 + regression 結構鎖 + 8 條還原驗證
+- [x] **cycle 111e** 視覺驗證工具入 repo + 修 P0（SEN L 容量卡片撳唔到）✅ 已 ship
+      └ `tests/visual/`（cdp.mjs + run.mjs + helpers.mjs + 4 個 scenario + README.md）
+        —— 之前啲驗證工具全部喺 `/tmp`，換部機就冇晒防線
+      └ ⚠️ **P0 修正**：SEN 畫面嘅 L 容量卡片（`learnL`/`findLDrink`/`findLItem`）
+        由 **cycle 89 起就係冇 click handler 嘅 `<div>`** → 學生見到 4 張卡但撳唔到，
+        3 個 scope 喺課堂上係死路（經典畫面一直正常，所以冇人發現）→ 改真 `<button>`
+      └ 新守門：`all-scopes-answerable`（8 個 scope 都撳得到）· `end-screen-overflow`
+        （639×669 唔准 overflow，cycle110b P1 終於有可執行防線）· `sen-l-capacity` · `sprite-sheet`
+      └ 3 條還原驗證全部有效 · 連跑 3 次 30 pass / 0 fail（冇 flakiness）
 - [ ] **cycle 111c** Boss 重新入場（進度格驅動 + HP）· 5 個 boss 守護者 sprite
 - [ ] **cycle 111d** 4 scope icon + 3 UI icon + emoji-as-chrome 置換（合共 16 個新 symbol）
 - [ ] **cycle 112** 教師台 8 項控制 + 班級模式 + 概念卡 UI
