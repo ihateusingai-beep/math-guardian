@@ -8,11 +8,11 @@ Vanilla JS + Tailwind CDN, no build, GitHub Pages.
 
 - Open `index.html` or `python3 -m http.server 8000`
 - Tests:
-  - `node tests/regression.js` → **882 pass / 0 fail** (structural regex lock-in, cycle 53–111e)
+  - `node tests/regression.js` → **895 pass / 0 fail** (structural regex lock-in, cycle 53–111f)
   - `node tests/generator-audit.js` → **4665 pass / 0 fail** (functional truth-table, cycle 101+ · T108 Adaptive ladder · T109 Stage/提示階梯 · T110 里程碑 · T110b 接力 · T111b 級數階梯)
   - `node tests/audio-audit.js` → **12 pass / 0 fail** (audio call-site × export cross-check, cycle 105+)
   - `node tests/asset-audit.js` → **22 pass / 0 fail** (像素資產品質, cycle 111a — 座標 / 倍率 / crispEdges / 死 symbol)
-  - `node tests/visual/run.mjs` → **30 pass / 0 fail** (實機視覺驗證, cycle 111e — 8 scope 可答 / 639×669 overflow / L 容量 / sprite；冇 Chrome 會 SKIP)
+  - `node tests/visual/run.mjs` → **44 pass / 0 fail** (實機視覺驗證, cycle 111e — 8 scope 可答 / 639×669 overflow / L 容量 / sprite；cycle 111f — SEN 逐個選項反饋 + verdict band 幾何守門；冇 Chrome 會 SKIP)
 - No lint / typecheck / build
 - Live: https://ihateusingai-beep.github.io/math-guardian/
 - **Deploy domain**: `CNAME` file 已移除(cycle 107)—— 站喺 `.github.io` 服務。
@@ -100,7 +100,7 @@ Rubric / 目標風格 / 基準喺 **`docs/VISUAL_QUALITY_RUBRIC.md`**。
 
 - Every behavior change lands a matching assertion in `tests/regression.js`
 - Assertions = source regex only (no DOM)
-- File budget: `index.html` raw **< 600 KB** (current: ~562 KB / 575,627 bytes)
+- File budget: `index.html` raw **< 600 KB** (current: ~585 KB / 598,798 bytes · 餘 15,602)
 - **Functional truth-table** (`tests/generator-audit.js`) catches arithmetic / math correctness
   bugs that regex tests cannot see (e.g. cycle55 orderAsc/Desc20 random-as-arithmetic).
   Runs all 23 generators x 30 trials with deterministic randInt -- catches infinite loops,
@@ -161,6 +161,22 @@ Rubric / 目標風格 / 基準喺 **`docs/VISUAL_QUALITY_RUBRIC.md`**。
   - 抽 CSS rule 前要**先剝註解 + 剝 @keyframes/@media 嵌套**,否則 selector capture 會連註解一齊食埋。
   - 像素 icon 容器**唔可以用 em / vw / clamp** → 隨父字體 / 視窗浮動,非整數倍。
     16×16 → 16 / 32 / 48px（1× / 2× / 3×）。
+- **Game-feel lock-in** (cycle111f, T111f + `tests/visual/scenarios/sen-answer-feedback.mjs`):
+  SEN 畫面嘅**逐個選項反饋**（project §12 規格一直冇喺 SEN 畫面落地 ——
+  經典畫面有 `.option-btn.correct/.wrong` + ✓/✗，SEN 畫面冇）:
+  1. **反饋層唔可以遮住學習訊號層**（本 cycle 最重要嘅教訓）。
+     舊版全屏 overlay 置中放 5.5rem 大字 → 實測 639×669 重疊 **32,032 px²**，
+     答錯嗰陣被揭示嘅正確答案完全被蓋死。而家三層：
+     **① 全屏淡色 wash（0.45 → 0.12，唔食掉狀態色）② 頂部 verdict band ③ 逐個選項反饋**。
+     → band 同任何一個選項掣嘅重疊必須係 **0**，由視覺場景實時量 `getBoundingClientRect()` 守門。
+     ⚠️ **幾何守門要斷「高度」唔可以只斷「top」**：只查 `band.top == panel.top` 會漏過
+     `inset:0` 置中復辟（top 一樣都係 88）→ 必須同時斷 `band.height ≤ 100px`
+     同「唔覆蓋 `.sen-cell` 進度格」。
+  2. **SEN 安全上限**：答錯用**藍灰** `#e2e8f0`（唔准刺眼紅）· 唔做 screen shake / hit-stop
+     · pop 只喺被撳嗰個掣 · 一定要返原狀 · CSS + JS 兩層 respect `prefers-reduced-motion`。
+  3. **時序**：逐個選項反饋一定要喺 `_senShowFeedback` **之前**（聲音同動畫同一幀起點）。
+  4. ⚠️ **同一個概念有兩條 render 路徑**（classic / SEN）→ 兩條都要有 lock-in
+     （cycle111e 已經捉到一次：經典畫面正常、SEN 畫面壞咗）。
 - Student UI: **no** stigma「SEN」label; MC **A/B/C** badges by **render order**
 - `startGame`/resume helpers must be **module scope** (not nested in `setupMenu`)
 

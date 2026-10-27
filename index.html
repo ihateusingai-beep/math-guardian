@@ -2572,6 +2572,121 @@
   .pic-card-mini:hover { transform: translateY(-2px); box-shadow: 0 6px 0 #b45309, 0 8px 16px rgba(0,0,0,.22); }
   .pic-card-mini:active { transform: translateY(2px) scale(.98); box-shadow: 0 2px 0 #b45309; }
   .pic-card-mini:focus-visible { outline: 3px solid #38bdf8; outline-offset: 2px; }
+
+  /* ===== V3.6 cycle111f: game feel —— SEN 逐個選項反饋 =====
+     project `docs/UI_STYLE_GUIDE.md` §12 訂明「答對 = ✅ flash + 綠邊 / 答錯 = ❌ flash + 紅邊」，
+     經典畫面一直有（`.option-btn.correct/.wrong` + `::before` ✓/✗），
+     但 **SEN 畫面（目標學生行嘅路徑）冇** → 學生只見到全屏 overlay，睇唔出邊個答啱。
+     ⚠️ SEN 安全考量（呢個係中度智障學生嘅課堂遊戲，唔係動作遊戲）：
+       - 答錯用「藍灰」而唔係刺眼紅（跟 project 既有做法：SEN overlay 用 💙 藍底）
+       - **唔做 screen shake、唔做 hit-stop**（晃動 / 停頓對呢批學生唔友善）
+       - 粒度：pop 只喺**被撳嗰個**掣，唔係全屏
+       - 一定要返原狀（squash 完必須 spring 返 scale(1)）
+       - 沿用 project 既有嘅 `prefers-reduced-motion` 模式（CSS + JS 兩層） */
+  .sen-opt-btn { position: relative; }
+  .sen-opt-btn.is-correct,
+  .pic-card-mini.is-correct {
+    background: #dcfce7 !important;
+    border-color: #16a34a !important;
+    box-shadow: 0 0 0 5px rgba(34, 197, 94, 0.32), 0 6px 0 rgba(22, 101, 52, 0.55) !important;
+    animation: sen-fx-pop-correct 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .sen-opt-btn.is-correct::after,
+  .pic-card-mini.is-correct::after {
+    content: '✓';
+    position: absolute; top: -0.4rem; right: -0.3rem;
+    width: 2.1rem; height: 2.1rem; line-height: 2.1rem;
+    border-radius: 9999px;
+    background: #16a34a; color: #ffffff;
+    font-size: 1.45rem; font-weight: 900; text-align: center;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.35);
+    animation: sen-fx-badge-pop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .sen-opt-btn.is-wrong,
+  .pic-card-mini.is-wrong {
+    background: #e2e8f0 !important;
+    border-color: #64748b !important;
+    animation: sen-fx-miss 0.34s ease-out;
+  }
+  .sen-opt-btn.is-wrong::after,
+  .pic-card-mini.is-wrong::after {
+    content: '✕';
+    position: absolute; top: -0.4rem; right: -0.3rem;
+    width: 2.1rem; height: 2.1rem; line-height: 2.1rem;
+    border-radius: 9999px;
+    background: #475569; color: #ffffff;
+    font-size: 1.35rem; font-weight: 900; text-align: center;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.35);
+    animation: sen-fx-badge-pop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  /* squash & stretch → spring back（永久誇張會變成新常態，feedback 就唔讀得出） */
+  @keyframes sen-fx-pop-correct {
+    0%   { transform: scale(1); }
+    28%  { transform: scale(1.16, 0.9); }
+    58%  { transform: scale(0.96, 1.05); }
+    100% { transform: scale(1); }
+  }
+  @keyframes sen-fx-badge-pop {
+    0%   { transform: scale(0.2); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  /* 答錯：輕微左右搖（5px / 340ms）—— 係「呢個掣唔啱」，唔係全屏 shake */
+  @keyframes sen-fx-miss {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+  }
+  /* ---- SEN feedback overlay 重構（cycle111f P0）----
+     舊版（cycle88）：全屏 overlay 個 5.5rem 大字「✅ 正！/💙 再試！」**置中**。
+     實測（639×669 實機量測）：stamp 文字 397×92px @ y289–380，
+     選項掣 A @ y274–384 → **重疊 352×91 = 32,032 px²**。
+     答錯嗰陣，被揭示嘅正確答案完全被大字蓋死 —— 即係「最需要教學嗰一刻」睇唔到。
+     而且 0.5 alpha 嘅全屏綠/藍底會食掉逐個選項嘅狀態色（白底掣變成墨綠），
+     令新加嘅 .is-correct / .is-wrong 顏色訊號失效。
+
+     新版三層（由弱到強）：
+       ① wash（全屏淡色）→ 0.45 淡到 0.12，**唔再食掉選項狀態色**
+       ② band（頂部橫條）→ verdict 文字 + 提示，疊喺 panel 頂部 head 帶
+          （`.sen-panel-head` 本身係 absolute 定位喺 panel 頂 → 疊上去零 layout shift）
+          **永遠唔覆蓋選項掣、唔覆蓋 Stage 進度格**
+       ③ 逐個選項反饋（.is-correct/.is-wrong + ✓/✕ badge）→ 呢個先係主要學習訊號
+  */
+  .sen-fb-wash {
+    position: absolute; inset: 0;
+    animation: sen-fx-wash 2s ease-out forwards;
+  }
+  .sen-fb-band {
+    position: absolute; top: 0; left: 0; right: 0;
+    min-height: 3.5rem;                 /* head 帶高 4rem，但底要留喺 Stage 進度格之上（實測 cell top=149） */
+    box-sizing: border-box;
+    display: flex; align-items: center; justify-content: center;
+    gap: 0.7rem; flex-wrap: wrap;
+    padding: 0.5rem 0.75rem;
+    color: #ffffff; font-weight: 900;
+    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
+    animation: sen-fx-band 2s ease-out forwards;
+  }
+  .sen-fb-stamp { font-size: 2rem; line-height: 1.15; }
+  .sen-fb-hint  { font-size: 1.25rem; font-weight: 800; opacity: 0.96; }
+  @keyframes sen-fx-wash {
+    0%   { opacity: 1; }
+    20%  { opacity: 0.40; }
+    100% { opacity: 0.12; }
+  }
+  @keyframes sen-fx-band {
+    0%   { transform: translateY(-100%); opacity: 0; }
+    14%  { transform: translateY(0); opacity: 1; }
+    82%  { transform: translateY(0); opacity: 1; }
+    100% { transform: translateY(-14%); opacity: 0; }
+  }
+  /* 反饋期間：head 帶被 band 覆蓋 → 順手收埋佢嘅掣，
+     避免出現「睇唔到但撳得到」（band 係 pointer-events:none，會 click-through）。 */
+  .sen-panel.is-fb-active .sen-panel-head { visibility: hidden; pointer-events: none; }
+  @media (prefers-reduced-motion: reduce) {
+    .sen-opt-btn, .pic-card-mini,
+    .sen-opt-btn::after, .pic-card-mini::after { animation: none !important; }
+    .sen-fb-wash, .sen-fb-band { animation: none !important; }
+  }
   .pic-card-mini .pic-card-emoji { font-size: 2.2rem; line-height: 1; }
   .pic-card-mini .pic-card-name { font-size: 0.9rem; font-weight: 700; }
   .pic-card-mini .pic-card-pkg {
@@ -2647,23 +2762,9 @@
   .lbl-c-red { color: #fca5a5; }
   .lbl-c-green { color: #86efac; }
   .lbl-c-orange { color: #fdba74; }
-  .sen-hint-line {
-    margin-top: 1rem;
-    font-size: 1.75rem;
-    font-weight: 800;
-    color: #fff;
-    text-shadow: 0 2px 8px rgba(0,0,0,.5);
-    max-width: 90vw;
-    padding: 0 1rem;
-  }
-  /* V3.6 cycle88: SEN feedback — 2s顯示 + 正/再試 stamp + 藍色安慰 */
-  @keyframes sen-fb {
-    0%   { opacity: 0; transform: scale(0.8); }
-    15%  { opacity: 1; transform: scale(1.05); }
-    25%  { transform: scale(1); }
-    75%  { opacity: 1; }
-    100% { opacity: 0; transform: scale(1.05); }
-  }
+  /* V3.6 cycle111f: 舊版「置中 5.5rem 大字 stamp」嘅 CSS 已經拆走
+     （.sen-hint-line / @keyframes sen-fb）—— 佢哋壓住選項掣，
+     詳見 cycle111f CSS 段落嘅註解。新結構 = .sen-fb-wash + .sen-fb-band。 */
 </style>
 </head>
 
@@ -7217,6 +7318,12 @@ const Game = {
 
       // V3.6 cycle109: 答啱先推進進度；答錯 → 原地重播同一條
       const units = _cellUnits(correct, usedHint, isReplay);
+      // V3.6 cycle111f: 逐個選項反饋（game feel）
+      //   ⚠️ 喺 _senShowFeedback 之前 —— 咁樣被撳嗰個掣嘅狀態 / badge / pop
+      //   同 Audio.correct()/wrong() 同一幀起點（project §12 規則）。
+      UI._senMarkOption(btn, correct);
+      if (correct) UI._senCelebrate(btn);
+      else UI._senRevealCorrect(team, q);
       if (correct) {
         UI._senShowFeedback(true, null, team);
         Game.state.replayQ = null;
@@ -8438,26 +8545,87 @@ const UI = {
     }
   },
 
-  // Brief green/red feedback overlay on one panel (+ optional wrong-answer hint)
+  // V3.6 cycle111f: SEN 逐個選項反饋（game feel —— project §12 規格喺 SEN 畫面落地）
+  //   經典畫面一直有（highlightBtn → `.option-btn.correct/.wrong` + `::before` ✓/✗），
+  //   SEN 畫面（目標學生行嘅路徑）冇 → 學生只見到全屏 overlay，睇唔出邊個答啱。
+  //   層疊反饋（聲音同動畫同一幀起點）：狀態色 + ✓/✕ badge + squash&stretch pop + 慶祝粒子。
+  //   ⚠️ SEN 安全：答錯用藍灰（唔用刺眼紅）· 唔做 screen shake / hit-stop · pop 只喺被撳嗰個掣
+  _senMarkOption(btn, correct) {
+    if (!btn || !btn.classList) return;
+    if (!btn.dataset || !btn.dataset.letter) return;   // 冇 A/B/C/D badge 嘅唔搞
+    btn.classList.remove('is-correct', 'is-wrong');
+    void btn.offsetWidth;                 // 重啟 CSS animation
+    btn.classList.add(correct ? 'is-correct' : 'is-wrong');
+  },
+  // 搵返「正確答案」嗰個選項（一般 MC 掣 / pic-grid 卡片）
+  _senFindOption(team, q) {
+    const panel = document.getElementById('sen-panel-' + team);
+    if (!panel || !q) return null;
+    const ans = String(q.answer);
+    const btn = Array.from(panel.querySelectorAll('.sen-opt-btn')).find((b) => {
+      const v = b.querySelector('.sen-opt-val');
+      return v && v.textContent.trim() === ans;
+    });
+    if (btn) return btn;
+    const cards = Array.from(panel.querySelectorAll('.pic-card-mini'));
+    const idx = (q.options || []).indexOf(ans);
+    if (idx >= 0 && cards[idx]) return cards[idx];
+    return null;
+  },
+  // 答錯時揭示正確選項 —— 對 SEN 學生係最重要嘅教學時刻
+  _senRevealCorrect(team, q) {
+    const btn = UI._senFindOption(team, q);
+    if (!btn) return;
+    btn.classList.remove('is-correct', 'is-wrong');
+    void btn.offsetWidth;
+    btn.classList.add('is-correct');
+  },
+  // 答對：細量慶祝（medium tier —— 答對一題唔等於擊殺 boss）
+  _senCelebrate(btn) {
+    if (!btn) return;
+    const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduce) return;
+    const r = btn.getBoundingClientRect();
+    if (!r.width || !r.height) return;
+    FX.confetti(r.left + r.width / 2, r.top + r.height / 2, 14);
+  },
+
+  // V3.6 cycle111f: SEN feedback overlay（重構）
+  //
+  // ⚠️ P0：舊版（cycle88）喺全屏 overlay **置中** 放一個 5.5rem 嘅「✅ 正！/💙 再試！」大字。
+  //    實機量測（639×669）：stamp 文字 397×92px @ y289–380，選項掣 A @ y274–384
+  //    → 重疊 352×91 = 32,032 px²。答錯嗰陣，被揭示嘅正確答案完全被大字蓋死
+  //    —— 最需要教學嗰一刻睇唔到（實機截圖實證）。
+  //    另外 0.5 alpha 嘅全屏底會食掉逐個選項嘅狀態色，令 .is-correct/.is-wrong 失效。
+  //
+  // 新版三層（詳見 index.html CSS 段落嘅註解）：
+  //   ① .sen-fb-wash → 全屏淡色，0.45 → 0.12（唔食掉選項狀態色）
+  //   ② .sen-fb-band → 頂部橫條（疊喺 absolute 定位嘅 head 帶上，零 layout shift）
+  //      verdict + 提示；永遠唔覆蓋選項掣 / Stage 進度格
+  //   ③ 逐個選項反饋 → 由 _senMarkOption / _senRevealCorrect 負責（主要學習訊號）
   _senShowFeedback(correct, hintText, team) {
     const t = team || 'knight';
     const fb = $(`sen-feedback-${t}`);
     if (!fb) return;
     if (fb._clearTimer) clearTimeout(fb._clearTimer);
     const hintHtml = (!correct && hintText)
-      ? `<div class="sen-hint-line" style="font-size:1.6rem;margin-top:0.5rem;text-align:center;opacity:0.95;">${escapeHTML(String(hintText))}</div>`
+      ? `<span class="sen-fb-hint">${escapeHTML(String(hintText))}</span>`
       : '';
-    // V3.6 cycle88: correct = 綠底+正 / wrong = 藍底+再試（安慰語氣）
-    const bg = correct ? 'rgba(34,197,94,0.5)' : 'rgba(59,130,246,0.5)';
+    // correct = 綠 / wrong = 藍（安慰語氣，唔用紅 —— SEN 安全）
+    const wash = correct ? 'rgba(34,197,94,0.45)' : 'rgba(59,130,246,0.40)';
+    const bandBg = correct ? 'rgba(21,128,61,0.95)' : 'rgba(30,64,175,0.95)';
     const stamp = correct ? '✅ 正！' : '💙 再試！';
-    fb.innerHTML = `<div style="
-      position:absolute;inset:0;
-      background:${bg};
-      display:flex;flex-direction:column;align-items:center;justify-content:center;
-      z-index:6;pointer-events:none;
-      animation:sen-fb 2s forwards;
-    "><div style="font-size:5.5rem;font-weight:900;line-height:1;text-shadow:0 3px 8px rgba(0,0,0,0.35);">${stamp}</div>${hintHtml}</div>`;
-    fb._clearTimer = setTimeout(() => { if (fb) fb.innerHTML = ''; }, correct ? 2000 : 2200);
+    fb.innerHTML =
+      `<div class="sen-fb-wash" style="background:${wash};"></div>` +
+      `<div class="sen-fb-band" style="background:${bandBg};">` +
+      `<span class="sen-fb-stamp">${stamp}</span>${hintHtml}</div>`;
+    // head 帶被 band 覆蓋 → 收埋佢，令「睇唔到」同「撳唔到」一致
+    const panel = $(`sen-panel-${t}`);
+    if (panel) panel.classList.add('is-fb-active');
+    fb._clearTimer = setTimeout(() => {
+      if (fb) fb.innerHTML = '';
+      if (panel) panel.classList.remove('is-fb-active');
+    }, correct ? 2000 : 2200);
   },
 
   markSENTeamDone(team) {

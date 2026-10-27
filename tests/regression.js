@@ -2659,6 +2659,93 @@ assert('T111e-07 視覺 runner 冇 Chrome 會 SKIP（唔會阻住其他 gate）'
   /CHROME_NOT_FOUND/.test(fs.readFileSync(path.join(__dirname, '..', 'tests', 'visual', 'cdp.mjs'), 'utf8')) &&
   /SKIP/.test(fs.readFileSync(path.join(__dirname, '..', 'tests', 'visual', 'run.mjs'), 'utf8')));
 
+// ============================================================
+// V3.6 cycle111f: game feel —— SEN 逐個選項反饋 + verdict band 重構（P0）
+// ============================================================
+console.log('\n[T111f] V3.6 cycle-111f (game feel: SEN 逐個選項反饋 + verdict band 唔遮選項)');
+
+// --- ① 四個反饋 helper 齊 ---
+assert('T111f-01 SEN 逐個選項反饋 helper 四個齊',
+  /_senMarkOption\(btn, correct\) \{/.test(src) &&
+  /_senFindOption\(team, q\) \{/.test(src) &&
+  /_senRevealCorrect\(team, q\) \{/.test(src) &&
+  /_senCelebrate\(btn\) \{/.test(src));
+
+// --- ② handleAnswer 接線順序：反饋一定要喺 overlay 之前（同一幀起點） ---
+const _t111fMarkIdx = src.indexOf('UI._senMarkOption(btn, correct);');
+const _t111fFbIdx = src.indexOf('UI._senShowFeedback(true, null, team);');
+assert('T111f-02 handleAnswer：逐個選項反饋喺 _senShowFeedback 之前（同一幀起點）',
+  _t111fMarkIdx > -1 && _t111fFbIdx > -1 && _t111fMarkIdx < _t111fFbIdx &&
+  /if \(correct\) UI\._senCelebrate\(btn\);\s*\n\s*else UI\._senRevealCorrect\(team, q\);/.test(src));
+
+// --- ③ CSS 狀態 class + badge + 三種動畫 ---
+assert('T111f-03 SEN 逐個選項反饋 CSS：.is-correct / .is-wrong + ✓ / ✕ badge + pop/miss/badge-pop',
+  /\.sen-opt-btn\.is-correct,/.test(src) &&
+  /\.pic-card-mini\.is-correct/.test(src) &&
+  /\.sen-opt-btn\.is-wrong,/.test(src) &&
+  /\.pic-card-mini\.is-wrong/.test(src) &&
+  /content: '✓'/.test(src) && /content: '✕'/.test(src) &&
+  /animation: sen-fx-pop-correct/.test(src) &&
+  /animation: sen-fx-miss/.test(src) &&
+  /animation: sen-fx-badge-pop/.test(src));
+
+// --- ④ SEN 安全：答錯唔可以用刺眼紅 ---
+assert('T111f-04 SEN 安全：答錯用藍灰 #e2e8f0 + #64748b 邊（唔係刺眼紅）',
+  /background: #e2e8f0 !important;/.test(src) &&
+  /border-color: #64748b !important;/.test(src) &&
+  !/\.sen-opt-btn\.is-wrong[\s\S]{0,500}?#ef4444/.test(src) &&
+  !/\.pic-card-mini\.is-wrong[\s\S]{0,500}?#ef4444/.test(src));
+
+// --- ⑤ P0：overlay 改成頂部 band + 淡色 wash，唔再置中大字 ---
+assert('T111f-05 P0：feedback overlay 改成頂部 band + 淡色 wash（唔再置中大字壓住選項）',
+  /class="sen-fb-wash"/.test(src) &&
+  /class="sen-fb-band"/.test(src) &&
+  /class="sen-fb-stamp"/.test(src) &&
+  !/font-size:5\.5rem;font-weight:900;line-height:1;text-shadow:0 3px 8px/.test(srcCode));
+
+// --- ⑥ 舊置中 stamp 嘅 CSS / keyframes 拆走（防復辟） ---
+assert('T111f-06 舊置中 stamp 嘅 CSS / keyframes 已清走（防復辟）',
+  !/@keyframes sen-fb \{/.test(srcCode) &&
+  !/\.sen-hint-line \{/.test(srcCode) &&
+  /@keyframes sen-fx-wash \{/.test(src) &&
+  /@keyframes sen-fx-band \{/.test(src));
+
+// --- ⑦ band 定位喺 panel 頂部（唔係全屏置中） ---
+assert('T111f-07 band 定位喺 panel 頂部（top:0），唔係 inset:0 + 置中',
+  /\.sen-fb-band \{[\s\S]{0,600}?position: absolute; top: 0; left: 0; right: 0;/.test(src) &&
+  !/\.sen-fb-band \{[\s\S]{0,600}?inset: 0;/.test(src));
+
+// --- ⑧ wash 要淡到夠低（唔食掉逐個選項嘅狀態色） ---
+assert('T111f-08 wash 淡到 0.12 opacity（唔食掉逐個選項嘅狀態色）',
+  /@keyframes sen-fx-wash \{[\s\S]{0,300}?100% \{ opacity: 0\.12; \}/.test(src));
+
+// --- ⑨ 反饋期間 head 帶收埋（避免「睇唔到但撳得到」） ---
+assert('T111f-09 反饋期間 head 帶收埋（band 覆蓋佢，掣就唔應該仲撳得到）',
+  /\.sen-panel\.is-fb-active \.sen-panel-head \{ visibility: hidden; pointer-events: none; \}/.test(src) &&
+  /panel\.classList\.add\('is-fb-active'\)/.test(src) &&
+  /panel\.classList\.remove\('is-fb-active'\)/.test(src));
+
+// --- ⑩ reduce-motion 關晒新 animation（CSS 層） ---
+assert('T111f-10 新增 animation 全部喺 prefers-reduced-motion 下關掉（CSS 層）',
+  /\.sen-fb-wash, \.sen-fb-band \{ animation: none !important; \}/.test(src) &&
+  /\.sen-opt-btn::after, \.pic-card-mini::after \{ animation: none !important; \}/.test(src));
+
+// --- ⑪ badge 定位需要 position:relative ---
+assert('T111f-11 .sen-opt-btn 有 position:relative（✓/✕ badge 定位用）',
+  /\.sen-opt-btn \{ position: relative; \}/.test(src));
+
+// --- ⑫ 慶祝粒子喺 JS 層亦 respect prefers-reduced-motion ---
+assert('T111f-12 慶祝粒子喺 JS 層亦 respect prefers-reduced-motion',
+  /prefers-reduced-motion: reduce\)'\)\.matches/.test(src) &&
+  /FX\.confetti\(r\.left \+ r\.width \/ 2, r\.top \+ r\.height \/ 2, 14\)/.test(src));
+
+// --- ⑬ 視覺場景有 P0 幾何守門 ---
+const _t111fScenarioPath = path.join(__dirname, '..', 'tests', 'visual', 'scenarios', 'sen-answer-feedback.mjs');
+assert('T111f-13 視覺場景有「band 唔覆蓋選項掣」幾何守門（實機驗證，唔係淨係 regex）',
+  fs.existsSync(_t111fScenarioPath) &&
+  /verdict band 唔覆蓋任何一個選項掣/.test(fs.readFileSync(_t111fScenarioPath, 'utf8')) &&
+  /被揭示嘅正確答案，內容完全冇被遮/.test(fs.readFileSync(_t111fScenarioPath, 'utf8')));
+
 // =========== summary ===========
 console.log(`\n========== ${pass} pass / ${fail} fail ==========`);
 if (fail > 0) {

@@ -11,13 +11,13 @@
 
 ---
 
-## 0. 現況（baseline · 2026-10-26 · post cycle 111b）
+## 0. 現況（baseline · 2026-10-28 · post cycle 111f）
 
 | 項 | 值 |
 |---|---|
-| Version | **v3.6** · cycle **111e** |
-| Tests | **5611 pass / 0 fail**（882 regression + 4665 generator-audit + 12 audio-audit + 22 asset-audit + 30 visual） |
-| Size | `index.html` **589,709 bytes**（budget < 600 KB · 餘 26,691） |
+| Version | **v3.6** · cycle **111f** |
+| Tests | **5638 pass / 0 fail**（895 regression + 4665 generator-audit + 12 audio-audit + 22 asset-audit + 44 visual） |
+| Size | `index.html` **598,798 bytes**（budget < 600 KB · 餘 15,602） |
 | Media payload | **0 bytes**（全部 runtime 合成） |
 | Visual readiness | **6.3 / 10**（Before cycle 106 = 4.56）· 見 `docs/VISUAL_QUALITY_RUBRIC.md` |
 | Core done | easy scopes · solo/dual arena · 黃/紫長短 · 數數分5 · 順序跟住 · bank v3 · 視覺 P0 修清 |
@@ -97,6 +97,26 @@
       └ 新守門：`all-scopes-answerable`（8 個 scope 都撳得到）· `end-screen-overflow`
         （639×669 唔准 overflow，cycle110b P1 終於有可執行防線）· `sen-l-capacity` · `sprite-sheet`
       └ 3 條還原驗證全部有效 · 連跑 3 次 30 pass / 0 fail（冇 flakiness）
+- [x] **cycle 111f** game feel：SEN 逐個選項反饋 + verdict band 重構（P0）✅ 已 ship
+      └ **補返 project §12 一直冇落地嘅 SEN 畫面反饋**（經典畫面有 ✓/✗，SEN 畫面冇）：
+        答對 = 綠底 + 綠邊 + ✓ badge + squash&stretch pop + 慶祝粒子；
+        答錯 = **藍灰** + 灰邊 + ✕ badge + 輕微搖，**同時揭示正確選項**（教學時刻）
+      └ ⚠️ **P0 修正**：舊版全屏 overlay 置中放 5.5rem 大字「✅ 正！/💙 再試！」→
+        實測 639×669 重疊 **352×91 = 32,032 px²**，答錯嗰陣**被揭示嘅正確答案完全被蓋死**。
+        而且 0.5 alpha 全屏底會食掉逐個選項嘅狀態色 → 新反饋訊號失效。
+        → 改成三層：① 全屏淡色 wash（0.45 → 0.12）② 頂部 verdict band（疊 absolute 嘅
+        head 帶 → 零 layout shift，永不覆蓋選項掣 / 進度格）③ 逐個選項反饋（主要學習訊號）
+      └ **SEN 安全**：答錯用藍灰唔用刺眼紅 · 唔做 screen shake / hit-stop · pop 只喺被撳嗰個掣
+        · CSS + JS 兩層 respect `prefers-reduced-motion`
+      └ 新守門：`sen-answer-feedback`（14 條，含 **band 幾何重疊 = 0** + 正確答案內容冇被遮
+        + 答啱/答錯底色明顯唔同）；regression T111f-01..13
+      └ **4 條還原驗證全部以正確原因 fail**（抽走接線 / band 置中 / 改紅 / 舊 stamp 復辟）
+      └ ⚠️ 還原驗證捉到自己嘅守門漏洞：只斷 `band.top == panel.top` 會漏過 `inset:0` 置中復辟
+        → 加斷 `band.height ≤ 100px` + 「唔覆蓋 `.sen-cell`」先捉得到
+- [ ] **cycle 111g** 音頻 mix 架構（用 `audio-design` skill）：真 master bus（`masterGain` 同
+      `bgmGain` 而家都係**死變數**）+ 主音量 API（slider → 平方 gain，唔係 linear amplitude）
+      + BGM ducking（TTS 朗讀時壓低 BGM）+ noise buffer cache（每次 `createBuffer` → 1 個）
+      + BGM 變奏（每 8 步 phrase 洗牌 arp，唔再機械重複）
 - [ ] **cycle 111c** Boss 重新入場（進度格驅動 + HP）· 5 個 boss 守護者 sprite
 - [ ] **cycle 111d** 4 scope icon + 3 UI icon + emoji-as-chrome 置換（合共 16 個新 symbol）
 - [ ] **cycle 112** 教師台 8 項控制 + 班級模式 + 概念卡 UI

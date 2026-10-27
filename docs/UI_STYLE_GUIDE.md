@@ -360,6 +360,46 @@ font-family: 'Noto Sans TC', 'PingFang TC', system-ui, sans-serif;
 - **唔准**淨用顏色(要 icon + 文字)
 - 每個 sound event 要有對應 `Audio.*` export(cycle 105 `tests/audio-audit.js` 長期 cross-check)
 
+### 12.1 SEN 畫面嘅逐個選項反饋(cycle 111f)
+
+上表嘅「✅ flash + 綠邊 / ❌ flash + 紅邊」原本**只喺經典畫面**落地
+(`.option-btn.correct/.wrong` + `::before` ✓/✗)。**SEN 畫面(目標學生行嘅路徑)一直冇** ——
+學生只見到全屏 overlay,睇唔出邊個答啱。cycle 111f 補返:
+
+| 事件 | SEN 畫面 |
+|---|---|
+| 答對 | 被撳嗰個掣 → 綠底 `#dcfce7` + 綠邊 + ✓ badge + squash&stretch pop + 慶祝粒子 |
+| 答錯 | 被撳嗰個掣 → **藍灰** `#e2e8f0` + 灰邊 + ✕ badge + 輕微左右搖;**同時揭示正確選項**(綠邊 + ✓) |
+| 判定文字 | panel 頂部 **verdict band**(✅ 正！/ 💙 再試！)+ 提示,**唔置中** |
+
+**SEN 安全上限**(中度智障學生對晃動 / 停頓 / 刺眼紅敏感):
+- 答錯用**藍灰**,**唔准**用刺眼紅
+- **唔做** screen shake / hit-stop / 全屏閃白
+- pop / 搖只喺**被撫嗰個**掣,唔係全屏
+- 一定要返原狀(squash 完必須 spring 返 `scale(1)`)
+- 沿用 project 既有 `prefers-reduced-motion` 模式(CSS + JS 兩層)
+
+**硬性規則(P0,cycle 111f 實測教訓)**
+
+> **反饋層唔可以遮住學習訊號層。**
+
+舊版 SEN feedback 係全屏 overlay **置中**放一個 5.5rem 大字「✅ 正！/💙 再試！」。
+實測(639×669 學校 iPad):stamp 文字 397×92px @ y289–380,選項掣 @ y274–384
+→ **重疊 352×91 = 32,032 px²** —— 答錯嗰陣,被揭示嘅正確答案完全被大字蓋死,
+即係「最需要教學嗰一刻」睇唔到(實機截圖實證)。
+而且 0.5 alpha 嘅全屏底會食掉逐個選項嘅狀態色,令新加嘅 `.is-correct` / `.is-wrong` 訊號失效。
+
+而家改成三層:
+
+| 層 | 元素 | 職責 |
+|---|---|---|
+| ① 弱 | `.sen-fb-wash` 全屏淡色 | 0.45 → 0.12 淡出,**唔食掉狀態色** |
+| ② 中 | `.sen-fb-band` 頂部 verdict band | 判定文字 + 提示;疊喺 `position:absolute` 嘅 `.sen-panel-head` 帶上 → **零 layout shift**;**永不覆蓋選項掣 / Stage 進度格** |
+| ③ 強 | `.is-correct` / `.is-wrong` 逐個選項 | **主要學習訊號** |
+
+→ band 同任何一個選項掣嘅重疊必須係 **0**,由
+`tests/visual/scenarios/sen-answer-feedback.mjs` 喺 639×669 實機幾何量度守門。
+
 ---
 
 ## 13. Safe area & responsive(安全區與響應式)
@@ -458,3 +498,4 @@ font-family: 'Noto Sans TC', 'PingFang TC', system-ui, sans-serif;
 | Cycle | 日期 | 內容 |
 |---|---|---|
 | 106 | 2026-10-24 | 本文件建立;新增 `--c-text-on-night` token pair、§6.2 surface→token 對照表、§8.2 九態清單、§15 反例清單;記錄 44px 觸控下限、9 態、focus ring 規格、safe-area 規則 |
+| 111f | 2026-10-28 | 新增 **§12.1 SEN 畫面嘅逐個選項反饋** —— §12 原本只落地喺經典畫面,SEN 畫面(目標學生行嘅路徑)冇;補上逐個選項嘅 ✓/✕ badge + 狀態色 + pop/搖 + 揭示正確答案。並記錄 **P0 硬性規則「反饋層唔可以遮住學習訊號層」**(實測 639×669 重疊 32,032 px² → 三層重構:淡色 wash / 頂部 verdict band / 逐個選項反饋)與 **SEN 安全上限**(藍灰非紅 · 唔做 shake / hit-stop · pop 只喺被撳嗰個掣) |
