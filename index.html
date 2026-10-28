@@ -4410,12 +4410,27 @@
         <!-- V3.4-AUDIT5: 音效細部控制 (P1) -->
         <div class="border-t border-white/10 pt-3 mt-3">
           <h4 class="text-base font-bold text-cyan-300 mb-2">🔊 音效細部控制</h4>
-          <div class="space-y-2 text-sm">
+          <!-- ⚠️ cycle111g: 呢啲 label 之前冇 text-on-night → 繼承 body 嘅
+               --c-text-primary（#1e293b 深色）→ 喺 bg-slate-900 深底上面**深底深字睇唔到**。
+               AGENTS.md cycle106 規則：深色 surface 一律用 text-on-night*。 -->
+          <div class="space-y-2 text-sm text-on-night">
             <label class="flex items-center gap-3 cursor-pointer">
               <input type="checkbox" id="td-audio-master" class="w-5 h-5 cursor-pointer" aria-describedby="td-audio-master-desc" />
               <span>總開關</span>
               <span id="td-audio-master-desc" class="sr-only">關閉後所有音效、背景音樂、朗讀都會靜音</span>
             </label>
+            <!-- V3.6 cycle111g: 主音量 slider
+                 audio-design skill：slider → **平方** gain（raw linear amplitude 會將
+                 大部分聽覺變化擺喺底部 1/5）；0% = 真靜音。 -->
+            <div class="ml-4 mt-1">
+              <label for="td-audio-volume" class="flex items-center justify-between gap-3 cursor-pointer">
+                <span>🔈 主音量</span>
+                <span id="td-audio-volume-val" class="text-amber-300 font-bold">100%</span>
+              </label>
+              <input type="range" id="td-audio-volume" min="0" max="100" step="5" value="100"
+                     class="w-full cursor-pointer mt-1" aria-describedby="td-audio-volume-desc" />
+              <span id="td-audio-volume-desc" class="sr-only">調整所有音效同背景音樂嘅總音量。0% 即完全靜音。</span>
+            </div>
             <label class="flex items-center gap-3 cursor-pointer ml-4">
               <input type="checkbox" id="td-audio-sfx" class="w-5 h-5 cursor-pointer" aria-describedby="td-audio-sfx-desc" />
               <span>答題 / 攻擊 / boss 音效</span>
@@ -5123,13 +5138,27 @@ function _lenPairMark(root, side, kind) {
 
 /* ============== [2] 音訊 (Web Audio beeps) ============== */
 const Audio = (() => {
-  let ctx = null, masterGain = null;
-  let bgmNode = null, bgmGain = null;
+  let ctx = null;
+  // V3.6 cycle111g: 真 bus 架構（用 `audio-design` skill）
+  //   Master ← { SFX , BGM ← Duck }
+  // ⚠️ 之前 `masterGain` 同 `bgmGain` 都係「宣告咗但從來冇用」嘅死變數 →
+  //    成個模組冇 master gain、冇音量控制、冇 ducking、冇 headroom 管理。
+  //    AGENTS.md 一直將「masterGain declared and never used → no master gain」記錄為 open P1。
+  let masterGain = null;   // Master bus → ctx.destination
+  let sfxGain = null;      // SFX bus → masterGain
+  let bgmGain = null;      // BGM 音量 bus → bgmDuckGain
+  let bgmDuckGain = null;  // BGM duck bus → masterGain（獨立節點，唔會覆寫玩家嘅 slider）
+  let noiseBuf = null;     // 白噪 buffer cache（之前每次 noise() 都 createBuffer）
   let bgmTempo = 0.18; // seconds per step
   let bgmStep = 0;
   let bgmInterval = null;
+  let bgmArp = null;        // 當前 phrase 嘅 arp 順序（每個 phrase 洗牌）
+  let bgmArpScene = null;
     // V3.4-AUDIT5: per-channel mute — maste
   let channels = { master: true, sfx: true, bgm: true };
+  // V3.6 cycle111g: 音量（0..1 slider 值）—— 單一真實來源
+  let busVolume = { master: 1, sfx: 1, bgm: 1 };
+  let bgmDucked = false;
   function canPlaySfx() { return channels.master && channels.sfx; }
   function canPlayBgm() { return channels.master && channels.bgm; }
 
@@ -5137,12 +5166,56 @@ const Audio = (() => {
     if (!ctx) {
       try { ctx = new (window.AudioContext || window.webkitAudioContext)(); }
       catch(e) { ctx = null; }
+      if (ctx) ensureGraph();
     }
     return ctx;
   }
+  // bus graph：Master ← { SFX , BGM ← Duck }（每個 bus 都經 masterGain → destination）
+  function ensureGraph() {
+    if (!ctx || masterGain) return;
+    masterGain = ctx.createGain();
+    masterGain.gain.value = 1;
+    sfxGain = ctx.createGain();
+    bgmGain = ctx.createGain();
+    bgmDuckGain = ctx.createGain();
+    sfxGain.connect(masterGain);
+    bgmGain.connect(bgmDuckGain);
+    bgmDuckGain.connect(masterGain);
+    masterGain.connect(ctx.destination);
+    applyAllGains();
+  }
+  // slider(0..1) → gain：**平方**
+  // ⚠️ audio-design skill：raw linear-amplitude slider 會將大部分聽覺變化擺喺底部 1/5
+  //    → 平方先平均分配喺整個行程。0 = 真靜音（GainNode gain 0）。
+  function sliderToGain(s) {
+    const v = Number.isFinite(s) ? s : 0;
+    const c = v < 0 ? 0 : (v > 1 ? 1 : v);
+    return c * c;
+  }
+  function rampGain(node, target) {
+    if (!node) return;
+    const g = node.gain;
+    const now = ctx ? ctx.currentTime : 0;
+    // 用 linear ramp（唔係 setValueAtTime 硬切）→ 唔會有 zipper noise
+    g.setValueAtTime(g.value, now);
+    g.linearRampToValueAtTime(target, now + 0.08);
+  }
+  function applyAllGains() {
+    if (!masterGain) return;
+    rampGain(masterGain, sliderToGain(busVolume.master));
+    rampGain(sfxGain, sliderToGain(busVolume.sfx));
+    rampGain(bgmGain, sliderToGain(busVolume.bgm));
+    rampGain(bgmDuckGain, bgmDucked ? 0.25 : 1);
+  }
+  function busNode(bus) {
+    if (!ctx) return null;
+    if (bus === 'bgm') return bgmGain || ctx.destination;
+    return sfxGain || ctx.destination;
+  }
   // 連續音（pad/drone/弦樂感覺）— 用振盪器加 filter + LFO modulation 模擬 retro feel
-  function tone(freq, dur = 0.12, type = 'sine', vol = 0.18, slideTo = null, slideDur = 0) {
-    if (!canPlaySfx()) return;
+  function tone(freq, dur = 0.12, type = 'sine', vol = 0.18, slideTo = null, slideDur = 0, bus = 'sfx') {
+    const allowed = (bus === 'bgm') ? canPlayBgm() : canPlaySfx();
+    if (!allowed) return;
     const c = ensure(); if (!c) return;
     if (c.state === 'suspended') c.resume().catch(()=>{});
     const t0 = c.currentTime;
@@ -5152,26 +5225,40 @@ const Audio = (() => {
     if (slideTo != null) o.frequency.exponentialRampToValueAtTime(slideTo, t0 + slideDur);
     g.gain.setValueAtTime(vol, t0);
     g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
-    o.connect(g); g.connect(c.destination);
+    o.connect(g); g.connect(busNode(bus));
     o.start(t0);
     o.stop(t0 + dur + 0.02);
   }
+  // V3.6 cycle111g: 白噪 buffer **cache**
+  // ⚠️ 之前每次 noise() 都 `createBuffer`（最長 0.5s = 96KB）→ 一局打十幾次就係垃圾回收負擔。
+  //    而家只 create 一個 0.5s buffer（96KB），之後靠 loop + 隨機 offset 變化。
+  function getNoiseBuffer(c) {
+    if (!noiseBuf) {
+      const len = Math.ceil(c.sampleRate * 0.5);
+      noiseBuf = c.createBuffer(1, len, c.sampleRate);
+      const d = noiseBuf.getChannelData(0);
+      for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * 0.7;
+    }
+    return noiseBuf;
+  }
   // 8-bit 風 noise burst（爆裂感／hiss）
-  function noise(dur = 0.18, vol = 0.18, hpFreq = 800) {
-    if (!canPlaySfx()) return;
+  function noise(dur = 0.18, vol = 0.18, hpFreq = 800, bus = 'sfx') {
+    const allowed = (bus === 'bgm') ? canPlayBgm() : canPlaySfx();
+    if (!allowed) return;
     const c = ensure(); if (!c) return;
     if (c.state === 'suspended') c.resume().catch(()=>{});
     const t0 = c.currentTime;
-    const buf = c.createBuffer(1, Math.ceil(c.sampleRate * dur), c.sampleRate);
-    const d = buf.getChannelData(0);
-    for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * 0.7;
+    const buf = getNoiseBuffer(c);
     const src = c.createBufferSource(); src.buffer = buf;
+    src.loop = dur > 0.5;                                  // 長過 buffer 先 loop
+    const offset = dur < 0.5 ? Math.random() * (0.5 - dur) : 0;  // 每次由唔同位開始 → 唔似重複
     const filt = c.createBiquadFilter(); filt.type = 'highpass'; filt.frequency.value = hpFreq;
     const g = c.createGain();
     g.gain.setValueAtTime(vol, t0);
     g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
-    src.connect(filt); filt.connect(g); g.connect(c.destination);
-    src.start(t0);
+    src.connect(filt); filt.connect(g); g.connect(busNode(bus));
+    src.start(t0, offset);
+    src.stop(t0 + dur);
   }
   // 簡單琶音
   function arp(freqs, dur = 0.4, type = 'square', vol = 0.12, gap = 0.06) {
@@ -5196,20 +5283,37 @@ const Audio = (() => {
   };
   let bgmScene = 'forest';
   function setBGMScene(scene) { bgmScene = BGM_PATTERNS[scene] ? scene : 'forest'; }
+  // V3.6 cycle111g: arp 變奏（horizontal re-sequencing，audio-design skill）
+  //   之前每個 scene 都係一條固定 8/10 步循環 → 課堂背景音聽落好機械。
+  //   而家每個 arp phrase 完就洗牌一次（bass 保持落腳點），聽落有變化但唔會走樣。
+  function shuffleArp(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      const t = arr[i]; arr[i] = arr[j]; arr[j] = t;
+    }
+  }
 // 啟動 / 停止背景音樂（簡單 8-bit loop：bass + arp）
   function startBGM() {
     if (!canPlayBgm()) return;
     const c = ensure(); if (!c) return;
     if (bgmInterval) return;
-    const pat = BGM_PATTERNS[bgmScene] || BGM_PATTERNS.forest;
     bgmStep = 0;
     bgmInterval = setInterval(() => {
       if (!canPlayBgm()) return;
-      const bass = pat.bass[bgmStep % pat.bass.length];
-      const arpN = pat.arp[bgmStep % pat.arp.length];
-      tone(bass * 4, 0.18, pat.wave, 0.10);
-      tone(arpN * 2, 0.12, 'square', 0.06);
-      if (bgmStep % 8 === 0) tone(33, 0.6, 'sine', 0.10);
+      const cur = BGM_PATTERNS[bgmScene] || BGM_PATTERNS.forest;
+      if (!bgmArp || bgmArpScene !== bgmScene) {
+        bgmArp = cur.arp.slice();
+        bgmArpScene = bgmScene;
+      }
+      // 每個 arp phrase（10 步）完就洗牌 → 變奏但唔斷奏
+      if (bgmStep % bgmArp.length === 0) shuffleArp(bgmArp);
+      const bass = cur.bass[bgmStep % cur.bass.length];
+      const arpN = bgmArp[bgmStep % bgmArp.length];
+      // ⚠️ bus='bgm' → 經 bgmGain → bgmDuckGain → masterGain
+      //    （唔再同 SFX 混埋一齊，所以朗讀時可以獨立 duck 音樂）
+      tone(bass * 4, 0.18, cur.wave, 0.10, null, 0, 'bgm');
+      tone(arpN * 2, 0.12, 'square', 0.06, null, 0, 'bgm');
+      if (bgmStep % 8 === 0) tone(33, 0.6, 'sine', 0.10, null, 0, 'bgm');
       bgmStep++;
     }, bgmTempo * 1000);
   }
@@ -5339,6 +5443,41 @@ const Audio = (() => {
       // 關 bgm → 立即停 interval；再開 → 由 game loop 自己 call startBGM
       if (name === 'bgm' && !channels.bgm) stopBGM();
     },
+    // ===== V3.6 cycle111g: 音量 / ducking API =====
+    // ⚠️ 用 `Number.isFinite(n) ? n : default` —— 唔可以用 `Number(x) || default`
+    //    （0 係 falsy，會被當成 default，令「靜音」變成「100%」）。
+    setMasterVolume(v) {
+      busVolume.master = Number.isFinite(v) ? Math.min(1, Math.max(0, v)) : 1;
+      applyAllGains();
+      return busVolume.master;
+    },
+    setBusVolume(name, v) {
+      if (!(name in busVolume)) return null;
+      busVolume[name] = Number.isFinite(v) ? Math.min(1, Math.max(0, v)) : 1;
+      applyAllGains();
+      return busVolume[name];
+    },
+    getBusVolume(name) { return name in busVolume ? busVolume[name] : null; },
+    // 實際 gain（已平方）—— 用嚟驗證 slider 映射
+    getBusGain(name) { return name in busVolume ? sliderToGain(busVolume[name]) : null; },
+    // Ducking：TTS 朗讀時壓低 BGM（≈ -12 dB）
+    // ⚠️ 用**獨立** duck bus（bgmDuckGain），唔係直接改 bgmGain ——
+    //    否則 un-duck 會覆寫玩家自己嘅 BGM 音量設定（audio-design skill：唔好同 slider 打架）。
+    duckBGM(active) {
+      bgmDucked = !!active;
+      if (bgmDuckGain) rampGain(bgmDuckGain, bgmDucked ? 0.25 : 1);
+      return bgmDucked;
+    },
+    isBgmDucked() { return bgmDucked; },
+    // bus graph 測試用：畀 audio-audit 驗真實拓撲（唔係淨係變數名）
+    getBusTopology() {
+      return {
+        hasMaster: !!masterGain,
+        hasSfx: !!sfxGain,
+        hasBgm: !!bgmGain,
+        hasDuck: !!bgmDuckGain,
+      };
+    },
     getChannels() { return { ...channels }; },
     isEnabled() { return channels.master && channels.sfx; },
     isBgmOn() { return channels.bgm; },
@@ -5407,6 +5546,15 @@ const TTS = {
     // cancel() in some cases) compares against new epoch and early-returns.
     TTS._boundaryEpoch++;
     const myEpoch = TTS._boundaryEpoch;
+    // V3.6 cycle111g: 朗讀時壓低 BGM（ducking，audio-design skill）
+    //   語音同背景音樂一齊出 → 學生聽唔清題目。壓低音樂就清晒。
+    // ⚠️ unduck 要帶 epoch guard：`speechSynthesis.cancel()` 會令**舊** utterance 嘅
+    //    onend 觸發，唔 check epoch 就會喺新一句講緊時提早 unduck。
+    const unduck = () => {
+      if (myEpoch !== TTS._boundaryEpoch) return;
+      if (typeof Audio !== 'undefined' && Audio.duckBGM) Audio.duckBGM(false);
+    };
+    if (typeof Audio !== 'undefined' && Audio.duckBGM) Audio.duckBGM(true);
     const utter = new SpeechSynthesisUtterance(TTS.normalize(text));
     if (!TTS.voice) TTS.voice = TTS.pickVoice();
     if (TTS.voice) utter.voice = TTS.voice;
@@ -5415,11 +5563,11 @@ const TTS = {
     utter.pitch = 1.0;
     if (btn) {
       btn.classList.add('speaking');
-      utter.onend = () => { btn.classList.remove('speaking'); if (opts.onEnd) opts.onEnd(); };
-      utter.onerror = () => { btn.classList.remove('speaking'); if (opts.onEnd) opts.onEnd(); };
+      utter.onend = () => { btn.classList.remove('speaking'); unduck(); if (opts.onEnd) opts.onEnd(); };
+      utter.onerror = () => { btn.classList.remove('speaking'); unduck(); if (opts.onEnd) opts.onEnd(); };
     } else {
-      utter.onend = () => { if (opts.onEnd) opts.onEnd(); };
-      utter.onerror = () => { if (opts.onEnd) opts.onEnd(); };
+      utter.onend = () => { unduck(); if (opts.onEnd) opts.onEnd(); };
+      utter.onerror = () => { unduck(); if (opts.onEnd) opts.onEnd(); };
     }
     // V3.5-P0: TTS Karaoke boundary callbac
     // charIndex is offset into the NORMALIZED utterance text (what utter.text holds),
@@ -5441,6 +5589,8 @@ const TTS = {
   cancel() {
     if (!('speechSynthesis' in window)) return;
     speechSynthesis.cancel();
+    // V3.6 cycle111g: cancel 都要 unduck（否則 cancel 後 BGM 永遠壓住）
+    if (typeof Audio !== 'undefined' && Audio.duckBGM) Audio.duckBGM(false);
     document.querySelectorAll('.tts-btn.speaking').forEach(b => b.classList.remove('speaking'));
     // V3.5-P0: clear leftover .tts-active h
     // question / new game starts with a clean visual slate (no stale amber block).
@@ -12003,6 +12153,17 @@ function syncAudioSettingsUI() {
   // V3.5-cycle16: chips row toggle sync
   const recommendCb = $('td-recommendation-enabled');
   if (recommendCb) recommendCb.checked = Game.settings.recommendationEnabled !== false;
+  // V3.6 cycle111g: 主音量 slider sync（Audio 模組係單一真實來源）
+  const volSlider = $('td-audio-volume');
+  const volVal = $('td-audio-volume-val');
+  if (volSlider) {
+    const v = Audio.getBusVolume('master');
+    volSlider.value = String(Math.round((v == null ? 1 : v) * 100));
+  }
+  if (volVal) {
+    const v = Audio.getBusVolume('master');
+    volVal.textContent = Math.round((v == null ? 1 : v) * 100) + '%';
+  }
 }
 function wireAudioSettings() {
   syncAudioSettingsUI();
@@ -12029,6 +12190,22 @@ function wireAudioSettings() {
     if (typeof syncBgmButtonsUI === 'function') syncBgmButtonsUI();
   };
   if (ttsCb) ttsCb.onchange = (e) => { TTS.setEnabled(e.target.checked); };
+  // V3.6 cycle111g: 主音量 slider → Audio master bus（0..1）
+  //   ⚠️ 0 係合法值 → 唔可以用 `|| 1`（falsy bug）。
+  const volSlider = $('td-audio-volume');
+  if (volSlider) {
+    const applyVol = () => {
+      const pct = Number(volSlider.value);
+      const v = Audio.setMasterVolume(Number.isFinite(pct) ? pct / 100 : 1);
+      const val = $('td-audio-volume-val');
+      if (val) val.textContent = Math.round(v * 100) + '%';
+      // 持久化（跨 session / 跨課堂保留）
+      Profile.data.masterVolume = v;
+      if (typeof Profile.save === 'function') Profile.save();
+    };
+    volSlider.oninput = applyVol;
+    volSlider.onchange = applyVol;
+  }
     // V3.5-P0: Karaoke toggle — 切換時清乾淨任何 ac
   if (karaokeCb) karaokeCb.onchange = (e) => {
     Game.settings.ttsKaraoke = e.target.checked;
@@ -12113,6 +12290,7 @@ const Profile = {
     masteredCount: 0,                   // V3.5-AUDIT14: 累計精通次數
     sessionsPlayed: 0,
     lastPlayDate: '',
+    masterVolume: 1,                  // V3.6 cycle111g: 主音量（0..1 slider 值）· 跨 session 保留
   },
   load() {
     const p = STORAGE.load(STORAGE.PROFILE_KEY);
@@ -12137,6 +12315,10 @@ const Profile = {
     if (!Array.isArray(this.data.unlockedScenes)) this.data.unlockedScenes = ['forest'];
     if (!Array.isArray(this.data.unlockedChars)) this.data.unlockedChars = ['knight', 'mage'];
     if (!Array.isArray(this.data.badges)) this.data.badges = [];
+    // V3.6 cycle111g: masterVolume lazy-init。
+    // ⚠️ **0 係合法值**（用戶主音量調到 0 = 靜音）→ 一定要用 `Number.isFinite`，
+    //    唔可以用 `|| 1`（0 係 falsy → 會被當成 default，令靜音變返 100%）。
+    if (!Number.isFinite(this.data.masterVolume)) this.data.masterVolume = 1;
     if (!this.data.reactionByType || typeof this.data.reactionByType !== 'object') this.data.reactionByType = {};
     if (!this.data.streakByType || typeof this.data.streakByType !== 'object') this.data.streakByType = {};
     if (!Array.isArray(this.data.errorPattern)) this.data.errorPattern = [];
@@ -12730,6 +12912,9 @@ window.addEventListener('DOMContentLoaded', () => {
   renderRecommendChips();   // V3.5-cycle16: chips row
   // P1-A: 載入 profile + 檢查 resume
   Profile.load();
+  // V3.6 cycle111g: 套用持久化嘅主音量（AudioContext 未開都要記住 slider 值，
+  //   真正開 context 時 ensureGraph() 會用返呢個值）
+  Audio.setMasterVolume(Profile.data.masterVolume);
     // V3.5-cycle16: lazy-migrate recommenda
   if (typeof Game.settings.recommendationEnabled !== 'boolean') {
     Game.settings.recommendationEnabled = true;

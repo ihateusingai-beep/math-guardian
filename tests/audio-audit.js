@@ -34,6 +34,12 @@ const counters = {
 };
 const SAMPLE_RATE = 48000;
 
+// V3.6 cycle111g: 追蹤 audio graph 拓撲（邊個 node 連去邊個）
+//   用嚟實證「master bus 真係用起」—— 之前 masterGain 只係一個宣告咗但冇接線嘅死變數。
+const graphEdges = [];   // [fromId, toId]
+const nodeKinds = new Map();  // nodeId → 'gain' | 'osc' | 'bufsrc' | 'filter' | 'node'
+let nodeSeq = 0;
+
 function makeParam(v) {
   return {
     value: v,
@@ -43,11 +49,18 @@ function makeParam(v) {
   };
 }
 function makeNode(extra) {
-  return Object.assign({
-    connect() { return this; },
+  const node = Object.assign({
+    __id: 'n' + (++nodeSeq),
+    __kind: 'node',
+    connect(to) {
+      graphEdges.push([node.__id, (to && to.__id) ? to.__id : 'dest']);
+      return node;
+    },
     disconnect() {},
     start() {}, stop() {},
   }, extra);
+  nodeKinds.set(node.__id, node.__kind);
+  return node;
 }
 
 class MockCtx {
@@ -55,17 +68,17 @@ class MockCtx {
     counters.ctxCreated++;
     this.state = 'running';
     this.sampleRate = SAMPLE_RATE;
-    this.destination = makeNode({});
+    this.destination = makeNode({ __id: 'dest', __kind: 'dest' });
     this.currentTime = 0;
   }
   resume() { return Promise.resolve(); }
   createOscillator() {
     counters.oscillators++;
-    return makeNode({ type: 'sine', frequency: makeParam(440), detune: makeParam(0) });
+    return makeNode({ __kind: 'osc', type: 'sine', frequency: makeParam(440), detune: makeParam(0) });
   }
-  createGain() { counters.gains++; return makeNode({ gain: makeParam(1) }); }
-  createBiquadFilter() { counters.biquads++; return makeNode({ type: 'lowpass', frequency: makeParam(1000) }); }
-  createBufferSource() { counters.bufferSources++; return makeNode({ buffer: null, playbackRate: makeParam(1) }); }
+  createGain() { counters.gains++; return makeNode({ __kind: 'gain', gain: makeParam(1) }); }
+  createBiquadFilter() { counters.biquads++; return makeNode({ __kind: 'filter', type: 'lowpass', frequency: makeParam(1000) }); }
+  createBufferSource() { counters.bufferSources++; return makeNode({ __kind: 'bufsrc', buffer: null, playbackRate: makeParam(1) }); }
   createBuffer(channels, length, rate) {
     counters.buffers++;
     counters.bufferBytes += channels * length * 4; // Float32
@@ -324,6 +337,9 @@ function report(label, value) {
   const CONTROL = new Set([
     'startBGM', 'stopBGM', 'setBGMScene', 'enable', 'setChannel',
     'getChannels', 'isEnabled', 'isBgmOn', 'isPlaying', 'prime',
+    // V3.6 cycle111g: 音量 / ducking API —— 唔係 SFX（唔會發聲），唔應該當成音效驗
+    'setMasterVolume', 'setBusVolume', 'getBusVolume', 'getBusGain',
+    'duckBGM', 'isBgmDucked', 'getBusTopology',
   ]);
   const sfxNames = [...audioExports].filter(n => !CONTROL.has(n)).sort();
   report(`SFX exports (${sfxNames.length})`, sfxNames.join(' '));
@@ -361,6 +377,14 @@ function report(label, value) {
     heavy.length ? heavy.map(([n, b]) => `${n}=${(b / 1024).toFixed(1)}KB`).join(', ') : '(none)');
 
   // ------------------------------------------------------------
+  // 5b) V3.6 cycle111g: noise buffer **cache** 真係有效
+  //     之前每次 noise() 都 createBuffer（cycle 104 finding A4）。
+  //     而家全場只 create 一次（0.5s = 96KB），靠 loop + 隨機 offset 變化。
+  // ------------------------------------------------------------
+  check('A111g-10 noise buffer 全場只 create 一次（cache 生效）',
+    counters.buffers <= 1, `buffers=${counters.buffers}（之前每個 noise SFX 一次）`);
+
+  // ------------------------------------------------------------
   // 6) tracked P1 (NOT a gate) — dormant exports
   // ------------------------------------------------------------
   const callCounts = new Map();
@@ -376,12 +400,50 @@ function report(label, value) {
     unexpectedDormant.length === 0, `unexpected dormant: ${unexpectedDormant.join(', ')}`);
 
   // ------------------------------------------------------------
-  // 7) tracked P1 (NOT a gate) — masterGain
-  //    cycle 104 finding A1: declared but never wired → no master gain.
+  // 7) V3.6 cycle111g: masterGain 真係用起（cycle 104 finding A1 由 tracked 升為 gate）
+  //    之前：masterGain 只係「宣告咗但從來冇 connect」嘅死變數 → 成個模組冇 master gain。
+  //    而家：真 bus graph = Master ← { SFX , BGM ← Duck }。
+  //    ⚠️ 呢個要用**實機拓撲**（mock 記錄每條 connect edge）嚟驗，
+  //       唔可以只 grep「masterGain 出現幾多次」—— 宣告咗 20 次都係死變數都唔會捉到。
   // ------------------------------------------------------------
   const masterGainRefs = (code.match(/\bmasterGain\b/g) || []).length;
-  report('P1 tracked: masterGain references',
-    `${masterGainRefs} (1 = declared but never used — no master gain node)`);
+  report('masterGain references', `${masterGainRefs}`);
+
+  const gainToDest = graphEdges.filter(([a, b]) => b === 'dest' && nodeKinds.get(a) === 'gain');
+  check('A111g-01 恰好一個 gain 直連 destination（= Master bus 真係接線）',
+    gainToDest.length === 1, `gain→dest edges: ${gainToDest.length}`);
+  const masterId = gainToDest.length ? gainToDest[0][0] : null;
+  const upstreamGains = masterId
+    ? graphEdges.filter(([a, b]) => b === masterId && nodeKinds.get(a) === 'gain')
+    : [];
+  check('A111g-02 Master bus 有 ≥2 個上游 bus（SFX + BGM←Duck）',
+    upstreamGains.length >= 2, `upstream gain buses: ${upstreamGains.length}`);
+  const gainToGain = graphEdges.filter(([a, b]) => nodeKinds.get(a) === 'gain' && nodeKinds.get(b) === 'gain');
+  check('A111g-03 存在 gain→gain 嘅 bus 鏈（voice 經 bus，唔係直連 destination）',
+    gainToGain.length >= 2, `gain→gain edges: ${gainToGain.length}`);
+
+  // ------------------------------------------------------------
+  // 7b) V3.6 cycle111g: 音量 / ducking 行為
+  // ------------------------------------------------------------
+  Audio.setMasterVolume(0.5);
+  check('A111g-04 slider → 平方 gain（0.5 → 0.25；raw linear slider 會將大部分變化擺喺底部 1/5）',
+    Math.abs(Audio.getBusGain('master') - 0.25) < 1e-9, `gain=${Audio.getBusGain('master')}`);
+  Audio.setMasterVolume(0);
+  check('A111g-05 0% = 真靜音（唔會被 `|| default` 當成 1）',
+    Audio.getBusVolume('master') === 0 && Audio.getBusGain('master') === 0,
+    `vol=${Audio.getBusVolume('master')} gain=${Audio.getBusGain('master')}`);
+  Audio.setMasterVolume(1);
+  check('A111g-06 100% = gain 1',
+    Math.abs(Audio.getBusGain('master') - 1) < 1e-9, `gain=${Audio.getBusGain('master')}`);
+  // ⚠️ 用剝註解後嘅 source —— 註解入面講「唔可以用 Number(x) || default」都會中招
+  check('A111g-07 音量 API 唔用 `Number(x) || default`（0 係 falsy）',
+    !/Number\([^)]*\)\s*\|\|/.test(stripComments(audioSrc)), 'found Number() || fallback in Audio module');
+  Audio.duckBGM(true);
+  check('A111g-08 duck 生效（朗讀時壓低 BGM）',
+    Audio.isBgmDucked() === true, `ducked=${Audio.isBgmDucked()}`);
+  Audio.duckBGM(false);
+  check('A111g-09 unduck 生效',
+    Audio.isBgmDucked() === false, `ducked=${Audio.isBgmDucked()}`);
 
   // ------------------------------------------------------------
   // 8) TTS module call-site × export cross-check
@@ -403,6 +465,18 @@ function report(label, value) {
   // ------------------------------------------------------------
   check('A105-11 TTS.speak guards on speechSynthesis availability',
     /'speechSynthesis'\s+in\s+window/.test(code));
+
+  // V3.6 cycle111g: TTS → BGM ducking（語音同背景音樂一齊出，學生聽唔清題目）
+  check('A111g-11 TTS.speak 會 duck BGM（true + false 都要有）',
+    /Audio\.duckBGM\(true\)/.test(ttsSrc) && /Audio\.duckBGM\(false\)/.test(ttsSrc),
+    'TTS module 冇 duck 呼叫');
+
+  // V3.6 cycle111g: 主音量持久化 + boot 套用
+  check('A111g-12 主音量持久化落 Profile + boot 時套用 + lazy-init 用 Number.isFinite',
+    /masterVolume: 1/.test(code) &&
+    /Audio\.setMasterVolume\(Profile\.data\.masterVolume\)/.test(code) &&
+    /!Number\.isFinite\(this\.data\.masterVolume\)/.test(code),
+    'masterVolume 持久化 / boot 套用 / lazy-init 缺一');
 
   // ------------------------------------------------------------
   // 10) a11y: no <span aria-label> without role (memory rule 14)

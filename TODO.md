@@ -11,13 +11,13 @@
 
 ---
 
-## 0. 現況（baseline · 2026-10-28 · post cycle 111f）
+## 0. 現況（baseline · 2026-10-28 · post cycle 111g）
 
 | 項 | 值 |
 |---|---|
-| Version | **v3.6** · cycle **111f** |
-| Tests | **5638 pass / 0 fail**（895 regression + 4665 generator-audit + 12 audio-audit + 22 asset-audit + 44 visual） |
-| Size | `index.html` **598,798 bytes**（budget < 600 KB · 餘 15,602） |
+| Version | **v3.6** · cycle **111g** |
+| Tests | **5672 pass / 0 fail**（909 regression + 4665 generator-audit + 24 audio-audit + 22 asset-audit + 52 visual） |
+| Size | `index.html` **608,481 bytes**（budget < 600 KB · 餘 **5,919** ⚠️ 已好緊） |
 | Media payload | **0 bytes**（全部 runtime 合成） |
 | Visual readiness | **6.3 / 10**（Before cycle 106 = 4.56）· 見 `docs/VISUAL_QUALITY_RUBRIC.md` |
 | Core done | easy scopes · solo/dual arena · 黃/紫長短 · 數數分5 · 順序跟住 · bank v3 · 視覺 P0 修清 |
@@ -113,10 +113,26 @@
       └ **4 條還原驗證全部以正確原因 fail**（抽走接線 / band 置中 / 改紅 / 舊 stamp 復辟）
       └ ⚠️ 還原驗證捉到自己嘅守門漏洞：只斷 `band.top == panel.top` 會漏過 `inset:0` 置中復辟
         → 加斷 `band.height ≤ 100px` + 「唔覆蓋 `.sen-cell`」先捉得到
-- [ ] **cycle 111g** 音頻 mix 架構（用 `audio-design` skill）：真 master bus（`masterGain` 同
-      `bgmGain` 而家都係**死變數**）+ 主音量 API（slider → 平方 gain，唔係 linear amplitude）
-      + BGM ducking（TTS 朗讀時壓低 BGM）+ noise buffer cache（每次 `createBuffer` → 1 個）
-      + BGM 變奏（每 8 步 phrase 洗牌 arp，唔再機械重複）
+- [x] **cycle 111g** 音頻 mix 架構（用 `audio-design` skill）：真 master bus + 主音量 slider
+      + BGM ducking + noise buffer cache + BGM 變奏 ✅ 已 ship
+      └ **修兩個記錄咗好耐嘅 open P1**（`docs/AUDIO_VIDEO_OPTIMIZATION.md` A1 / A4）：
+        - `masterGain` 死變數 → **真 bus graph**：`masterGain → ctx.destination`，
+          `sfxGain → masterGain`，`bgmGain → bgmDuckGain → masterGain`（Duck 係獨立節點，
+          唔會覆寫玩家嘅 slider）
+        - `noise()` 每次 `createBuffer` → **cache：全場 1 個**（93.8 KB，之前 9 個 = 343.1 KB）
+      └ 新功能：主音量 slider（`Audio.setMasterVolume`，**平方** gain `g = s²`）+ 持久化落
+        `Profile.data.masterVolume` + TTS 朗讀時 **BGM ducking**（≈ −12 dB，帶 epoch guard）
+        + BGM 每個 arp phrase 洗牌變奏（bass 保持落腳點）
+      └ **Collateral 修正**：教師台 `bg-slate-900` 上嘅音效 checkbox label 冇 `text-on-night`
+        → 繼承 body 深色字 → **深底深字完全睇唔到**（順手修，符合 cycle106 規則）
+      └ Lock-in：audio-audit A111g-01..12（mock AudioContext 而家記錄**每條 connect edge**
+        → 用**實測拓撲**驗 bus graph，唔係 grep masterGain 幾多次）+ regression T111g-01..14
+        + `tests/visual/scenarios/teacher-audio-panel.mjs`（8 條：slider 真係通 / 平方 gain /
+        0% 真靜音 / WCAG AA 對比度 / 639×669 唔 overflow）
+      └ **5 條還原驗證全部以正確原因 fail**（拆 bus graph / linear gain / `|| default` /
+        撤 ducking / 撤 buffer cache）
+      └ ⚠️ **size 提示**：index.html 而家 608,481 bytes，離 600 KB 只剩 **5,919** ——
+        111c（5 個 boss sprite ≈ 9,500 B）已經唔夠位 → **預算要拍板**（提到 640 KB 定 squeeze）
 - [ ] **cycle 111c** Boss 重新入場（進度格驅動 + HP）· 5 個 boss 守護者 sprite
 - [ ] **cycle 111d** 4 scope icon + 3 UI icon + emoji-as-chrome 置換（合共 16 個新 symbol）
 - [ ] **cycle 112** 教師台 8 項控制 + 班級模式 + 概念卡 UI

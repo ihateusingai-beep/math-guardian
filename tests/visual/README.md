@@ -57,7 +57,7 @@ export default {
 
 `assert` 嘅 `expr` 可以回傳 `boolean`，或者 `{ ok, detail }`（`detail` 會印出嚟，方便 debug）。
 
-## ⚠️ 寫 scenario 嘅兩個陷阱
+## ⚠️ 寫 scenario 嘅四個陷阱
 
 1. **答題目標唔止一種**。一般 MC 係 `.sen-opt-btn`、長短/高矮係 `.len-pair-hit[data-side]`、
    L 容量卡片係 `.pic-card-mini` —— **用 `helpers.mjs` 嘅 `ANSWER_TARGET_SRC`，唔好自己寫一份**
@@ -65,6 +65,16 @@ export default {
    `findLDrink` 就 stall，結算場景 flaky）。
 2. **場景要有「唔會 stall」嘅斷言**。答題 loop 如果搵唔到目標會空轉直到 timeout，
    症狀係「screen-end 仲係 hidden」而唔係「答案撳錯」—— 睇落似另一個問題。
+3. **eval / expr 係 template literal —— 入面唔可以有反引號**。
+   `step.eval` / `step.assert.expr` 嘅內容寫喺 `` ` `` 之間，
+   所以**連註解都唔可以有反引號**（`// 用 \`_foo\` 呢個` 會即刻截斷個字串 →
+   `SyntaxError: Unexpected identifier`，而且錯誤訊息唔會指向真正原因）。
+   cycle111g 實測踩到：註解入面寫咗 `` `_tryTeacherPwd` `` → 成個 scenario 檔案 parse 失敗。
+   → 註解入面一律唔用反引號（用引號或者淨係寫函數名）。
+4. **有密碼門 / 延遲 wire 嘅 UI，要行真實流程**。教師台嘅音效控制係喺
+   `_tryTeacherPwd()` 答啱密碼之後先 `wireAudioSettings()` ——
+   直接 `classList.remove('hidden')` 會令掣**睇得見但撳唔到**（onclick 根本未接上）。
+   → 場景要讀 `_teacherChallenge.a` 填入密碼欄再叫 `_tryTeacherPwd()`。
 
 ## 關聯
 

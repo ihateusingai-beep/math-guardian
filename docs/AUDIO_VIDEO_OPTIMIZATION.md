@@ -23,10 +23,10 @@ specific ways that this review found and verified:
 | B1 | `Audio.tick()` called at `index.html:6643` but never exported → runtime `TypeError` | 🔴 P0 | ✅ **FIXED in cycle 105** |
 | B2 | `Audio.beep(440, 0.08)` called at `index.html:10160` but never exported → runtime `TypeError` | 🔴 P0 | ✅ **FIXED in cycle 105** |
 | B3 | `Audio.bgmInterval` read at `index.html:11771` but never exported → always `undefined` → **background music never resumes** after the tab is backgrounded | 🔴 P0 | ✅ **FIXED in cycle 105** |
-| A1 | `masterGain` declared at `index.html:4762` and never used — there is no master gain node, no volume control, and no ducking capability | 🟠 P1 | Verified, unfixed |
+| A1 | `masterGain` declared at `index.html:4762` and never used — there is no master gain node, no volume control, and no ducking capability | 🟠 P1 | ✅ **FIXED in cycle 111g**（真 bus graph + 主音量 slider + ducking） |
 | A2 | `Audio.countdown` is exported but has zero call sites — the "last 10 seconds" timer has no sound | 🟠 P1 | Verified, unfixed |
 | A3 | BGM is driven by `setInterval(180ms)` and SFX by `setTimeout` chains — timer-based, not sample-accurate; drifts and jitters | 🟠 P1 | Verified, unfixed |
-| A4 | `noise()` allocates a fresh `AudioBuffer` on every call (up to 96 KB) — 408.8 KB of garbage per full SFX pass | 🟠 P1 | Verified, unfixed |
+| A4 | `noise()` allocates a fresh `AudioBuffer` on every call (up to 96 KB) — 408.8 KB of garbage per full SFX pass | 🟠 P1 | ✅ **FIXED in cycle 111g**（buffer cache：全場 1 個，93.8 KB） |
 | A5 | BGM never plays on the home menu; `Game.settings.menuTrack` (`class` \| `boss`) has no audio effect at all | 🟡 P2 | Verified, unfixed |
 | A6 | Easy mode inherits a **boss** scene BGM (forest/snow/lava/shadow/crystal) — no calm learning track exists | 🟡 P2 | Verified, unfixed |
 | A7 | The BGM loop is **7.2 s**. In a 5-minute session the identical 8-note bass pattern repeats **208 times** | 🟡 P2 | Verified, unfixed |
@@ -48,9 +48,57 @@ bugs** and **adding one automated cross-check test** that catches all three.
   all three bugs are reintroduced.
 
 Everything else in this document remains a proposal. The remaining tracked P1
-items (`masterGain` dead code, `Audio.countdown` never wired, `noise()`
-per-call buffer churn) are surfaced by `tests/audio-audit.js` as reported
-metrics so they stay visible without failing the gate.
+items (`Audio.countdown` never wired, timer-based scheduling) are surfaced by
+`tests/audio-audit.js` as reported metrics so they stay visible without failing
+the gate.
+
+### Update — cycle 111g (2026-10-28)
+
+Cycle 111g used the `audio-design` skill to turn the audit's **A1** (dead
+`masterGain`) and **A4** (per-call noise buffer) into real, guarded behaviour.
+The whole audio graph was rebuilt around a **bus architecture**:
+
+```
+ctx.destination
+      ↑
+  masterGain            ← Master bus（總音量 · slider）
+      ↑            ↑
+  sfxGain        bgmDuckGain   ← Duck bus（獨立節點，唔會覆寫玩家嘅 slider）
+                    ↑
+                  bgmGain       ← BGM 音量 bus
+```
+
+| 項目 | 之前 | 而家 |
+|---|---|---|
+| Master gain | `masterGain` 宣告咗但**從來冇接線** → 成個模組冇 master gain | 真 `masterGain → ctx.destination` |
+| 音量控制 | **冇**（`channels` 只有 on/off） | `Audio.setMasterVolume(0..1)` + 教師台 slider，持久化落 `Profile.data.masterVolume` |
+| slider 映射 | — | **平方**（`g = s²`）：raw linear amplitude 會將大部分聽覺變化擺喺底部 1/5 |
+| Ducking | **冇**（語音同 BGM 一齊出，學生聽唔清題目） | `Audio.duckBGM()` + **獨立** duck bus；TTS 朗讀時壓低 BGM ≈ −12 dB |
+| `noise()` buffer | 每次 `createBuffer`（全場 9 個 = 343.1 KB） | **cache：全場 1 個**（0.5 s = 93.8 KB），靠 `loop` + 隨機 offset 變化 |
+| BGM 變奏 | 每個 scene 固定 8/10 步循環 → 機械重複 | 每個 arp phrase 洗牌一次（bass 保持落腳點） |
+
+**Guard rails added (cycle 111g)**
+
+- `tests/audio-audit.js` — the mock `AudioContext` now records **every
+  `connect()` edge**, so the bus graph is verified by *actual topology*, not by
+  grepping how many times `masterGain` appears. New gates `A111g-01..12`.
+  `masterGain references` went from **1 → 10**, and `noise buffers alloc` from
+  **9 (343.1 KB) → 1 (93.8 KB)**.
+- `tests/regression.js` — `T111g-01..14` (structural locks).
+- `tests/visual/scenarios/teacher-audio-panel.mjs` — 8 assertions: the slider
+  really drives the master bus, the gain is **squared**, 0 % is true silence,
+  the teacher-panel labels meet WCAG AA on the dark modal, and the panel does
+  not overflow at 639×669.
+
+**Collateral fix found while adding the slider** — the teacher modal's audio
+checkboxes had **no `text-on-night`**, so their labels inherited the body's
+`--c-text-primary` (`#1e293b`, dark) on a `bg-slate-900` surface: **dark text
+on a dark background, invisible**. AGENTS.md cycle-106 rule (dark surface ⇒
+`text-on-night*`) now applies to that whole block.
+
+**Still open**: A2 (`Audio.countdown` has zero call sites) · A3 (timer-based
+scheduling instead of the audio clock) · A5/A6/A7 (menu track, easy-mode calm
+track, BGM loop length) · A8 (no voice limit / node pooling) · A9 (offline).
 
 ---
 

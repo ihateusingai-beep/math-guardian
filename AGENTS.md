@@ -8,11 +8,11 @@ Vanilla JS + Tailwind CDN, no build, GitHub Pages.
 
 - Open `index.html` or `python3 -m http.server 8000`
 - Tests:
-  - `node tests/regression.js` → **895 pass / 0 fail** (structural regex lock-in, cycle 53–111f)
+  - `node tests/regression.js` → **909 pass / 0 fail** (structural regex lock-in, cycle 53–111g)
   - `node tests/generator-audit.js` → **4665 pass / 0 fail** (functional truth-table, cycle 101+ · T108 Adaptive ladder · T109 Stage/提示階梯 · T110 里程碑 · T110b 接力 · T111b 級數階梯)
-  - `node tests/audio-audit.js` → **12 pass / 0 fail** (audio call-site × export cross-check, cycle 105+)
+  - `node tests/audio-audit.js` → **24 pass / 0 fail** (audio call-site × export cross-check, cycle 105+ · cycle 111g **bus graph 拓撲**守門)
   - `node tests/asset-audit.js` → **22 pass / 0 fail** (像素資產品質, cycle 111a — 座標 / 倍率 / crispEdges / 死 symbol)
-  - `node tests/visual/run.mjs` → **44 pass / 0 fail** (實機視覺驗證, cycle 111e — 8 scope 可答 / 639×669 overflow / L 容量 / sprite；cycle 111f — SEN 逐個選項反饋 + verdict band 幾何守門；冇 Chrome 會 SKIP)
+  - `node tests/visual/run.mjs` → **52 pass / 0 fail** (實機視覺驗證, cycle 111e — 8 scope 可答 / 639×669 overflow / L 容量 / sprite；cycle 111f — SEN 逐個選項反饋 + verdict band 幾何守門；cycle 111g — 教師台主音量 slider + 深底對比度；冇 Chrome 會 SKIP)
 - No lint / typecheck / build
 - Live: https://ihateusingai-beep.github.io/math-guardian/
 - **Deploy domain**: `CNAME` file 已移除(cycle 107)—— 站喺 `.github.io` 服務。
@@ -100,7 +100,9 @@ Rubric / 目標風格 / 基準喺 **`docs/VISUAL_QUALITY_RUBRIC.md`**。
 
 - Every behavior change lands a matching assertion in `tests/regression.js`
 - Assertions = source regex only (no DOM)
-- File budget: `index.html` raw **< 600 KB** (current: ~585 KB / 598,798 bytes · 餘 15,602)
+- File budget: `index.html` raw **< 600 KB** (current: ~594 KB / 608,481 bytes · 餘 **5,919** ⚠️)
+  - ⚠️ **cycle111g 後已好緊**：111c（5 個 boss sprite ≈ 9,500 B）已經唔夠位 →
+    預算要拍板（提到 640 KB 定 squeeze 返 600 KB）
 - **Functional truth-table** (`tests/generator-audit.js`) catches arithmetic / math correctness
   bugs that regex tests cannot see (e.g. cycle55 orderAsc/Desc20 random-as-arithmetic).
   Runs all 23 generators x 30 trials with deterministic randInt -- catches infinite loops,
@@ -177,6 +179,23 @@ Rubric / 目標風格 / 基準喺 **`docs/VISUAL_QUALITY_RUBRIC.md`**。
   3. **時序**：逐個選項反饋一定要喺 `_senShowFeedback` **之前**（聲音同動畫同一幀起點）。
   4. ⚠️ **同一個概念有兩條 render 路徑**（classic / SEN）→ 兩條都要有 lock-in
      （cycle111e 已經捉到一次：經典畫面正常、SEN 畫面壞咗）。
+- **Audio-bus lock-in** (cycle111g, T111g + `tests/audio-audit.js` A111g-01..12):
+  音頻圖由「宣告咗但冇接線嘅死變數」改成真 bus graph：
+  `masterGain → ctx.destination` · `sfxGain → masterGain` · `bgmGain → bgmDuckGain → masterGain`。
+  1. ⚠️ **拓撲要實測，唔可以只 grep**：`masterGain` 出現幾多次同「有冇接線」無關
+     （宣告咗 20 次都係死變數都唔會捉到）。`tests/audio-audit.js` 嘅 mock AudioContext
+     而家會記錄**每條 `connect()` edge** → 斷「得一個 gain 直連 destination」
+     +「master 有 ≥2 個上游 bus」+「存在 gain→gain 鏈」。
+  2. **slider → 平方 gain**（`g = s²`）：raw linear amplitude 會將大部分聽覺變化擺喺底部 1/5。
+  3. **Ducking 要用獨立 bus**（`bgmDuckGain`），唔可以直接改 `bgmGain` ——
+     否則 un-duck 會覆寫玩家自己嘅 BGM 音量設定。
+  4. **TTS duck 要帶 epoch guard**：`speechSynthesis.cancel()` 會令**舊** utterance 嘅
+     `onend` 觸發，唔 check `TTS._boundaryEpoch` 就會喺新一句講緊時提早 unduck。
+  5. `noise()` buffer **cache**（全場 1 個）+ `loop` / 隨機 offset 變化。
+  6. ⚠️ **音量 API 唔可以用 `Number(v) || default`**（0 係 falsy → 靜音會變返 100%）
+     → 一律 `Number.isFinite(n) ? n : default`。
+  7. **深色 surface 一律 `text-on-night*`**：教師台 `bg-slate-900` 上嘅音效 checkbox label
+     之前冇呢個 class → 繼承 body 嘅深色字 → **深底深字完全睇唔到**（cycle111g 順手修）。
 - Student UI: **no** stigma「SEN」label; MC **A/B/C** badges by **render order**
 - `startGame`/resume helpers must be **module scope** (not nested in `setupMenu`)
 
@@ -196,10 +215,16 @@ symbols (~42 KB). Media payload downloaded: **0 bytes**.
     resumed after tab background (now `Audio.isPlaying()` accessor)
 - `tests/audio-audit.js` cross-checks every `Audio.*` / `TTS.*` call site
   against the module exports -- would have caught all 3 bugs
+- **2 more P1s FIXED in cycle 111g** (用 `audio-design` skill 重建 bus graph):
+  - `masterGain` 死變數 → **真 bus graph**：`masterGain → ctx.destination`，
+    `sfxGain → masterGain`，`bgmGain → bgmDuckGain → masterGain`
+  - `noise()` 每次 `createBuffer` → **cache：全場 1 個**（0.5 s = 93.8 KB，之前 9 個 = 343.1 KB）
+  - 新增：主音量 slider（`Audio.setMasterVolume`，**平方** gain）+ TTS 朗讀時 **BGM ducking**
+    （獨立 duck bus，唔會覆寫玩家嘅 slider）+ BGM 每 phrase 洗牌變奏
 - Still open (tracked P1, see docs/AUDIO_VIDEO_OPTIMIZATION.md):
-  - `masterGain` (index.html:4762) declared and never used -> no master gain
   - `Audio.countdown` exported but has zero call sites
-  - `noise()` allocates a fresh AudioBuffer per call (up to 96 KB)
+  - BGM 用 `setInterval` timer 排程（唔係 audio clock）
+  - A2/A3/A5–A9：menu track · easy 模式安靜曲 · BGM loop 過短 · 冇 voice limit / node pooling · 離線支援
 
 ## Design system (v3.6 cycle97)
 

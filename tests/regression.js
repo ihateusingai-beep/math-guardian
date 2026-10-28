@@ -745,7 +745,8 @@ assert('F-17 teacher modal bank type picker radiogroup',
 assert('F-17 teacher modal bank add form + button + status live region',
   /id="td-bank-add-form"[\s\S]{0,5000}id="td-bank-add-btn"[\s\S]{0,500}id="td-bank-status"[\s\S]{0,200}aria-live="polite"/.test(src));
 assert('F-17 teacher modal bank inventory section + count display',
-  /id="td-bank-inventory"[\s\S]{0,300000}QuestionBank\.PER_TYPE_CAP/.test(src));
+  // ⚠️ window 要隨 index.html 增長而擴闊（cycle111g 加咗主音量 slider → 距離 305,332）
+  /id="td-bank-inventory"[\s\S]{0,340000}QuestionBank\.PER_TYPE_CAP/.test(src));
 
 // =========== T26: V3.5 audit cycle-13 Mastered promote (adaptive state 整合) ===========
 console.log('\n[T26] V3.5 audit cycle-13 Mastered promote');
@@ -2745,6 +2746,85 @@ assert('T111f-13 視覺場景有「band 唔覆蓋選項掣」幾何守門（實�
   fs.existsSync(_t111fScenarioPath) &&
   /verdict band 唔覆蓋任何一個選項掣/.test(fs.readFileSync(_t111fScenarioPath, 'utf8')) &&
   /被揭示嘅正確答案，內容完全冇被遮/.test(fs.readFileSync(_t111fScenarioPath, 'utf8')));
+
+// ============================================================
+// V3.6 cycle111g: 音頻 mix 架構（用 `audio-design` skill）
+// ============================================================
+console.log('\n[T111g] V3.6 cycle-111g (audio: 真 master bus + 主音量 API + BGM ducking + noise cache + 變奏)');
+
+assert('T111g-01 Audio 有真 bus graph（Master ← SFX / BGM ← Duck），唔再係死變數',
+  /let masterGain = null;/.test(src) &&
+  /let sfxGain = null;/.test(src) &&
+  /let bgmGain = null;/.test(src) &&
+  /let bgmDuckGain = null;/.test(src) &&
+  /sfxGain\.connect\(masterGain\)/.test(src) &&
+  /bgmGain\.connect\(bgmDuckGain\)/.test(src) &&
+  /bgmDuckGain\.connect\(masterGain\)/.test(src) &&
+  /masterGain\.connect\(ctx\.destination\)/.test(src));
+
+assert('T111g-02 tone / noise 經 bus，唔可以再直連 ctx.destination',
+  /g\.connect\(busNode\(bus\)\)/.test(src) &&
+  !/g\.connect\(c\.destination\)/.test(srcCode) &&
+  /function busNode\(bus\)/.test(src));
+
+assert('T111g-03 slider → 平方 gain（raw linear amplitude 會將變化擺喺底部 1/5）',
+  /function sliderToGain\(s\)/.test(src) &&
+  /return c \* c;/.test(src));
+
+assert('T111g-04 音量 API 用 Number.isFinite（0 係 falsy，唔可以用 || default）',
+  /busVolume\.master = Number\.isFinite\(v\) \? Math\.min\(1, Math\.max\(0, v\)\) : 1;/.test(src) &&
+  /busVolume\[name\] = Number\.isFinite\(v\) \? Math\.min\(1, Math\.max\(0, v\)\) : 1;/.test(src) &&
+  !/busVolume\.\w+ = Number\([^)]*\)\s*\|\|/.test(srcCode));
+
+assert('T111g-05 ducking 用獨立 bus（唔可以同玩家嘅 slider 打架）',
+  /duckBGM\(active\)/.test(src) &&
+  /rampGain\(bgmDuckGain, bgmDucked \? 0\.25 : 1\)/.test(src));
+
+assert('T111g-06 noise buffer cache（每次 createBuffer → 全場一個）',
+  /let noiseBuf = null;/.test(src) &&
+  /function getNoiseBuffer\(c\)/.test(src) &&
+  /if \(!noiseBuf\)/.test(src) &&
+  /src\.loop = dur > 0\.5;/.test(src) &&
+  !/const buf = c\.createBuffer\(1, Math\.ceil\(c\.sampleRate \* dur\), c\.sampleRate\);/.test(srcCode));
+
+assert('T111g-07 BGM 走 bgm bus（唔同 SFX 混埋，所以可以獨立 duck）',
+  /tone\(bass \* 4, 0\.18, cur\.wave, 0\.10, null, 0, 'bgm'\)/.test(src) &&
+  /tone\(arpN \* 2, 0\.12, 'square', 0\.06, null, 0, 'bgm'\)/.test(src));
+
+assert('T111g-08 BGM 變奏（每個 phrase 洗牌 arp，唔再機械重複）',
+  /function shuffleArp\(arr\)/.test(src) &&
+  /if \(bgmStep % bgmArp\.length === 0\) shuffleArp\(bgmArp\);/.test(src));
+
+assert('T111g-09 TTS 朗讀時 duck BGM（true + false 都要有）',
+  /Audio\.duckBGM\(true\)/.test(src) &&
+  /Audio\.duckBGM\(false\)/.test(src) &&
+  // epoch guard：cancel() 會令舊 utterance 嘅 onend 觸發，唔 check epoch 會提早 unduck
+  /if \(myEpoch !== TTS\._boundaryEpoch\) return;/.test(src));
+
+assert('T111g-10 主音量持久化落 Profile + lazy-init 用 Number.isFinite',
+  /masterVolume: 1,/.test(src) &&
+  /if \(!Number\.isFinite\(this\.data\.masterVolume\)\) this\.data\.masterVolume = 1;/.test(src) &&
+  /Audio\.setMasterVolume\(Profile\.data\.masterVolume\)/.test(src) &&
+  /Profile\.data\.masterVolume = v;/.test(src));
+
+assert('T111g-11 教師台有主音量 slider（range 0–100）並接到 Audio master bus',
+  /id="td-audio-volume" min="0" max="100"/.test(src) &&
+  /volSlider\.oninput = applyVol;/.test(src) &&
+  /Audio\.setMasterVolume\(Number\.isFinite\(pct\) \? pct \/ 100 : 1\)/.test(src));
+
+assert('T111g-12 教師台音效控制 label 用 text-on-night（深底深字睇唔到）',
+  /<div class="space-y-2 text-sm text-on-night">/.test(src) &&
+  !/<div class="space-y-2 text-sm">\s*<label class="flex items-center gap-3 cursor-pointer">\s*<input type="checkbox" id="td-audio-master"/.test(src));
+
+assert('T111g-13 audio-audit 有真 bus graph 拓撲守門（唔係淨係 grep masterGain 幾多次）',
+  /A111g-01/.test(fs.readFileSync(path.join(__dirname, '..', 'tests', 'audio-audit.js'), 'utf8')) &&
+  /A111g-02/.test(fs.readFileSync(path.join(__dirname, '..', 'tests', 'audio-audit.js'), 'utf8')) &&
+  /A111g-10/.test(fs.readFileSync(path.join(__dirname, '..', 'tests', 'audio-audit.js'), 'utf8')));
+
+assert('T111g-14 視覺場景有「slider 真係通 + 深底對比度」守門',
+  fs.existsSync(path.join(__dirname, '..', 'tests', 'visual', 'scenarios', 'teacher-audio-panel.mjs')) &&
+  /gain 係\*\*平方\*\*/.test(fs.readFileSync(path.join(__dirname, '..', 'tests', 'visual', 'scenarios', 'teacher-audio-panel.mjs'), 'utf8')) &&
+  /WCAG AA/.test(fs.readFileSync(path.join(__dirname, '..', 'tests', 'visual', 'scenarios', 'teacher-audio-panel.mjs'), 'utf8')));
 
 // =========== summary ===========
 console.log(`\n========== ${pass} pass / ${fail} fail ==========`);
