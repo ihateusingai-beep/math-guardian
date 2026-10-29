@@ -21,8 +21,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const PROJECT_ROOT = path.resolve(__dirname, '..');
-const INDEX = path.join(PROJECT_ROOT, 'index.html');
+const { readAppSource } = require('./source.js');
 
 // ============================================================
 // mock AudioContext — counts every node the module creates
@@ -275,7 +274,7 @@ function report(label, value) {
 (async function main() {
   console.log('\n[A105] V3.6 cycle-105 (audio audit: call-site x export cross-check + voice coverage)');
 
-  const html = fs.readFileSync(INDEX, 'utf8');
+  const html = readAppSource();
   // Executable-code view: comments removed (line numbers preserved)
   const code = stripComments(html);
 

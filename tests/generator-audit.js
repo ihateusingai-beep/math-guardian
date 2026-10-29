@@ -17,8 +17,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const PROJECT_ROOT = path.resolve(__dirname, '..');
-const INDEX = path.join(PROJECT_ROOT, 'index.html');
+const { readAppSource, readAppJs } = require('./source.js');
 
 // ============================================================
 // mock layer
@@ -97,12 +96,15 @@ function extractBalancedStatement(body, marker) {
 }
 
 // V3.6 cycle111b: ScopeLevel 模組（級數階梯 + bank 過濾 + 適應）
-// 由 `const SCOPE_LEVEL_MAX` 到 cycle110 概念卡註解之前。
+// 由 `const SCOPE_LEVEL_MAX` 到 `_checkMilestones` 之前。
+// ⚠️ cycle111h: end marker 一定要用**程式碼**（function 簽名），唔可以用註解文字 ——
+//    註解係「可以隨手清理」嘅嘢，一清理呢個 module 就抽唔到（cycle111h 實測捉到：
+//    `// V3.6 cycle110: 概念卡 4 里程碑` 一被刪 → FATAL: ScopeLevel end marker not found）。
 function extractScopeLevelSource(body) {
   const startMarker = 'const SCOPE_LEVEL_MAX =';
   const startIdx = body.indexOf(startMarker);
   if (startIdx === -1) throw new Error('SCOPE_LEVEL_MAX not found');
-  const endMarker = '// V3.6 cycle110: 概念卡 4 里程碑';
+  const endMarker = 'function _checkMilestones(';
   const endIdx = body.indexOf(endMarker, startIdx);
   if (endIdx === -1) throw new Error('ScopeLevel end marker not found');
   return body.slice(startIdx, endIdx);
@@ -112,13 +114,7 @@ function extractScopeLevelSource(body) {
 // ============================================================
 
 function loadGenerators() {
-  const html = fs.readFileSync(INDEX, 'utf8');
-  const scripts = html.match(/<script>[\s\S]*?<\/script>/g) || [];
-  let body = '';
-  for (const s of scripts) {
-    const candidate = s.replace(/^<script>/, '').replace(/<\/script>$/, '');
-    if (candidate.length > body.length) body = candidate;
-  }
+  const body = readAppJs();
   if (!body) throw new Error('No <script> found in index.html');
 
   // Capture the Generators object literal — start at "const Generators = {"
@@ -157,13 +153,7 @@ function loadGenerators() {
 // V3.6 cycle111b: 抽出真實 ScopeLevel 模組 + 真實 TYPE_REGISTRY，
 // 用 mock Profile / Game / FX 實際執行，斷言實際 state 變化。
 function loadScopeLevel(env) {
-  const html = fs.readFileSync(INDEX, 'utf8');
-  const scripts = html.match(/<script>[\s\S]*?<\/script>/g) || [];
-  let body = '';
-  for (const s of scripts) {
-    const candidate = s.replace(/^<script>/, '').replace(/<\/script>$/, '');
-    if (candidate.length > body.length) body = candidate;
-  }
+  const body = readAppJs();
   const scopeSrc = extractScopeLevelSource(body);
   const regSrc = extractBalancedStatement(body, 'const TYPE_REGISTRY = {');
   const code = `
@@ -181,13 +171,7 @@ function loadScopeLevel(env) {
 
 // V3.6 cycle111b: 真實 bank 種子數據（用嚟驗 _bankMatchesLevel 對住真內容）
 function loadBankSeed() {
-  const html = fs.readFileSync(INDEX, 'utf8');
-  const scripts = html.match(/<script>[\s\S]*?<\/script>/g) || [];
-  let body = '';
-  for (const s of scripts) {
-    const candidate = s.replace(/^<script>/, '').replace(/<\/script>$/, '');
-    if (candidate.length > body.length) body = candidate;
-  }
+  const body = readAppJs();
   const seedSrc = extractBalancedStatement(body, 'const seed = {');
   return new Function(`${seedSrc}; return seed;`)();
 }
@@ -389,13 +373,7 @@ const __adaptiveGame = { settings: { types: [] } };
 const __adaptiveProfile = { data: { masteredByType: {}, statsByType: {}, adaptiveDowngrades: 0 }, save: () => {} };
 
 function loadAdaptive() {
-  const html = fs.readFileSync(INDEX, 'utf8');
-  const scripts = html.match(/<script>[\s\S]*?<\/script>/g) || [];
-  let body = '';
-  for (const s of scripts) {
-    const candidate = s.replace(/^<script>/, '').replace(/<\/script>$/, '');
-    if (candidate.length > body.length) body = candidate;
-  }
+  const body = readAppJs();
   if (!body) throw new Error('No <script> found in index.html');
 
   const orderMatch = body.match(/const TYPE_ORDER\s*=\s*\[[^\]]*\]/);
@@ -509,13 +487,7 @@ try {
 // 所以喺呢度抽出真實模組、mock 環境實際執行、斷言實際數值。
 
 function loadStageModule() {
-  const html = fs.readFileSync(INDEX, 'utf8');
-  const scripts = html.match(/<script>[\s\S]*?<\/script>/g) || [];
-  let body = '';
-  for (const s of scripts) {
-    const candidate = s.replace(/^<script>/, '').replace(/<\/script>$/, '');
-    if (candidate.length > body.length) body = candidate;
-  }
+  const body = readAppJs();
   if (!body) throw new Error('No <script> found in index.html');
 
   // balanced-brace extractor for a named function declaration
@@ -661,13 +633,7 @@ try {
 // ============================================================
 
 function loadMilestoneModule() {
-  const html = fs.readFileSync(INDEX, 'utf8');
-  const scripts = html.match(/<script>[\s\S]*?<\/script>/g) || [];
-  let body = '';
-  for (const s of scripts) {
-    const candidate = s.replace(/^<script>/, '').replace(/<\/script>$/, '');
-    if (candidate.length > body.length) body = candidate;
-  }
+  const body = readAppJs();
   if (!body) throw new Error('No <script> found in index.html');
   function grabFn(name) {
     const marker = `function ${name}(`;
@@ -789,13 +755,7 @@ try {
 // ============================================================
 
 function loadRelayModule() {
-  const html = fs.readFileSync(INDEX, 'utf8');
-  const scripts = html.match(/<script>[\s\S]*?<\/script>/g) || [];
-  let body = '';
-  for (const s of scripts) {
-    const candidate = s.replace(/^<script>/, '').replace(/<\/script>$/, '');
-    if (candidate.length > body.length) body = candidate;
-  }
+  const body = readAppJs();
   if (!body) throw new Error('No <script> found in index.html');
   function grabFn(name) {
     const marker = `function ${name}(`;

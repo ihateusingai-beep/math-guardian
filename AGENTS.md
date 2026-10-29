@@ -1,14 +1,15 @@
 # AGENTS.md
 
-Math Guardian (數學守護者：精準訓練版 **v3.6**) — single-file HTML SPA
-for Hong Kong moderate-ID SEN math practice (easy scopes + dual board).
+Math Guardian (數學守護者：精準訓練版 **v3.6**) — two-file HTML SPA
+(`index.html` + `app.js`) for Hong Kong moderate-ID SEN math practice
+(easy scopes + dual board).
 Vanilla JS + Tailwind CDN, no build, GitHub Pages.
 
 ## Setup
 
-- Open `index.html` or `python3 -m http.server 8000`
+- Open `index.html` (double-click 都得 —— `app.js` 係 `<script defer>`,**唔係** `type="module"`) or `python3 -m http.server 8000`
 - Tests:
-  - `node tests/regression.js` → **909 pass / 0 fail** (structural regex lock-in, cycle 53–111g)
+  - `node tests/regression.js` → **922 pass / 0 fail** (structural regex lock-in, cycle 53–111h)
   - `node tests/generator-audit.js` → **4665 pass / 0 fail** (functional truth-table, cycle 101+ · T108 Adaptive ladder · T109 Stage/提示階梯 · T110 里程碑 · T110b 接力 · T111b 級數階梯)
   - `node tests/audio-audit.js` → **24 pass / 0 fail** (audio call-site × export cross-check, cycle 105+ · cycle 111g **bus graph 拓撲**守門)
   - `node tests/asset-audit.js` → **22 pass / 0 fail** (像素資產品質, cycle 111a — 座標 / 倍率 / crispEdges / 死 symbol)
@@ -23,7 +24,8 @@ Vanilla JS + Tailwind CDN, no build, GitHub Pages.
 
 ```
 .
-├── index.html              # entire runtime (~575 KB raw / ~154 KB gzip)
+├── index.html              # HTML + inline CSS + 37 inline SVG symbol (~210 KB raw)
+├── app.js                  # 主程式邏輯（~373 KB raw）· `<script defer src="app.js">`
 ├── TODO.md                 # project plan / next backlog
 ├── docs/                   # current engineering docs
 │   ├── VISUAL_QUALITY_RUBRIC.md   # cycle106 — 視覺 rubric + 評分 + state matrix + profiles
@@ -34,11 +36,13 @@ Vanilla JS + Tailwind CDN, no build, GitHub Pages.
 │   ├── AUDIO_VIDEO_OPTIMIZATION.md # cycle104/105 — media pipeline audit
 │   ├── ARCHITECTURE_REVIEW.md     # cycle96 — code architecture review
 │   └── screenshots/                # cycle106 — before/after evidence 幀 (17 張 JPEG)
+├── tests/source.js         # cycle111h — app 原始碼嘅**單一真實來源** (readAppSource / readAppJs)
 ├── tests/regression.js     # structural regex lock-in
 ├── tests/generator-audit.js # functional truth-table (generators × 30 trials + T108 Adaptive ladder + T111b 級數階梯)
 ├── tests/audio-audit.js    # audio pipeline audit (call-site × export cross-check)
 ├── tests/asset-audit.js    # 像素資產品質 audit (cycle111a — 8 組 check: viewBox / 重複 id / 座標 / 整數倍 / 死 symbol / crispEdges)
-├── tests/visual/           # 實機視覺驗證 (cycle111e — headless Chrome + CDP；4 個 scenario；見 tests/visual/README.md)
+├── tests/visual/           # 實機視覺驗證 (cycle111e — headless Chrome + CDP；6 個 scenario；見 tests/visual/README.md)
+├── tools/squeeze-comments.cjs # cycle111h — 安全註解清理器（gate-aware，見下）
 └── .harness/               # changelogs, docs, plans
 ```
 
@@ -49,11 +53,27 @@ Vanilla JS + Tailwind CDN, no build, GitHub Pages.
 1c. `node tests/audio-audit.js` → 0 fail  
 1d. `node tests/asset-audit.js` → 0 fail（改咗 sprite / icon 尺寸就要跑）  
 1e. `node tests/visual/run.mjs` → 0 fail（**改咗 UI / 版面 / 答題互動就要跑**，見下）  
-2. Extract largest inline `<script>` → `node --check`  
+2. `node --check app.js`（拆檔之後**唔好再抽最大 inline `<script>`** —— 會抽到 tailwind config）  
 3. Optional live probe: easy startGame per scope + dual arena  
 3b. **Visual change? → re-capture affected states + re-measure contrast** (見下)  
 4. One cycle = one commit message style: `Math Guardian v3.6 — cycle N (…)`  
 5. Ken **`Push`/`Live`/`順序`** = commit + push `main` (Pages). AGENTS “don’t push” overridden by Ken.
+
+### 拆檔規則（cycle 111h 起 · 雙檔）
+
+- `index.html` = HTML + inline `<style>` + inline SVG symbol；`app.js` = 全部主程式邏輯
+- `<script defer src="app.js">` 放喺 `<head>`（1 個 RTT · 唔阻 render · app.js 同 HTML 平行下載）
+- ⚠️ **唔可以用 `type="module"`** —— module 喺 `file://` 會被 CORS 攔截，
+  打破「老師直接 double-click `index.html` 都行得到」呢個現場要求
+- ⚠️ **唔可以改 `<script defer>` 嘅位置** —— `defer` 保證喺 DOM ready 之後先執行，
+  所以主程式頂層**唔准有即時讀 DOM 嘅 statement**（得 `function $(id)` 定義就得）
+- 測試要讀 app 原始碼 → 一律用 **`tests/source.js`** 嘅 `readAppSource()`（HTML+JS 拼接）
+  或 `readAppJs()`（淨係 JS）。**唔好各測試檔各寫一份拼接邏輯**（cycle111e 教訓）
+- ⚠️ 模組抽取嘅 end marker **一定要用程式碼**（function 簽名），**唔可以用註解文字** ——
+  `tests/generator-audit.js` 原本用 `// V3.6 cycle110: 概念卡 4 里程碑` 做 ScopeLevel 模組
+  嘅結束標記，註解一被清理就 `FATAL: ScopeLevel end marker not found`（cycle111h 實測）
+  → 已改成 `function _checkMilestones(`
+
 
 ### Visual verification (cycle 106 起 · cycle111e 工具化)
 
@@ -100,9 +120,15 @@ Rubric / 目標風格 / 基準喺 **`docs/VISUAL_QUALITY_RUBRIC.md`**。
 
 - Every behavior change lands a matching assertion in `tests/regression.js`
 - Assertions = source regex only (no DOM)
-- File budget: `index.html` raw **< 600 KB** (current: ~594 KB / 608,481 bytes · 餘 **5,919** ⚠️)
-  - ⚠️ **cycle111g 後已好緊**：111c（5 個 boss sprite ≈ 9,500 B）已經唔夠位 →
-    預算要拍板（提到 640 KB 定 squeeze 返 600 KB）
+- **File budget（cycle111h 起 · per-file，唔再係單檔 600 KB）**
+  - `index.html` raw **< 260,000 bytes**（current: 215,405 · 餘 **44,595**）
+  - `app.js` raw **< 420,000 bytes**（current: 382,147 · 餘 **37,853**）
+  - 傳輸量（真正限制學生下載速度嘅係呢個）：**gzip < 200,000 bytes**
+    （實測 raw 608 KB → gzip **166,135 bytes**；cycle111h 剝完註解 + 拆檔後 → raw 597,552 · gzip **160,607 bytes**）
+  - ⚠️ **拆檔唔會加快學生下載** —— 之前以為拆檔可以救 raw 預算，
+    其實 gzip 之後兩者一樣，拆檔只係令 **per-file 預算** 有意義
+  - 唔好為咗慳位刪 feature（cycle111a 教訓）；慳位優先用 `tools/squeeze-comments.cjs`
+
 - **Functional truth-table** (`tests/generator-audit.js`) catches arithmetic / math correctness
   bugs that regex tests cannot see (e.g. cycle55 orderAsc/Desc20 random-as-arithmetic).
   Runs all 23 generators x 30 trials with deterministic randInt -- catches infinite loops,
@@ -199,12 +225,61 @@ Rubric / 目標風格 / 基準喺 **`docs/VISUAL_QUALITY_RUBRIC.md`**。
 - Student UI: **no** stigma「SEN」label; MC **A/B/C** badges by **render order**
 - `startGame`/resume helpers must be **module scope** (not nested in `setupMenu`)
 
+## 註解契約 + 註解清理（cycle 111h）
+
+**用家決定（2026-10-28 問卷）**：清走重複嘅 **cycle-by-cycle 敘述**註解，
+但**保留所有「⚠️ 點解咁做」決策註解**。
+
+⚠️ **本專案嘅註解文字係測試契約的一部分** —— `tests/regression.js` 有批斷言用註解
+做**區域定位器**（例如 `/cycle65: boss dual only[\s\S]{0,120}playLayout === 'dual'/`
+用嚟指定「断言講緊邊個 branch」）。一刀切清理就會爆 gate，而且爆得莫名其妙。
+→ **所以唔可以人手維護 protected list**，要用工具實測。
+
+### `tools/squeeze-comments.cjs`（安全註解清理器）
+
+```bash
+node tools/squeeze-comments.cjs --dry     # 只報告，唔改檔
+node tools/squeeze-comments.cjs           # 實際清理（逐條改動都過 gate）
+node tools/squeeze-comments.cjs --file app.js
+```
+
+- **A** 剝走註解入面嘅 **cycle 標記**（`V3.6 cycle83 C2:` · `cycle44/76/89:` · `cycle72 —` ·
+  `V3.5-cycle16:` · `cycle69 punchier`），**保留描述文字**
+- **B** 剝完之後註解冇內容 → 整段刪
+- **C** 含決策理由標記（⚠️ / 點解 / 唔可以 / 必須 / 否則 / 之前 / 原本 …）→ **完全唔郁**
+- 支援三種註解：`//` 行註解（含行尾）、`/* */` / `/** */` block 註解、HTML `<!-- -->` 註解
+- 每次改動後跑 4 個 gate → 任何一條爆 → **自動還原原文**並記低「load-bearing」
+- template literal 內嘅行唔郁（backtick parity + 內容前後比對）；`<script>` 區內嘅 markup 註解唔郁
+- ⚠️ `tests/regression.js` 嘅 **T111h-09** 係「清理完成」end-state 斷言，清理進行中必然未成立
+  → 工具會設 `MG_SQUEEZE_IN_PROGRESS=1` 暫時豁免（否則工具會被自己嘅守門擋死）
+
+### 已知 load-bearing 註解（唔好手動刪）
+
+- `cycle65` boss dual only · `cycle66` boss campaign must have a selected boss ·
+  `cycle66` resume boss · `cycle66` after Profile.load · `cycle71` solo 唔輪換到 mage ·
+  `cycle111b` scope 內 3 級難度適應 · `cycle55` 舊版用 3 random numbers ·
+  `cycle100` 提取 _seqFill3 · `cycle102` 用 _pickRandomDistinct ·
+  `cycle105` 呢兩個之前被 call 但冇 export · `cycle84 C3`（haptic）·
+  `cycle83` 用 challenge 取代 hardcoded pwd · `V3.5-cycle16` archiveReport
+- 前幾條係**區域定位器**（刻意用嚟指定斷言講邊個 branch —— 改成 code-only 錨點會令
+  斷言變弱：同一個 code pattern 喺檔案入面出現 2 次，冇錨點就分唔出邊個 branch）
+- 一部分係 **meta-test**（`T100-09` / `T102` / `T105` / `T99-07` / `C3-02` / `BUG-A-4`
+  明確斷「呢段註解記錄咗 refactor 理由」）→ 呢啲**就係決策理由註解**，同用家決定一致，保留
+- ⚠️ 刪任何一條 → 相應斷言會 fail（工具會自動擋，唔會靜靜壞咗）
+
+### 新增註解嘅時候
+
+- 講**點解** → 用 `⚠️` 開頭（或包含「之前 / 原本 / 否則 / 唔可以」），工具會自動保護
+- 講**做咗乜**（cycle-by-cycle 敘述）→ **唔好寫**，docs/ 同 git history 已經有
+- 模組抽取 marker → 用**程式碼**（function 簽名），唔好用註解（見「拆檔規則」）
+
+
 ## Media (audio / video)
 
 **No audio files, no video files, no data URIs.** All sound is synthesized at
-runtime via Web Audio API (`Audio` IIFE, index.html:4761-4979); narration uses
-the Web Speech API (`TTS`, index.html:4983-5088); all "video" is CSS `@keyframes`
-(63 total) + DOM particles. The only visual asset payload is 35 inline SVG
+runtime via Web Audio API (`Audio` IIFE, app.js:581-930); narration uses
+the Web Speech API (`TTS`, app.js:931-1050); all "video" is CSS `@keyframes`
+(64 total) + DOM particles. The only visual asset payload is 37 inline SVG
 symbols (~42 KB). Media payload downloaded: **0 bytes**.
 
 - Full audit + sound-effects map + music map: **`docs/AUDIO_VIDEO_OPTIMIZATION.md`**

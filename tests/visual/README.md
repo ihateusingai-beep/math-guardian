@@ -35,6 +35,12 @@ node tests/visual/run.mjs --keep-shots             # 保留截圖 + Chrome profi
 | `end-screen-overflow` | 結算畫面喺 **639×669** 唔准 overflow · 概念卡 + 島嶼要喺 stats **上面** · 掣行 sticky（唔使捲到底）· 雙隊 medal 唔換行 |
 | `sen-l-capacity` | L 容量題級數干擾項（L1 2L / L2 1.5L / L3 1.5L+2L）· 答案一定係飲品 · `pkg-orange-2l` 精靈真係 render |
 | `sprite-sheet` | 每個 `<symbol>` 都真係 render 到（唔係死 symbol）· 冇重複 id |
+| `sen-answer-feedback` | SEN 畫面**逐個選項反饋**（cycle111f）· verdict band 幾何重疊 = 0 · band 唔覆蓋進度格 |
+| `teacher-audio-panel` | 教師台**主音量 slider** 真係通（cycle111g）· gain 係平方 · 0% 真靜音 · WCAG AA 對比度 |
+
+> ⚠️ **cycle111h 起 app 拆咗檔**：static server 一定要有 `.js` 嘅 MIME mapping
+> （`run.mjs` 嘅 MIME map 已加），否則 `<script defer src="app.js">` 會被
+> Chrome 拒絕執行 → 成個場景會「停喺度」而唔係斷言失敗。
 
 ## 寫新 scenario
 

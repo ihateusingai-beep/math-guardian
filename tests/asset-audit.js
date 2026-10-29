@@ -13,9 +13,8 @@
 const fs = require('fs');
 const path = require('path');
 
-const PROJECT_ROOT = path.resolve(__dirname, '..');
-const INDEX = path.join(PROJECT_ROOT, 'index.html');
-const src = fs.readFileSync(INDEX, 'utf8');
+const { readAppSource } = require('./source.js');
+const src = readAppSource();
 
 // =========== mini test runner ===========
 let pass = 0, fail = 0;

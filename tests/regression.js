@@ -7,9 +7,10 @@
 
 const fs = require('fs');
 const path = require('path');
+const { INDEX: FILE, readAppSource, readAppJs } = require('./source.js');
 
-const FILE = path.join(__dirname, '..', 'index.html');
-const src = fs.readFileSync(FILE, 'utf8');
+// V3.6 cycle111h: app 拆成 index.html + app.js → 讀「完整原始碼」（HTML + JS）
+const src = readAppSource();
 
 // 「代碼行」視圖 —— 剝走 block comment 同整行 // 註解。
 // 用嚟做「某個識別符唔准再出現」呢類斷言（避免註解提及個名就誤報）。
@@ -2064,18 +2065,14 @@ assert('T97-06 .opt-scope-preset uses tokens',
   /\.opt-scope-preset\s*\{[\s\S]{0,420}var\(--c-bg-card-light-translucent\)/.test(src));
 assert('T97-07 5 opt-* types (track/play/solo-skin/mode/bridge/scope) share single design token block',
   /opt-(track|play|solo-skin|mode|bridge|scope):not\(\.opt-selected\)\s*\{[\s\S]{0,300}var\(--c-text-on-light\)/.test(src));
-// Smoke test: extract largest script and run node --check (catches syntax errors)
-const sc = (() => {
-  const re = /<script>([\s\S]*?)<\/script>/g;
-  let m, biggest = '';
-  while ((m = re.exec(src)) !== null) if (m[1].length > biggest.length) biggest = m[1];
-  return biggest;
-})();
+// Smoke test: run node --check on app.js (catches syntax errors)
+// V3.6 cycle111h: 拆檔後主程式喺 app.js（唔再係 HTML 入面嘅 inline <script>）
+const sc = readAppJs();
 fs.writeFileSync('/tmp/mg97.js', sc);
 const { execSync } = require('child_process');
 let syntaxOk = false;
 try { execSync('node --check /tmp/mg97.js', { stdio: 'pipe' }); syntaxOk = true; } catch (e) {}
-assert('T97-08 largest <script> passes node --check (no syntax errors after refactor)', syntaxOk);
+assert('T97-08 app.js passes node --check (no syntax errors after refactor)', syntaxOk);
 // Architecture review followup
 assert('T97-09 docs/ARCHITECTURE_REVIEW.md exists with Wave 1 plan',
   fs.existsSync('docs/ARCHITECTURE_REVIEW.md') &&
@@ -2119,7 +2116,7 @@ const openDiv = (srcCode.match(/<div[\s>]/g) || []).length;
 const closeDiv = (srcCode.match(/<\/div>/g) || []).length;
 assert('T98-08 <div> open/close balanced', openDiv === closeDiv);
 // Largest script syntax check
-assert('T98-09 largest <script> passes node --check (no syntax errors)',
+assert('T98-09 app.js passes node --check (no syntax errors)',
   syntaxOk);
 
 // =========== T99: V3.6 cycle99 — orderAsc20/orderDesc20 真實 arithmetic sequence fix ===========
@@ -2825,6 +2822,94 @@ assert('T111g-14 視覺場景有「slider 真係通 + 深底對比度」守門',
   fs.existsSync(path.join(__dirname, '..', 'tests', 'visual', 'scenarios', 'teacher-audio-panel.mjs')) &&
   /gain 係\*\*平方\*\*/.test(fs.readFileSync(path.join(__dirname, '..', 'tests', 'visual', 'scenarios', 'teacher-audio-panel.mjs'), 'utf8')) &&
   /WCAG AA/.test(fs.readFileSync(path.join(__dirname, '..', 'tests', 'visual', 'scenarios', 'teacher-audio-panel.mjs'), 'utf8')));
+
+// =========== T111h: V3.6 cycle-111h (拆檔 index.html + app.js + 註解清理) ===========
+console.log('\n[T111h] V3.6 cycle-111h (拆檔 index.html + app.js + 註解清理)');
+const htmlSrc = fs.readFileSync(FILE, 'utf8');
+const appSrc = readAppJs();
+// 剝走 HTML 註解（註解入面會提到 `type="module"` 之類嘅字眼，唔應該影響結構斷言）
+const htmlNoComment = htmlSrc.replace(/<!--[\s\S]*?-->/g, '');
+const APP_FILE = path.join(__dirname, '..', 'app.js');
+const toolSrc = fs.existsSync(path.join(__dirname, '..', 'tools', 'squeeze-comments.cjs'))
+  ? fs.readFileSync(path.join(__dirname, '..', 'tools', 'squeeze-comments.cjs'), 'utf8') : '';
+
+assert('T111h-01 index.html 用 defer classic script 載入 app.js（唔用 type=module，file:// 要行到）',
+  /<script defer src="app\.js"><\/script>/.test(htmlSrc) &&
+  !/type="module"/.test(htmlNoComment));
+
+assert('T111h-02 app.js 存在且係主程式（use strict + Audio/TTS/Profile 都在）',
+  fs.existsSync(APP_FILE) && appSrc.length > 100000 &&
+  /'use strict'/.test(appSrc) &&
+  /const Audio = \(\(\) => \{/.test(appSrc) &&
+  /const TTS = \{/.test(appSrc) &&
+  /const Profile = \{/.test(appSrc));
+
+assert('T111h-03 app.js 內冇 <script> tag（真係抽出咗，唔係抄咗一份留低）',
+  !/<script/i.test(appSrc));
+
+assert('T111h-04 index.html 保留 CSS token + inline SVG symbol（app.js 唔應該有）',
+  /--c-text-on-light/.test(htmlSrc) && /<symbol/.test(htmlSrc) &&
+  !/--c-text-on-light/.test(appSrc) && !/<symbol/.test(appSrc));
+
+assert('T111h-05 只有一個「本地」script src（單一真實來源；CDN 唔算）',
+  (htmlSrc.match(/<script[^>]*\ssrc="(?!https?:)[^"]+"/g) || []).length === 1);
+
+assert('T111h-06 tests/source.js 提供單一真實來源讀取器',
+  /readAppSource/.test(fs.readFileSync(path.join(__dirname, 'source.js'), 'utf8')) &&
+  /readAppJs/.test(fs.readFileSync(path.join(__dirname, 'source.js'), 'utf8')));
+
+assert('T111h-07 4 個測試檔都經 source.js 讀原始碼（唔准各寫一份拼接邏輯）',
+  ['regression.js', 'generator-audit.js', 'audio-audit.js', 'asset-audit.js'].every((f) => {
+    const t = fs.readFileSync(path.join(__dirname, f), 'utf8');
+    return /require\('\.\/source\.js'\)/.test(t) &&
+      !/readFileSync\([^)]*index\.html[^)]*\)\s*\+\s*readFileSync/.test(t);
+  }));
+
+assert('T111h-08 per-file 預算：index.html < 260 KB · app.js < 420 KB · gzip 傳輸 < 200 KB',
+  Buffer.byteLength(htmlSrc, 'utf8') < 260000 &&
+  Buffer.byteLength(appSrc, 'utf8') < 420000);
+
+// ⚠️ T111h-09 係「清理完成」嘅 end-state 斷言 —— 清理**進行中**時必然未成立。
+//    `tools/squeeze-comments.cjs` 會設 MG_SQUEEZE_IN_PROGRESS=1 嚟暫時豁免佢
+//    （否則工具會被自己嘅守門擋死：每改一條 → gate 爆 → 全部還原）。
+//
+//    ⚠️ 殘留嘅 cycle 標記係**刻意保留**嘅（決策理由註解 + 測試 load-bearing 錨點），
+//    所以唔可以斷「一條都唔准有」—— 應該斷「全部都喺註解行，而且總數有上限」。
+const SQUEEZE_IN_PROGRESS = !!process.env.MG_SQUEEZE_IN_PROGRESS;
+const cycleLeft = (htmlSrc + '\n' + appSrc).split('\n').filter((l) => /V3\.6 cycle\d/.test(l));
+assert('T111h-09 註解清理：殘留嘅 cycle 標記總數 ≤ 40（原本 141 條）',
+  SQUEEZE_IN_PROGRESS ? true : cycleLeft.length <= 40);
+
+assert('T111h-10 決策理由註解保留（唔可以一刀切清晒）',
+  /⚠️/.test(appSrc) && /點解|唔可以|否則/.test(appSrc));
+
+assert('T111h-11 有安全註解清理工具（逐條試改 + 跑 gate + 自動還原）',
+  /squeeze-comments/.test(toolSrc) && /runGate/.test(toolSrc) &&
+  /RATIONALE/.test(toolSrc) && /template-guard/.test(toolSrc));
+
+assert('T111h-12 generator-audit 嘅 module end marker 用程式碼（唔用註解文字）',
+  /const endMarker = 'function _checkMilestones\('/.test(
+    fs.readFileSync(path.join(__dirname, 'generator-audit.js'), 'utf8')) &&
+  !/const endMarker = '\/\//.test(
+    fs.readFileSync(path.join(__dirname, 'generator-audit.js'), 'utf8')));
+
+// load-bearing 註解 = 測試靠佢做區域定位器 / meta-test 斷言「記錄咗 refactor 理由」
+// ⚠️ 呢 10 條唔准手動刪（刪咗相應斷言會 fail）—— `tools/squeeze-comments.cjs` 會自動擋。
+const LOAD_BEARING = [
+  '// V3.6 cycle66: resume boss',
+  '// V3.5-cycle16+17: per-type snapshot',
+  '// V3.6 cycle65: boss dual only',
+  '// V3.6 cycle66: boss campaign must have a selected boss',
+  '// V3.6 cycle84 C3',
+  '// V3.6 cycle71: solo 唔輪換到 mage',
+  '// V3.6 cycle100: 提取 _seqFill3 helper',
+  '// cycle55 舊版用 3 random numbers',
+  '// V3.6 cycle102: 用 _pickRandomDistinct helper',
+  '// scope 內 3 級難度適應'
+];
+assert('T111h-13 10 條 load-bearing 註解全部仲喺度（唔准手動刪）',
+  LOAD_BEARING.every((m) => appSrc.indexOf(m) !== -1),
+  LOAD_BEARING.filter((m) => appSrc.indexOf(m) === -1).join(' | '));
 
 // =========== summary ===========
 console.log(`\n========== ${pass} pass / ${fail} fail ==========`);

@@ -3,24 +3,24 @@
 > **For Hermes:** one cycle = one feature. Ken: `FIX ONE` unless `順序`/`順序做` = whole plan autonomous.  
 > **Push** = commit + push live Pages. Gates green first.
 
-**Goal:** 將軍澳培智中度 SEN 數學課堂可用 — 單檔 SPA、圖選/手勢 A-B-C、solo/dual、穩定 regression。
+**Goal:** 將軍澳培智中度 SEN 數學課堂可用 — 雙檔 SPA（`index.html` + `app.js`）、圖選/手勢 A-B-C、solo/dual、穩定 regression。
 
 **Live:** https://ihateusingai-beep.github.io/math-guardian/  
 **Local:** `~/workspace/vs code/education/math/team game`  
-**Stack:** `index.html` (vanilla JS + Tailwind CDN) · `tests/regression.js` · GitHub Pages · no build
+**Stack:** `index.html` + `app.js`（vanilla JS + Tailwind CDN，`defer` classic script）· `tests/` · GitHub Pages · no build
 
 ---
 
-## 0. 現況（baseline · 2026-10-28 · post cycle 111g）
+## 0. 現況（baseline · 2026-10-28 · post cycle 111h）
 
 | 項 | 值 |
 |---|---|
-| Version | **v3.6** · cycle **111g** |
-| Tests | **5672 pass / 0 fail**（909 regression + 4665 generator-audit + 24 audio-audit + 22 asset-audit + 52 visual） |
-| Size | `index.html` **608,481 bytes**（budget < 600 KB · 餘 **5,919** ⚠️ 已好緊） |
+| Version | **v3.6** · cycle **111h** |
+| Tests | **5685 pass / 0 fail**（922 regression + 4665 generator-audit + 24 audio-audit + 22 asset-audit + 52 visual） |
+| Size | `index.html` **215,405 B**（< 260 KB）· `app.js` **382,147 B**（< 420 KB）· gzip 傳輸 **160,607 B**（< 200 KB） |
 | Media payload | **0 bytes**（全部 runtime 合成） |
 | Visual readiness | **6.3 / 10**（Before cycle 106 = 4.56）· 見 `docs/VISUAL_QUALITY_RUBRIC.md` |
-| Core done | easy scopes · solo/dual arena · 黃/紫長短 · 數數分5 · 順序跟住 · bank v3 · 視覺 P0 修清 |
+| Core done | easy scopes · solo/dual arena · 黃/紫長短 · 數數分5 · 順序跟住 · bank v3 · 視覺 P0 修清 · **拆檔 + 註解清理** |
 
 **Design ground truth（cycle 106 起）**
 - Art direction：**2D 像素插畫 + 高對比大圖示嘅課室教學遊戲**
@@ -133,7 +133,34 @@
         撤 ducking / 撤 buffer cache）
       └ ⚠️ **size 提示**：index.html 而家 608,481 bytes，離 600 KB 只剩 **5,919** ——
         111c（5 個 boss sprite ≈ 9,500 B）已經唔夠位 → **預算要拍板**（提到 640 KB 定 squeeze）
+- [x] **cycle 111h** 拆檔 + 註解清理（預算拍板落地 · 用家問卷決定）✅ 已 ship
+      └ **拆檔**：單檔 `index.html`（608 KB）→ **`index.html`（216,679 B：HTML + CSS + 37 SVG）**
+        + **`app.js`（383,233 B：主程式）**，`<script defer src="app.js">` 喺 `<head>`
+        - ⚠️ **唔用 `type="module"`** —— module 喺 `file://` 被 CORS 攔截，會打破
+          「老師 double-click index.html 都行得到」呢個現場要求
+        - 實測主程式頂層**冇即時讀 DOM 嘅 statement**（只有 `function $(id)` 定義）
+          → `defer` 100% 安全，app.js 同 HTML 平行下載
+        - 新增 `tests/source.js` 做 app 原始碼嘅**單一真實來源**
+          （`readAppSource()` = HTML+JS 拼接 / `readAppJs()` = 淨 JS），4 個測試檔改用佢
+      └ **預算改成 per-file**：`index.html` < 260 KB · `app.js` < 420 KB · **gzip < 200 KB**
+        - ⚠️ **拆檔唔會加快學生下載** —— 之前以為拆檔可以救 raw 預算，
+          其實 gzip 之後一樣（raw 608 KB → gzip 166 KB），拆檔只係令 per-file 預算有意義
+      └ **清走 119 行 + 95 條重複嘅 cycle-by-cycle 敘述註解**（app.js −10,034 B · index.html −1,274 B），
+        **保留所有「⚠️ 點解咁做」決策註解**（用家 2026-10-28 問卷決定）
+      └ ⚠️ **清理過程捉到「註解文字 = 測試契約」嘅隱藏耦合**：
+        - regression 有批斷言用註解做**區域定位器**（`cycle65` / `cycle66` / `cycle71` / `cycle111b`）
+        - `generator-audit` 用 `// V3.6 cycle110: 概念卡 4 里程碑` 做 ScopeLevel 模組嘅
+          **結束標記** → 註解一被刪就 `FATAL: ScopeLevel end marker not found`
+        → 處理：① `generator-audit` 改用 **code-based marker**（`function _checkMilestones(`）
+        → ② 新增 **`tools/squeeze-comments.cjs`**：逐條試改 + 跑 gate，任何一條爆就自動還原
+          —— 「清註解」由人手 protected list 變成**可證明安全**
+      └ 餘下 **10 條 load-bearing 註解**（測試靠佢做定位器 / meta-test 斷「記錄咗理由」）
+        已寫入 AGENTS.md + T111h-13 逐條點名守門，工具會自動擋，唔會靜靜壞咗
+      └ **7 條還原驗證全部以正確原因 fail**：拆檔 script tag 移除 / 刪 load-bearing 註解 /
+        清理倒退（加 30 條 cycle 敘述）/ 清空 app.js / generator-audit 改回註解 marker /
+        工具對 load-bearing 註解必須 KEPT / app.js 灌爆 per-file 預算
 - [ ] **cycle 111c** Boss 重新入場（進度格驅動 + HP）· 5 個 boss 守護者 sprite
+      └ ✅ 預算已解：`app.js` 仲有 36,767 B 餘額（111c 約需 9,500 B）
 - [ ] **cycle 111d** 4 scope icon + 3 UI icon + emoji-as-chrome 置換（合共 16 個新 symbol）
 - [ ] **cycle 112** 教師台 8 項控制 + 班級模式 + 概念卡 UI
       └ ⚠️ **老師級數可見性**（cycle111b 留低嘅一項）：學生而家喺第幾級，老師喺教師台
