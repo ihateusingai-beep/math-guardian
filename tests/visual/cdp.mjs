@@ -172,7 +172,7 @@ export async function runScenario(scenario, opts = {}) {
       }
       if (step.wait) await sleep(step.wait);
       if (step.assert) {
-        const { label, expr } = step.assert;
+        const { label, expr, xfail } = step.assert;
         let ok = false;
         let detail = '';
         try {
@@ -187,7 +187,11 @@ export async function runScenario(scenario, opts = {}) {
         } catch (e) {
           detail = 'evaluate error: ' + e.message;
         }
-        checks.push({ label, ok, detail });
+        // ⚠️ xfail = 「已知缺陷嘅 characterisation」。語意係 strict-xfail：
+        //    · 仲係壞（assert fail）→ 記 KNOWN-ISSUE，唔阻 gate
+        //    · 突然 pass（bug 修好咗）→ 當 FAIL，逼人移除 xfail 標記
+        //    咁樣就唔會將已知 bug 鎖成「永久預期行為」。
+        checks.push({ label, ok, detail, xfail: !!xfail });
       }
       // console / 例外乾淨檢查（cycle111h 新增）
       if (step.consoleClean) {

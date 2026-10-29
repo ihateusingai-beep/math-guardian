@@ -9,11 +9,12 @@ Vanilla JS + Tailwind CDN, no build, GitHub Pages.
 
 - Open `index.html` (double-click 都得 —— `app.js` 係 `<script defer>`,**唔係** `type="module"`) or `python3 -m http.server 8000`
 - Tests:
-  - `node tests/regression.js` → **925 pass / 0 fail** (structural regex lock-in, cycle 53–111h)
+  - `node tests/regression.js` → **933 pass / 0 fail** (structural regex lock-in, cycle 53–111i)
   - `node tests/generator-audit.js` → **4665 pass / 0 fail** (functional truth-table, cycle 101+ · T108 Adaptive ladder · T109 Stage/提示階梯 · T110 里程碑 · T110b 接力 · T111b 級數階梯)
   - `node tests/audio-audit.js` → **24 pass / 0 fail** (audio call-site × export cross-check, cycle 105+ · cycle 111g **bus graph 拓撲**守門)
   - `node tests/asset-audit.js` → **22 pass / 0 fail** (像素資產品質, cycle 111a — 座標 / 倍率 / crispEdges / 死 symbol)
-  - `node tests/visual/run.mjs` → **60 pass / 0 fail** (實機視覺驗證, cycle 111e — 8 scope 可答 / 639×669 overflow / L 容量 / sprite；cycle 111f — SEN 逐個選項反饋 + verdict band 幾何守門；cycle 111g — 教師台主音量 slider + 深底對比度；cycle 111h — **boot console 乾淨**；冇 Chrome 會 SKIP)
+  - `node tests/visual/run.mjs` → **84 pass / 0 fail** (實機視覺驗證, cycle 111e — 8 scope 可答 / 639×669 overflow / L 容量 / sprite；cycle 111f — SEN 逐個選項反饋 + verdict band 幾何守門；cycle 111g — 教師台主音量 slider + 深底對比度；cycle 111h — **boot console 乾淨**；cycle 111i — **4 條真機 playtest 場景**（教師台 / 接力+級數 / 結算 / Boss）；冇 Chrome 會 SKIP)
+- **總計 5728 pass / 0 fail**（cycle 111i）
 - No lint / typecheck / build
 - Live: https://ihateusingai-beep.github.io/math-guardian/
 - **Deploy domain**: `CNAME` file 已移除(cycle 107)—— 站喺 `.github.io` 服務。
@@ -33,6 +34,7 @@ Vanilla JS + Tailwind CDN, no build, GitHub Pages.
 │   ├── UI_STYLE_GUIDE.md          # cycle106 — 遊戲 UI 規則 (構圖 / 掣狀態 / a11y)
 │   ├── GAME_DESIGN_REVIEW.md      # cycle108 — 遊戲設計檢討 (核心 loop + 6 個設計缺口)
 │   ├── GAMEPLAY_ASSET_PROPOSAL.md # cycle109p — 玩法 + 資產設計方案 (cycle 109 開始實作)
+│   ├── PLAYTEST_REVIEW.md       # cycle111i — 真機 playtest 檢視報告 (9 條發現 + 優化機制建議)
 │   ├── AUDIO_VIDEO_OPTIMIZATION.md # cycle104/105 — media pipeline audit
 │   ├── ARCHITECTURE_REVIEW.md     # cycle96 — code architecture review
 │   └── screenshots/                # cycle106 — before/after evidence 幀 (17 張 JPEG)
@@ -41,7 +43,7 @@ Vanilla JS + Tailwind CDN, no build, GitHub Pages.
 ├── tests/generator-audit.js # functional truth-table (generators × 30 trials + T108 Adaptive ladder + T111b 級數階梯)
 ├── tests/audio-audit.js    # audio pipeline audit (call-site × export cross-check)
 ├── tests/asset-audit.js    # 像素資產品質 audit (cycle111a — 8 組 check: viewBox / 重複 id / 座標 / 整數倍 / 死 symbol / crispEdges)
-├── tests/visual/           # 實機視覺驗證 (cycle111e — headless Chrome + CDP；6 個 scenario；見 tests/visual/README.md)
+├── tests/visual/           # 實機視覺驗證 (cycle111e — headless Chrome + CDP；11 個 scenario；見 tests/visual/README.md)
 ├── tools/squeeze-comments.cjs # cycle111h — 安全註解清理器（gate-aware，見下）
 └── .harness/               # changelogs, docs, plans
 ```
@@ -237,6 +239,24 @@ Rubric / 目標風格 / 基準喺 **`docs/VISUAL_QUALITY_RUBRIC.md`**。
   - **通則：守門一定要驗 runtime 嘅真實行為（console / 例外），唔可以淨睇 DOM 結構。**
     一個「boot 到一半 throw 咗」嘅 P0 可以喺線上存在**幾個 cycle**而所有 gate 都全綠。
   - 新增/改名 helper 之後，**一定要確認舊 call site 冇殘留**（grep 新名 + 舊名）
+- **Playtest lock-in** (cycle111i, T111i-01..08 + 4 條 `tests/visual/scenarios/playtest-*.mjs`):
+  - 用 `game-studio:game-playtest` skill 做**真機 playtest**，4 條流程入咗正式 gate：
+    `playtest-teacher-flow`（9）/ `playtest-relay-level`（5）/ `playtest-end-screen`（5）/
+    `playtest-boss`（5）—— 全部用學校 iPad **639×669** viewport
+  - ⚠️ **呢輪捉到 3 條「學生見唔到」嘅隱形缺陷，regex 測試 100% 捉唔到**：
+    ① easy dual **開局 banner 空**（`UI.setSENTurn` 只喺 `_scheduleNextQuestion` 被叫，
+    開局從來冇叫過 → 學生唔知輪到邊隊）—— ✅ 已修
+    ② 經典/boss 畫面「逐個選項 ✓/✗」**係死代碼**（`highlightBtn` 加咗 class，但
+    `_scheduleNextQuestion` delay=0 → `area.innerHTML=''` 清走選項區 → **存活只有同一 tick**）
+    ③ **M4 里程碑正常單局數學上唔可能達到**（一局 9 題 < 連對 10 題）
+  - **通則：核心玩法一定要有「真機跑一次完整流程」嘅守門，唔可以淨靠 regex + mock。**
+    Stage 進度格 / 接力 / 級數階梯 / 概念卡 / 島嶼旅程全部係「狀態被改寫」，
+    mock 執行捉唔到「學生見唔到」呢類問題。
+  - **strict-xfail**（cycle111i 新增，`cdp.mjs` + `run.mjs`）：
+    `assert: { label, expr, xfail: true }` → 仲係壞 = `⚠️ KNOWN-ISSUE`（唔阻 gate）；
+    **突然 pass = ❌ 失敗**（逼人移除標記）→ 已知缺陷唔會被鎖成「永久預期行為」。
+  - ⚠️ **斷言 fail 唔等於產品有 bug**：今輪 3 條 fail 入面 2 條係**測試自己寫錯**
+    （等咗 1100ms 但 class 700ms 就冇咗 / 揀錯 selector）→ **先量時間軸、再讀 source**。
 - Student UI: **no** stigma「SEN」label; MC **A/B/C** badges by **render order**
 - `startGame`/resume helpers must be **module scope** (not nested in `setupMenu`)
 

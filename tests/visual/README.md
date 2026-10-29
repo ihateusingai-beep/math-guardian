@@ -37,6 +37,22 @@ node tests/visual/run.mjs --keep-shots             # 保留截圖 + Chrome profi
 | `sprite-sheet` | 每個 `<symbol>` 都真係 render 到（唔係死 symbol）· 冇重複 id |
 | `sen-answer-feedback` | SEN 畫面**逐個選項反饋**（cycle111f）· verdict band 幾何重疊 = 0 · band 唔覆蓋進度格 |
 | `teacher-audio-panel` | 教師台**主音量 slider** 真係通（cycle111g）· gain 係平方 · 0% 真靜音 · WCAG AA 對比度 |
+| `boot-console-clean` | **boot 零 console error**（cycle111h P0）· 逐個指名 Profile / 主音量 / 題型選擇器 / 教師台 / 題庫 / Boss / 推薦 chips 真係行過 |
+| `playtest-teacher-flow` | **教師台完整流程**（cycle111i）· 密碼 → 答錯有 error → 答啱解鎖 → 儀表板 → 題庫管理 → 主音量 slider → 關閉 focus 還原 → 暫停 → 續玩 |
+| `playtest-relay-level` | **easy dual 接力 + 級數階梯真機跑一次**（cycle111i）· 開局 banner + 只顯示輪到嗰隊 → 答啱傳手 → 答錯傳另一隊救 → 連 4 對升 L2 → 級數跨 reload 保留 |
+| `playtest-end-screen` | **接力收尾 + 結算畫面**（cycle111i）· 題數文案 vs 實際（xfail）· 一隊做完跳過佢唔死鎖 · 概念卡 4 粒圓點 · 島嶼 pips 8 格 · M4 可達性（xfail） |
+| `playtest-boss` | **Boss 戰役**（cycle111i）· HP 條 render + 答啱真跌 · 城堡 HP 條 · 答錯見到正確答案 + 錯題入 review · 逐個選項 ✓/✗ 可見性（xfail） |
+
+### strict-xfail（cycle111i）
+
+`assert: { label, expr, xfail: true }`：
+
+| 狀態 | 報告 | 意義 |
+|---|---|---|
+| assert fail（仲係壞） | `⚠️ KNOWN-ISSUE（xfail）` | 已知缺陷，唔阻 gate |
+| assert pass（突然好咗） | `❌ 失敗` | bug 修好咗 → **逼人移除 xfail 標記** |
+
+→ 已知缺陷**明文追蹤**（而唔係被鎖成「永久預期行為」）。
 
 > ⚠️ **cycle111h 起 app 拆咗檔**：static server 一定要有 `.js` 嘅 MIME mapping
 > （`run.mjs` 嘅 MIME map 已加），否則 `<script defer src="app.js">` 會被

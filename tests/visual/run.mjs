@@ -120,6 +120,20 @@ async function main() {
     }
 
     for (const c of res.checks) {
+      // ⚠️ strict-xfail：已知缺陷嘅 characterisation。
+      //    仲係壞 → KNOWN-ISSUE（唔阻 gate）；突然 pass → 當 FAIL，
+      //    逼人喺 bug 修好嗰陣移除 xfail 標記（唔好將 bug 鎖成永久預期行為）。
+      if (c.xfail) {
+        if (c.ok) {
+          totalFail++;
+          failedScenarios.push(`${name} :: ${c.label} (xfail 意外通過 — bug 修好咗？請移除 xfail 標記)`);
+          console.log(`   ❌ ${c.label}  → XFAIL 意外通過（bug 修好咗？）${c.detail ? '  ' + c.detail : ''}`);
+        } else {
+          totalPass++;
+          console.log(`   ⚠️ ${c.label}  → KNOWN-ISSUE（xfail）${c.detail ? '  ' + c.detail : ''}`);
+        }
+        continue;
+      }
       if (c.ok) { totalPass++; console.log(`   ✅ ${c.label}`); }
       else {
         totalFail++;

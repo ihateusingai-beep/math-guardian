@@ -11,13 +11,13 @@
 
 ---
 
-## 0. 現況（baseline · 2026-10-28 · post cycle 111h）
+## 0. 現況（baseline · 2026-10-30 · post cycle 111i）
 
 | 項 | 值 |
 |---|---|
-| Version | **v3.6** · cycle **111h** |
-| Tests | **5696 pass / 0 fail**（925 regression + 4665 generator-audit + 24 audio-audit + 22 asset-audit + 60 visual） |
-| Size | `index.html` **215,405 B**（< 260 KB）· `app.js` **382,147 B**（< 420 KB）· gzip 傳輸 **160,607 B**（< 200 KB） |
+| Version | **v3.6** · cycle **111i** |
+| Tests | **5728 pass / 0 fail**（933 regression + 4665 generator-audit + 24 audio-audit + 22 asset-audit + 84 visual） |
+| Size | `index.html` **215,405 B**（< 260 KB）· `app.js` **383,441 B**（< 420 KB）· gzip 傳輸 **163,565 B**（< 200 KB） |
 | Media payload | **0 bytes**（全部 runtime 合成） |
 | Visual readiness | **6.3 / 10**（Before cycle 106 = 4.56）· 見 `docs/VISUAL_QUALITY_RUBRIC.md` |
 | Core done | easy scopes · solo/dual arena · 黃/紫長短 · 數數分5 · 順序跟住 · bank v3 · 視覺 P0 修清 · **拆檔 + 註解清理** |
@@ -178,6 +178,28 @@
       └ Lock-in：regression T111h-14（唔准有 `_wirePauseOverlay` call/definition）+
         T111h-15（boot 順序鎖）+ T111h-16（boot 守門存在）+ 視覺場景 8 條
       └ **還原驗證**：加返 stale call → 4 條場景斷言 fail（包埋 console-clean）
+- [x] **cycle 111i** 真機 playtest 檢視（`game-studio:game-playtest` skill）✅ 本地已驗
+      └ **4 條真機場景入正式 gate**（全部 639×669）：`playtest-teacher-flow`(9) /
+        `playtest-relay-level`(5) / `playtest-end-screen`(5) / `playtest-boss`(5) → 視覺 60 → **84**
+      └ 🟠 **已修 P1：easy dual 接力開局 banner 空** —— `UI.setSENTurn` 只喺
+        `_scheduleNextQuestion` 被叫 → 開局 banner 冇「輪到 X」，學生唔知邊隊先出手
+        → `startGame` 喺 `applySENBoardLayout()` 之後補 `UI.setSENTurn(currentTeam)`
+        → 場景由 4/5 變 **5/5 pass**
+      └ 🟠 **新發現（待拍板）**：① 經典/boss 逐個選項 ✓/✗ **係死代碼**
+        （實測存活只有同一 tick：`_scheduleNextQuestion` delay=0 → `area.innerHTML=''` 清走）
+        ② **M4 里程碑正常單局唔可能達到**（一局 9 題 < 連對 10 題）
+        ③ **畫面寫「10 題」實際 9 題**（文案冇跟 cycle109 嘅 `goalStages × 3`）
+        ④ 級數階梯對中等學生幾乎冇作用（20 萬次模擬：p=50% → 終局 **L1.25**，
+        每題 5.8% 變級率；推薦改「升 連3對 / 降 連5錯」→ 終局 2.65、變級率減半）
+        ⑤ 經典/boss 畫面**冇題目進度格**（`.sen-cell` 只存在於 SEN 畫面）
+        ⑥ 單人 boss 有**一座城塔係無主嘅**（boss 隨機攻擊、冇回血、失敗要兩座都跌到 0）
+      └ **strict-xfail** 新機制（`cdp.mjs` + `run.mjs`）：已知缺陷用 `xfail: true` 標記 →
+        仲係壞 = `⚠️ KNOWN-ISSUE`（唔阻 gate）；**突然 pass = ❌ 失敗**（逼人移除標記）
+        → 已知缺陷唔會被鎖成「永久預期行為」
+      └ Lock-in：regression **T111i-01..08** + 視覺 24 條；
+        **8 條還原驗證全部以正確原因 fail**（拎走 setSENTurn / 唔讀 currentTeam /
+        拎走 xfail 支援 / 拎走場景 / 改 viewport / 拎走 xfail 標記）
+      └ 詳見 **`docs/PLAYTEST_REVIEW.md`**（9 條發現 + 優化機制建議 + 建議 cycle 順序）
 - [ ] **cycle 111c** Boss 重新入場（進度格驅動 + HP）· 5 個 boss 守護者 sprite
       └ ✅ 預算已解：`app.js` 仲有 36,767 B 餘額（111c 約需 9,500 B）
 - [ ] **cycle 111d** 4 scope icon + 3 UI icon + emoji-as-chrome 置換（合共 16 個新 symbol）

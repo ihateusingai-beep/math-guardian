@@ -5454,6 +5454,11 @@ function startGame() {
     // V3.6 cycle65: boss dual only — solo 唔開右隊題
     if (Game.settings.playLayout === 'dual') nextQuestion('mage');
   }
+  // ⚠️ cycle111i：easy dual 開局要即刻講明「輪到邊隊」。
+  // 之前 setSENTurn 只喺 _scheduleNextQuestion（答完一題嗰陣）先會叫
+  // → 開局 banner 係空嘅，學生唔知邊隊先出手，要答完第一題先見到提示。
+  // 邊隊 = Game.state.currentTeam（唯一真實來源，唔好喺呢度另開新欄位）。
+  if (isEasy) UI.setSENTurn(Game.state.currentTeam);
   UI.renderReview();
 
   // 啟動主循環

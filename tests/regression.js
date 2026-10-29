@@ -2930,6 +2930,53 @@ assert('T111h-16 有「boot console 乾淨」視覺守門（捉任何 boot error
   /consoleClean/.test(fs.readFileSync(path.join(__dirname, 'visual', 'scenarios', 'boot-console-clean.mjs'), 'utf8')) &&
   /Runtime\.exceptionThrown/.test(fs.readFileSync(path.join(__dirname, 'visual', 'cdp.mjs'), 'utf8')));
 
+// =========== T111i: 真機 playtest 守門化 + dual 接力開局 banner ==========
+// ⚠️ 真實個案（cycle111i playtest）：`UI.setSENTurn` 只喺 _scheduleNextQuestion
+//    （答完一題嗰陣）先會叫 → easy dual **開局** banner 係空嘅，
+//    學生唔知邊隊先出手，要答完第一題先見到提示。
+//    修法：startGame 喺 applySENBoardLayout 之後補叫 setSENTurn(currentTeam)。
+assert('T111i-01 startGame 必須喺 easy 分支叫 setSENTurn（開局 banner 唔可以空）',
+  /if \(isEasy\) UI\.setSENTurn\(Game\.state\.currentTeam\);/.test(appSrc),
+  '搵唔到 startGame 入面嘅 setSENTurn 呼叫');
+
+assert('T111i-02 開局 setSENTurn 一定要喺 applySENBoardLayout 之後、renderReview 之前',
+  /UI\.applySENBoardLayout\(\);[\s\S]{0,1200}UI\.setSENTurn\(Game\.state\.currentTeam\);[\s\S]{0,200}UI\.renderReview\(\);/.test(appSrc),
+  'setSENTurn 嘅位置唔啱（應該喺 applySENBoardLayout 之後）');
+
+assert('T111i-03 setSENTurn 嘅 call site 至少 2 個（開局 + 每題切換）',
+  (appSrc.match(/UI\.setSENTurn\(/g) || []).length >= 2,
+  'UI.setSENTurn call site 少過 2 個');
+
+assert('T111i-04 setSENTurn 必須讀 Game.state.currentTeam（唯一真實來源，唔開新欄位）',
+  /setSENTurn\(team\) \{\s*\n\s*const t = team \|\| Game\.state\.currentTeam \|\| 'knight';/.test(appSrc),
+  'setSENTurn 唔再讀 currentTeam');
+
+// 真機 playtest 場景變正式守門（cycle111i：4 條新場景）
+const PLAYTEST_SCENARIOS = [
+  'playtest-teacher-flow.mjs',
+  'playtest-relay-level.mjs',
+  'playtest-end-screen.mjs',
+  'playtest-boss.mjs',
+];
+assert('T111i-05 4 條真機 playtest 場景入咗 repo（教師台 / 接力級數 / 結算 / boss）',
+  PLAYTEST_SCENARIOS.every((f) => fs.existsSync(path.join(__dirname, 'visual', 'scenarios', f))),
+  PLAYTEST_SCENARIOS.filter((f) => !fs.existsSync(path.join(__dirname, 'visual', 'scenarios', f))).join(' | '));
+
+assert('T111i-06 playtest 場景全部用學校 iPad viewport 639×669',
+  PLAYTEST_SCENARIOS.every((f) => {
+    const t = fs.readFileSync(path.join(__dirname, 'visual', 'scenarios', f), 'utf8');
+    return /viewport:\s*\[639,\s*669\]/.test(t);
+  }));
+
+// strict-xfail：已知缺陷唔可以鎖成「永久預期行為」—— 修好咗就要報失敗，逼人移除標記
+assert('T111i-07 strict-xfail 支援存在（已知缺陷有被追蹤，唔係靜靜當 pass）',
+  /xfail:\s*!!xfail/.test(fs.readFileSync(path.join(__dirname, 'visual', 'cdp.mjs'), 'utf8')) &&
+  /xfail 意外通過/.test(fs.readFileSync(path.join(__dirname, 'visual', 'run.mjs'), 'utf8')));
+
+assert('T111i-08 有 xfail 標記嘅場景（代表至少一個已知缺陷被明文追蹤）',
+  PLAYTEST_SCENARIOS.some((f) => /xfail:\s*true/.test(
+    fs.readFileSync(path.join(__dirname, 'visual', 'scenarios', f), 'utf8'))));
+
 // =========== summary ===========
 console.log(`\n========== ${pass} pass / ${fail} fail ==========`);
 if (fail > 0) {
