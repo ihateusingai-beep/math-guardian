@@ -7237,11 +7237,19 @@ function _wireTeacherActions() {
 }
 
 // setupTeacher orchestrator — 6 lines，唔再用 nested function closure pattern
+// ⚠️ V3.6 cycle111h: 原本呢度有 `_wirePauseOverlay()` —— 但嗰個函數**從來冇定義過**
+//    （v3.5 refactor 把它拆成 `_showPauseOverlay` / `_hidePauseOverlay` + `_wireTeacherActions`
+//    之後，舊 call site 冇跟住更新）→ 每個 boot 都喺呢度 throw ReferenceError，
+//    **成個 DOMContentLoaded 之後嘅流程全部死掉**（renderTypePicker / renderRecommendChips /
+//    Profile.load / Audio.setMasterVolume / renderBossSelect / resume 按鈕）。
+//    ⚠️ 呢個 bug 由 v3.5 一直 live 咗，cycle111h 喺線上站揭發（守門：T111h-14 + 視覺場景
+//    `boot-console-clean` —— 之前 52 條視覺守門**完全唔睇 console**，所以捉唔到）。
+//    pause overlay 嘅 wiring 而家喺 `_wireTeacherActions()`（pause-resume-2）+
+//    `_showPauseOverlay()`（Esc stack）—— 唔使再有一個 `_wirePauseOverlay()`。
 function setupTeacher() {
   $('btn-teacher').onclick = _openTeacherModal;
   $('teacher-close').onclick = _closeTeacherModal;
   _wireTeacherPassword();
-  _wirePauseOverlay();
   _wireTeacherActions();
   _wireBankSection();  // 題庫管理 add / delete
 }

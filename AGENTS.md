@@ -9,11 +9,11 @@ Vanilla JS + Tailwind CDN, no build, GitHub Pages.
 
 - Open `index.html` (double-click 都得 —— `app.js` 係 `<script defer>`,**唔係** `type="module"`) or `python3 -m http.server 8000`
 - Tests:
-  - `node tests/regression.js` → **922 pass / 0 fail** (structural regex lock-in, cycle 53–111h)
+  - `node tests/regression.js` → **925 pass / 0 fail** (structural regex lock-in, cycle 53–111h)
   - `node tests/generator-audit.js` → **4665 pass / 0 fail** (functional truth-table, cycle 101+ · T108 Adaptive ladder · T109 Stage/提示階梯 · T110 里程碑 · T110b 接力 · T111b 級數階梯)
   - `node tests/audio-audit.js` → **24 pass / 0 fail** (audio call-site × export cross-check, cycle 105+ · cycle 111g **bus graph 拓撲**守門)
   - `node tests/asset-audit.js` → **22 pass / 0 fail** (像素資產品質, cycle 111a — 座標 / 倍率 / crispEdges / 死 symbol)
-  - `node tests/visual/run.mjs` → **52 pass / 0 fail** (實機視覺驗證, cycle 111e — 8 scope 可答 / 639×669 overflow / L 容量 / sprite；cycle 111f — SEN 逐個選項反饋 + verdict band 幾何守門；cycle 111g — 教師台主音量 slider + 深底對比度；冇 Chrome 會 SKIP)
+  - `node tests/visual/run.mjs` → **60 pass / 0 fail** (實機視覺驗證, cycle 111e — 8 scope 可答 / 639×669 overflow / L 容量 / sprite；cycle 111f — SEN 逐個選項反饋 + verdict band 幾何守門；cycle 111g — 教師台主音量 slider + 深底對比度；cycle 111h — **boot console 乾淨**；冇 Chrome 會 SKIP)
 - No lint / typecheck / build
 - Live: https://ihateusingai-beep.github.io/math-guardian/
 - **Deploy domain**: `CNAME` file 已移除(cycle 107)—— 站喺 `.github.io` 服務。
@@ -87,13 +87,16 @@ node tests/visual/run.mjs --scenario end-screen-overflow
 ```
 
 - 自己起 static server(random port)· 冇 Chrome → SKIP + exit 0(唔阻其他 gate)· 有 Chrome 但 assert 過 → exit 1
-- 現有 4 個 scenario:
+- 現有 7 個 scenario:
   - **`all-scopes-answerable`** —— 8 個 easy scope 學生都撳得到答案
     ⚠️ cycle111e 實測捉到 P0:L 容量卡片曾經係**冇 click handler 嘅 `<div>`**,
     由 cycle 89 起 3 個 L scope 喺 SEN 畫面就係死路(經典畫面正常所以冇人發現)
   - **`end-screen-overflow`** —— 結算畫面喺 639×669 唔准 overflow(cycle110b P1 守門)
   - **`sen-l-capacity`** —— L 容量級數干擾項 + 答案係飲品 + 精靈真係 render
   - **`sprite-sheet`** —— 每個 `<symbol>` 都真係 render 到(唔係死 symbol)
+  - **`sen-answer-feedback`** —— SEN 逐個選項反饋 + verdict band 幾何重疊 = 0
+  - **`teacher-audio-panel`** —— 教師台主音量 slider 真係通 + 深底對比度
+  - **`boot-console-clean`** —— **boot 零 console error + 關鍵 boot 步驟真係行過**（cycle111h）
 
 ⚠️ **寫 scenario 嘅兩個陷阱**（cycle111e 實測踩過）:
 1. **答題目標唔止一種**:一般 MC 係 `.sen-opt-btn`、長短/高矮係 `.len-pair-hit[data-side]`、
@@ -222,6 +225,18 @@ Rubric / 目標風格 / 基準喺 **`docs/VISUAL_QUALITY_RUBRIC.md`**。
      → 一律 `Number.isFinite(n) ? n : default`。
   7. **深色 surface 一律 `text-on-night*`**：教師台 `bg-slate-900` 上嘅音效 checkbox label
      之前冇呢個 class → 繼承 body 嘅深色字 → **深底深字完全睇唔到**（cycle111g 順手修）。
+- **Boot lock-in** (cycle111h, T111h-14..16 + `tests/visual/scenarios/boot-console-clean.mjs`):
+  - ⚠️ **v3.5 至 cycle111h 期間，每個頁面載入都 `ReferenceError: _wirePauseOverlay is not defined`**
+    —— `setupTeacher()` 叫咗一個**從來冇定義過**嘅函數（v3.5 refactor 拆咗佢之後
+    舊 call site 冇跟住更新）→ **成個 DOMContentLoaded 之後嘅流程全部死掉**
+    （`renderTypePicker` / `renderRecommendChips` / `Profile.load` /
+    `Audio.setMasterVolume` / `renderBossSelect` / resume 按鈕）
+  - ⚠️ **之前 52 條視覺守門捉唔到**，因為 `tests/visual/cdp.mjs` **完全唔收集 console**
+    → 而家收集 `Runtime.exceptionThrown` + `console.error`，新場景 `boot-console-clean`
+    逐個指名每個 boot 步驟真係行過
+  - **通則：守門一定要驗 runtime 嘅真實行為（console / 例外），唔可以淨睇 DOM 結構。**
+    一個「boot 到一半 throw 咗」嘅 P0 可以喺線上存在**幾個 cycle**而所有 gate 都全綠。
+  - 新增/改名 helper 之後，**一定要確認舊 call site 冇殘留**（grep 新名 + 舊名）
 - Student UI: **no** stigma「SEN」label; MC **A/B/C** badges by **render order**
 - `startGame`/resume helpers must be **module scope** (not nested in `setupMenu`)
 

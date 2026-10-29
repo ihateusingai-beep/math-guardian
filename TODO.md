@@ -16,7 +16,7 @@
 | 項 | 值 |
 |---|---|
 | Version | **v3.6** · cycle **111h** |
-| Tests | **5685 pass / 0 fail**（922 regression + 4665 generator-audit + 24 audio-audit + 22 asset-audit + 52 visual） |
+| Tests | **5696 pass / 0 fail**（925 regression + 4665 generator-audit + 24 audio-audit + 22 asset-audit + 60 visual） |
 | Size | `index.html` **215,405 B**（< 260 KB）· `app.js` **382,147 B**（< 420 KB）· gzip 傳輸 **160,607 B**（< 200 KB） |
 | Media payload | **0 bytes**（全部 runtime 合成） |
 | Visual readiness | **6.3 / 10**（Before cycle 106 = 4.56）· 見 `docs/VISUAL_QUALITY_RUBRIC.md` |
@@ -159,6 +159,25 @@
       └ **7 條還原驗證全部以正確原因 fail**：拆檔 script tag 移除 / 刪 load-bearing 註解 /
         清理倒退（加 30 條 cycle 敘述）/ 清空 app.js / generator-audit 改回註解 marker /
         工具對 load-bearing 註解必須 KEPT / app.js 灌爆 per-file 預算
+- [x] **cycle 111h（追加）** 🔴 **P0：boot 每個都 crash** —— 喺線上站揭發
+      └ **症狀**：每個頁面載入都 `ReferenceError: _wirePauseOverlay is not defined`
+        （app.js `setupTeacher()` 入面）→ **成個 DOMContentLoaded 之後嘅流程全部死掉**：
+        `renderTypePicker` / `renderRecommendChips` / `Profile.load` /
+        `Audio.setMasterVolume` / `renderBossSelect` / resume 按鈕 —— 即係
+        **題型選擇器 / 推薦 chips / 學生 profile（級數·里程碑）/ 主音量 / Boss 面板
+        全部失效**（教師台 pause-resume / 題庫管理 add 亦冇接線）
+      └ **根因**：v3.5 refactor 把 `_wirePauseOverlay()` 拆成 `_showPauseOverlay` /
+        `_hidePauseOverlay` + `_wireTeacherActions` 之後，**舊 call site 冇跟住更新**
+        —— 而 `_wirePauseOverlay` **喺成個 repo 歷史從來冇定義過**
+      └ **修法**：刪走 stale call（pause overlay wiring 已分散喺 `_wireTeacherActions`
+        + `_showPauseOverlay`，唔使再有 `_wirePauseOverlay`）
+      └ ⚠️ **為咩之前 52 條視覺守門捉唔到** → 因為 **個 runner 完全唔收集 console**
+        → 新增 `tests/visual/cdp.mjs` 收集 `Runtime.exceptionThrown` + `console.error`
+        + 新場景 **`boot-console-clean`**（8 條：console 零 error + Profile / 主音量 /
+        題型選擇器 / 教師台接線 / 題庫管理 / Boss 面板 / 推薦 chips 逐個指名行過）
+      └ Lock-in：regression T111h-14（唔准有 `_wirePauseOverlay` call/definition）+
+        T111h-15（boot 順序鎖）+ T111h-16（boot 守門存在）+ 視覺場景 8 條
+      └ **還原驗證**：加返 stale call → 4 條場景斷言 fail（包埋 console-clean）
 - [ ] **cycle 111c** Boss 重新入場（進度格驅動 + HP）· 5 個 boss 守護者 sprite
       └ ✅ 預算已解：`app.js` 仲有 36,767 B 餘額（111c 約需 9,500 B）
 - [ ] **cycle 111d** 4 scope icon + 3 UI icon + emoji-as-chrome 置換（合共 16 個新 symbol）

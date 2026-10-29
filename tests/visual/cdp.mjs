@@ -108,9 +108,24 @@ export async function runScenario(scenario, opts = {}) {
     ws = new WebSocket(target.webSocketDebuggerUrl);
     let id = 0;
     const pending = new Map();
+    // ⚠️ V3.6 cycle111h: 收集 console error + 未捕獲例外 ——
+    //    之前個 runner **完全唔睇 console**，所以「boot 到一半 throw 咗」呢類 P0
+    //    捉唔到（cycle111h 實測：線上站每個 boot 都 ReferenceError，但 52 條視覺守門全綠）。
+    const consoleIssues = [];
     ws.addEventListener('message', (ev) => {
       const m = JSON.parse(ev.data);
-      if (m.id && pending.has(m.id)) { pending.get(m.id)(m); pending.delete(m.id); }
+      if (m.id && pending.has(m.id)) { pending.get(m.id)(m); pending.delete(m.id); return; }
+      if (m.method === 'Runtime.exceptionThrown') {
+        const d = m.params && m.params.exceptionDetails;
+        consoleIssues.push({
+          type: 'exception',
+          text: String((d && ((d.exception && d.exception.description) || d.text)) || '(unknown exception)')
+        });
+      } else if (m.method === 'Runtime.consoleAPICalled' && m.params && m.params.type === 'error') {
+        const args = (m.params.args || []).map((a) =>
+          (a.value !== undefined ? a.value : (a.description || a.type)));
+        consoleIssues.push({ type: 'console.error', text: args.join(' ') });
+      }
     });
     await new Promise((r, rej) => {
       ws.addEventListener('open', r);
@@ -173,6 +188,16 @@ export async function runScenario(scenario, opts = {}) {
           detail = 'evaluate error: ' + e.message;
         }
         checks.push({ label, ok, detail });
+      }
+      // console / 例外乾淨檢查（cycle111h 新增）
+      if (step.consoleClean) {
+        const allow = step.consoleClean.allow || [];
+        const bad = consoleIssues.filter((e) => !allow.some((a) => String(e.text).indexOf(a) !== -1));
+        checks.push({
+          label: step.consoleClean.label || 'console 冇 error / 冇未捕獲例外',
+          ok: bad.length === 0,
+          detail: bad.map((b) => b.type + ': ' + String(b.text).slice(0, 240)).join(' | '),
+        });
       }
       if (step.shot) {
         let params = { format: 'png' };

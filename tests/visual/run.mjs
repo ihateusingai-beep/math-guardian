@@ -10,6 +10,7 @@
 //   node tests/visual/run.mjs                      # 跑全部
 //   node tests/visual/run.mjs --scenario sen-l-capacity
 //   node tests/visual/run.mjs --keep-shots         # 保留截圖 + Chrome profile
+//   node tests/visual/run.mjs --verbose            # 印埋 eval 結果（debug 用）
 //
 // ⚠️ 冇 Chrome 嘅機器 → 印 SKIP + exit 0（唔好阻住其他 gate）。
 //    有 Chrome 但 assert 過 → exit 1。
@@ -28,6 +29,7 @@ const OUT_DIR = path.join(HERE, '.out');
 const argv = process.argv.slice(2);
 const onlyScenario = argv.includes('--scenario') ? argv[argv.indexOf('--scenario') + 1] : null;
 const keepShots = argv.includes('--keep-shots');
+const verbose = argv.includes('--verbose');   // 印 eval 結果（debug 用）
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -128,6 +130,7 @@ async function main() {
     if (res.logs.length) {
       for (const l of res.logs) {
         if (l.startsWith('SHOT')) console.log('   📸 ' + l.replace('SHOT: ', ''));
+        else if (verbose) console.log('   ℹ ' + l);
       }
     }
     console.log('');

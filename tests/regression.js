@@ -2911,6 +2911,25 @@ assert('T111h-13 10 條 load-bearing 註解全部仲喺度（唔准手動刪）'
   LOAD_BEARING.every((m) => appSrc.indexOf(m) !== -1),
   LOAD_BEARING.filter((m) => appSrc.indexOf(m) === -1).join(' | '));
 
+// =========== T111h P0: boot ReferenceError（_wirePauseOverlay 從來冇定義過）===========
+// ⚠️ 真實個案：v3.5 refactor 把 `_wirePauseOverlay()` 拆成 `_showPauseOverlay` /
+//    `_hidePauseOverlay` + `_wireTeacherActions`，但舊 call site 冇跟住更新
+//    → 每個 boot 都喺 setupTeacher() throw ReferenceError
+//    → **成個 DOMContentLoaded 之後嘅流程全部死掉**（renderTypePicker /
+//       renderRecommendChips / Profile.load / Audio.setMasterVolume /
+//       renderBossSelect / resume 按鈕）。cycle111h 喺線上站揭發。
+assert('T111h-14 setupTeacher 唔准叫未定義嘅 _wirePauseOverlay（P0 boot crash）',
+  !/_wirePauseOverlay/.test(srcCode),
+  'srcCode 仍然有 _wirePauseOverlay 嘅 call/definition');
+
+assert('T111h-15 boot 順序：setupTeacher 之後必須行晒 Profile.load → 主音量 → Boss 面板',
+  /setupTeacher\(\);[\s\S]{0,400}renderTypePicker\(\);[\s\S]{0,200}renderRecommendChips\(\);[\s\S]{0,200}Profile\.load\(\);[\s\S]{0,200}Audio\.setMasterVolume\([\s\S]{0,600}renderBossSelect\(\)/.test(src));
+
+assert('T111h-16 有「boot console 乾淨」視覺守門（捉任何 boot error）',
+  fs.existsSync(path.join(__dirname, 'visual', 'scenarios', 'boot-console-clean.mjs')) &&
+  /consoleClean/.test(fs.readFileSync(path.join(__dirname, 'visual', 'scenarios', 'boot-console-clean.mjs'), 'utf8')) &&
+  /Runtime\.exceptionThrown/.test(fs.readFileSync(path.join(__dirname, 'visual', 'cdp.mjs'), 'utf8')));
+
 // =========== summary ===========
 console.log(`\n========== ${pass} pass / ${fail} fail ==========`);
 if (fail > 0) {
