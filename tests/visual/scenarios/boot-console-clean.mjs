@@ -32,17 +32,18 @@ export default {
     // ② 指名道姓：每個 boot 步驟真係行過（唔可以靜靜漏咗）
     {
       assert: {
-        label: 'Profile.load() 行過（學生 profile / 級數表 / 主音量 有載入）',
+        label: 'Profile.load() 行過（學生 profile / 局長 / 主音量 有載入）',
         expr: `(() => {
           try {
             const d = Profile.data;
             // ⚠️ milestonesByType 係 lazy-init（用先有），唔可以喺呢度斷
+            // ⚠️ cycle111j：levelByType / levelStreak 隨「自動升降級」一齊移除
+            //    → 改斷新嘅局長欄位 goalStages（老師可調 → 必須持久化）
             return {
               ok: !!d && typeof d === 'object'
-                && d.levelByType !== undefined
-                && typeof d.levelStreak !== 'undefined'
+                && Number.isFinite(d.goalStages)
                 && typeof d.masterVolume === 'number',
-              detail: 'levelByType=' + JSON.stringify(d.levelByType)
+              detail: 'goalStages=' + JSON.stringify(d.goalStages)
                 + ' · masterVolume=' + d.masterVolume,
             };
           } catch (e) { return { ok: false, detail: String(e.message) }; }

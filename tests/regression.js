@@ -1338,8 +1338,8 @@ assert('PLAN-03 order next-number path',
   /_nextInSeq\(dir,\s*level\)/.test(src) &&
   /邊個跟住？/.test(src) &&
   /\$\{stem\.join\('  ·  '\)\}  ·  ？/.test(src));
-assert('PLAN-04 diff-helper scopes copy',
-  /跟題目範疇 · 10 題/.test(src));
+assert('PLAN-04 diff-helper scopes copy（題數動態，唔准再寫死數字）',
+  /跟題目範疇 · \$\{_easyQuestionTotal\(\)\} 題/.test(src));
 assert('PLAN-05 advanced teacher override label',
   /老師覆寫 · 一鍵仍跟範疇/.test(src));
 assert('PLAN-06 bank v3 + scope seeds',
@@ -1350,7 +1350,7 @@ assert('PLAN-07 dual hide length units',
   /sen-board-dual \.sen-bar-units/.test(src));
 assert('PLAN-08 onboarding 3-step easy path',
   /第一步：睇圖/.test(src) && /第二步：撳 A／B／C/.test(src) &&
-  /第三步：完成 10 題/.test(src));
+  /第三步：完成 \$\{_easyQuestionTotal\(\)\} 題/.test(src));
 
 // V3.6 cycle60: tug pulls toward self (not opponent)
 console.log('\n[T45] V3.6 audit cycle-60 (tug pull toward self)');
@@ -2417,8 +2417,8 @@ assert('T108-06 type 置換只可以發生喺 Adaptive 升級/降級兩處',
 console.log('\n[T109] V3.6 cycle-109 (gameplay: Stage + 進度格 + 提示階梯 + 錯題重播)');
 assert('T109-01 Stage 常數：3 格 × 4 段（0.25 精度）',
   /const STAGE_CELLS = 3;/.test(src) && /const CELL_UNITS = 4;/.test(src));
-assert('T109-02 局長 = Stage 數（goalStages 設定存在）',
-  /goalStages:\s*3/.test(src) && /hintMaxLevel:\s*4/.test(src));
+assert('T109-02 局長 = Stage 數（goalStages 設定存在 · cycle111j 預設 4 關 = 12 題）',
+  /goalStages:\s*4/.test(src) && /hintMaxLevel:\s*4/.test(src));
 assert('T109-03 Stage 進度係 per-team（雙隊各自有進度）',
   /stage:\s*\{\s*\n\s*knight:\s*\{\s*index:\s*0,\s*units:\s*0,\s*cleared:\s*0\s*\}/.test(src) &&
   /mage:\s*\{\s*index:\s*0,\s*units:\s*0,\s*cleared:\s*0\s*\}/.test(src));
@@ -2572,10 +2572,8 @@ assert('T111-08 獨立嘅 asset audit 存在而且有 8 組 check',
 // ============================================================
 console.log('\n[T111b] V3.6 cycle-111b (scope 內 3 級難度: level 參數 + 適應 + bank 過濾)');
 
-assert('T111b-01 ScopeLevel 模組常數齊全（上限 3 / 4 對升 / 3 錯降）',
+assert('T111b-01 ScopeLevel 模組常數齊全（上限 3 / 級數表）',
   /const SCOPE_LEVEL_MAX = 3;/.test(src) &&
-  /const LEVEL_UP_STREAK = 4;/.test(src) &&
-  /const LEVEL_DOWN_STREAK = 3;/.test(src) &&
   /const SCOPE_LEVEL_PARAMS = \{/.test(src));
 
 for (const _t of ['count20','compareLength','compareHeight','orderAsc20',
@@ -2586,12 +2584,16 @@ for (const _t of ['count20','compareLength','compareHeight','orderAsc20',
 assert('T111b-02 classic type 唔喺級數表入面（適應唔可以跨 scope）',
   !/\n\s*(add10|sub10|add20|sub20|add2d|sub2d|ordering|whatTime|shapeMatch):\s*\[\{/.test(src));
 
-assert('T111b-03 _scopeLevelOf 用 Number.isFinite（0 係 falsy，唔可以用 || default）',
-  /function _scopeLevelOf\(type\)[\s\S]{0,320}Number\.isFinite\(v\)/.test(src) &&
-  !/function _scopeLevelOf\(type\)[\s\S]{0,320}\|\|\s*1\b/.test(src));
+// ⚠️ cycle111j：自動升降級已移除 → 級數固定 L1（唔再讀 Profile.levelByType）
+assert('T111b-03 _scopeLevelOf 固定返 L1（cycle111j 移除自動升降級）',
+  /function _scopeLevelOf\(type\)[\s\S]{0,500}return 1;/.test(src) &&
+  !/function _scopeLevelOf\(type\)[\s\S]{0,500}Profile\.data\.levelByType/.test(src));
 
-assert('T111b-04 _updateScopeLevel 寫返 Profile 並存檔（跨課堂保留級數）',
-  /function _updateScopeLevel\(type, correct\)[\s\S]{0,1200}P\.levelByType\[type\] = next;[\s\S]{0,120}Profile\.save\(\)/.test(src));
+assert('T111b-04 自動升降級已移除（cycle111j：冇 _updateScopeLevel / 冇門檻常數 / 冇降級提示）',
+  !/function _updateScopeLevel/.test(src) &&
+  !/LEVEL_UP_STREAK/.test(src) &&
+  !/LEVEL_DOWN_STREAK/.test(src) &&
+  !/降級 →/.test(src));
 
 assert('T111b-05 QuestionGen.make 收 level 參數並派落生成器',
   /function make\(type, mode = 'choice', level = 1\)/.test(src) &&
@@ -2603,17 +2605,20 @@ assert('T111b-05 QuestionGen.make 收 level 參數並派落生成器',
 assert('T111b-06 出題時用 _scopeLevelOf 決定級數（3 個呼叫點）',
   (src.match(/QuestionGen\.make\(type, (?:mode|Game\.settings\.mode), _scopeLevelOf\(type\)\)/g) || []).length === 3);
 
-assert('T111b-07 答題後呼叫 _updateScopeLevel（easy 分支）',
-  /_checkMilestones\(q\.type, correct, usedHint, isReplay\);\s*\n\s*\/\/[^\n]*\n\s*_updateScopeLevel\(q\.type, correct\);/.test(src));
+assert('T111b-07 答題後唔會再呼叫 _updateScopeLevel（cycle111j 已移除該 call site）',
+  !/_updateScopeLevel\(q\.type, correct\)/.test(src) &&
+  /_checkMilestones\(q\.type, correct, usedHint, isReplay\);/.test(src));
 
 assert('T111b-08 bank 題目按級數過濾（級數契約唔可以有 30% 漏洞）',
   /function _bankMatchesLevel\(type, q, level\)/.test(src) &&
   /const lv = _scopeLevelOf\(typeId\);/.test(src) &&
   /arr\.filter\(\(q\) => _bankMatchesLevel\(typeId, q, lv\)\)/.test(src));
 
-assert('T111b-09 Profile lazy-init levelByType / levelStreak',
-  /if \(!this\.data\.levelByType \|\| typeof this\.data\.levelByType !== 'object'\) this\.data\.levelByType = \{\};/.test(src) &&
-  /if \(!this\.data\.levelStreak \|\| typeof this\.data\.levelStreak !== 'object'\) this\.data\.levelStreak = \{\};/.test(src));
+assert('T111b-09 Profile lazy-init goalStages（局長持久化；0 係非法值要用 Number.isFinite）',
+  /this\.data\.goalStages = Number\.isFinite\(_gs\)/.test(src) &&
+  /Math\.min\(4, Math\.max\(1, Math\.round\(_gs\)\)\)/.test(src) &&
+  !/this\.data\.levelByType/.test(src) &&
+  !/this\.data\.levelStreak/.test(src));
 
 assert('T111b-10 L 容量題目標固定 1L，prompt 統一',
   /'邊個有 1L\?'/.test(src) && /'邊支飲品有 1L\?'/.test(src) && /'邊件有 1L\?'/.test(src));
@@ -2923,7 +2928,7 @@ assert('T111h-14 setupTeacher 唔准叫未定義嘅 _wirePauseOverlay（P0 boot 
   'srcCode 仍然有 _wirePauseOverlay 嘅 call/definition');
 
 assert('T111h-15 boot 順序：setupTeacher 之後必須行晒 Profile.load → 主音量 → Boss 面板',
-  /setupTeacher\(\);[\s\S]{0,400}renderTypePicker\(\);[\s\S]{0,200}renderRecommendChips\(\);[\s\S]{0,200}Profile\.load\(\);[\s\S]{0,200}Audio\.setMasterVolume\([\s\S]{0,600}renderBossSelect\(\)/.test(src));
+  /setupTeacher\(\);[\s\S]{0,400}renderTypePicker\(\);[\s\S]{0,200}renderRecommendChips\(\);[\s\S]{0,200}Profile\.load\(\);[\s\S]{0,600}Audio\.setMasterVolume\([\s\S]{0,900}renderBossSelect\(\)/.test(src));
 
 assert('T111h-16 有「boot console 乾淨」視覺守門（捉任何 boot error）',
   fs.existsSync(path.join(__dirname, 'visual', 'scenarios', 'boot-console-clean.mjs')) &&
@@ -2973,9 +2978,80 @@ assert('T111i-07 strict-xfail 支援存在（已知缺陷有被追蹤，唔係�
   /xfail:\s*!!xfail/.test(fs.readFileSync(path.join(__dirname, 'visual', 'cdp.mjs'), 'utf8')) &&
   /xfail 意外通過/.test(fs.readFileSync(path.join(__dirname, 'visual', 'run.mjs'), 'utf8')));
 
-assert('T111i-08 有 xfail 標記嘅場景（代表至少一個已知缺陷被明文追蹤）',
-  PLAYTEST_SCENARIOS.some((f) => /xfail:\s*true/.test(
-    fs.readFileSync(path.join(__dirname, 'visual', 'scenarios', f), 'utf8'))));
+// ⚠️ cycle111j：3 條已知缺陷（F3 經典逐個選項反饋 / F4 M4 里程碑 / F6 題數文案）
+//    **全部修好** → xfail 標記清空，行為改由 T111j-04/05/06 正式 lock-in 鎖住。
+//    但呢條規則要留返：日後如果再有人加 xfail 標記，label 必須喺 docs 有記錄
+//    —— 否則「已知缺陷被靜靜清走」又會發生。
+const xfailLabels111j = [];
+for (const f of PLAYTEST_SCENARIOS) {
+  const t = fs.readFileSync(path.join(__dirname, 'visual', 'scenarios', f), 'utf8');
+  const re = /label:\s*'([^']+)'\s*,\s*\n\s*xfail:\s*true/g;
+  let m;
+  while ((m = re.exec(t)) !== null) xfailLabels111j.push(m[1]);
+}
+const docTxt111j = fs.readFileSync(path.join(__dirname, '..', 'docs', 'PLAYTEST_REVIEW.md'), 'utf8');
+assert('T111i-08 xfail 標記嘅 label 一定要喺 docs/PLAYTEST_REVIEW.md 有記錄（明文追蹤）',
+  xfailLabels111j.every((l) => docTxt111j.indexOf(l) !== -1),
+  xfailLabels111j.filter((l) => docTxt111j.indexOf(l) === -1).join(' | '));
+
+// =========== T111j: 局長可調 + 動態題數 + 級數固定 L1 + 經典逐個選項反饋 ==========
+// ⚠️ cycle111i 真機 playtest 揭發嘅 4 條發現，Ken 2026-10-30 拍板：
+//    F3 做（經典畫面加延遲）· F4 保留 M4（靠 F6 局長 12 題）· F5 移除自動升降級 · F6 做
+console.log('\n[T111j] V3.6 cycle-111j (局長可調 + 動態題數文案 + 級數固定 L1 + 經典逐個選項反饋)');
+
+const htmlSrc111j = fs.readFileSync(FILE, 'utf8');
+
+assert('T111j-01 畫面題數嘅唯一真實來源 = _easyQuestionTotal()（= goalStages × 3）',
+  /function _easyQuestionTotal\(\) \{\s*\n\s*return _stageGoalQuestions\(\)\.target;/.test(srcCode) &&
+  /function _stageGoalQuestions\(\)[\s\S]{0,400}Number\.isFinite\(n\)/.test(srcCode) &&
+  /const stages = Number\.isFinite\(n\) \? Math\.min\(4, Math\.max\(1, Math\.round\(n\)\)\) : 4;/.test(srcCode));
+
+assert('T111j-02 預設局長 = 4 關（12 題，令 M4 里程碑正常單局達得到）',
+  // ⚠️ 用 `soloMode: 'bridge'` 錨住 settings defaults block（避免 reset block 嘅同名字串誤導）
+  /soloMode: 'bridge',[\s\S]{0,400}goalStages:\s*4,/.test(srcCode) &&
+  /this\.data\.goalStages = Number\.isFinite/.test(srcCode) &&
+  /Math\.min\(4, Math\.max\(1, Math\.round\(_gs\)\)\)/.test(srcCode));
+
+assert('T111j-03 教師台有「局長」控制 + **真係接線** + 持久化落 Profile',
+  /id="td-goal-stages"/.test(htmlSrc111j) &&
+  /function _wireGoalStages\(\)/.test(srcCode) &&
+  // ⚠️ 一定要斷「setupTeacher 有冇叫佢」——淨係有 function 唔代表接線
+  /setupTeacher\(\)\s*\{[\s\S]{0,600}_wireGoalStages\(\);/.test(srcCode) &&
+  /Game\.settings\.goalStages = n;/.test(srcCode) &&
+  /Profile\.data\.goalStages = n;/.test(srcCode));
+
+assert('T111j-04 自動升降級已移除（級數固定 L1 · 學生唔會再見到「⬇️ 降級」）',
+  !/function _updateScopeLevel/.test(srcCode) &&
+  !/LEVEL_UP_STREAK/.test(srcCode) &&
+  !/LEVEL_DOWN_STREAK/.test(srcCode) &&
+  !/降級 →/.test(src) &&
+  // ⚠️ 一定要斷「function 最後一句係 return 1」—— 中間任何一句 return 1 唔算
+  /function _scopeLevelOf\(type\)[\s\S]{0,500}return 1;\s*\}/.test(srcCode));
+
+assert('T111j-05 經典畫面答完有延遲（逐個選項 ✓/✗ 真正可見）',
+  // ⚠️ 用 `_applyWrongEffects` 錨住**經典路徑**（SEN 路徑早就有 650/1000，唔會混淆）
+  /_applyWrongEffects\(team, q, btn\);[\s\S]{0,300}_scheduleNextQuestion\(team, correct \? 650 : 1000\);/.test(srcCode) &&
+  /setTimeout\(\(\) => btn\.classList\.remove\('correct', 'wrong'\), 2200\);/.test(srcCode));
+
+assert('T111j-06 唔准再出現寫死嘅「10 題」局長文案',
+  !/跟題目範疇 · 10 題/.test(srcCode) &&
+  !/第三步：完成 10 題/.test(srcCode) &&
+  !/答 10 題完/.test(srcCode) &&
+  !/各 10 題/.test(srcCode) &&
+  !/10 題埋岸/.test(srcCode));
+
+assert('T111j-07 局長 selector 開 modal 時要同步返現況（唔會顯示舊值）',
+  /if \(_goalStagesSync\) _goalStagesSync\(\);/.test(src) &&
+  /let _goalStagesSync = null;/.test(src));
+
+assert('T111j-08 局長改完要即刻刷新選單文案（唔會等到下次 render）',
+  /function _refreshMenuQuestionCopy\(\)[\s\S]{0,800}_easyQuestionTotal\(\)/.test(srcCode) &&
+  // ⚠️ 至少 2 個 call site（教師台 onchange + boot）
+  (srcCode.match(/_refreshMenuQuestionCopy\(\);/g) || []).length >= 2);
+
+assert('T111j-09 局長有真機守門（教師台場景實測 selector + 文案更新 + 持久化）',
+  /td-goal-stages/.test(fs.readFileSync(path.join(__dirname, 'visual', 'scenarios', 'playtest-teacher-flow.mjs'), 'utf8')) &&
+  /Profile\.data\.goalStages/.test(fs.readFileSync(path.join(__dirname, 'visual', 'scenarios', 'playtest-teacher-flow.mjs'), 'utf8')));
 
 // =========== summary ===========
 console.log(`\n========== ${pass} pass / ${fail} fail ==========`);

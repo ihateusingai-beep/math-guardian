@@ -2717,7 +2717,9 @@ const Game = {
     arenaSkin: 'retro',             // 'classic' | 'retro' (ruler tug / bridge)
     soloMode: 'bridge',             // solo mini-game 'boat' | 'bridge' | 'ruler'
     menuTrack: 'class',             // 'class' 課堂 | 'boss' 戰役
-    goalStages: 3,
+    goalStages: 4,            // 局長 = Stage 數（每 Stage 3 格）→ 4 關 = 12 題
+                             // ⚠️ cycle111j：預設由 3 改成 4 —— 因為 M4 里程碑要
+                             //    「同一局連對 10 題」，3 關（9 題）正常流程永遠達唔到。
     // Ken 2026-10-25 決定：可以畀答案，但分層遞進，最後一層先講答案。老師可調低。
     hintMaxLevel: 4,
   },
@@ -2912,8 +2914,8 @@ const Game = {
       }
       _recordAnswerStats(team, q, correct);
       _checkMilestones(q.type, correct, usedHint, isReplay);
-      // scope 內 3 級難度適應（4 對升級 / 3 錯降級；永遠唔換 scope）
-      _updateScopeLevel(q.type, correct);
+      // scope 內 3 級難度適應（cycle111j：自動升降級已移除 → 級數固定 L1；永遠唔換 scope）
+      //    ⚠️ 呢度唔再有 _updateScopeLevel call（級數只會係 1）。
       UI.refreshSENScreen();
       UI.refreshSENArena(team, correct);
       // ⚠️ 之前「一完成就提早 return」會令傳手中斷 —— 雙隊模式下
@@ -2931,7 +2933,11 @@ const Game = {
     else _applyWrongEffects(team, q, btn);
     _recordAnswerStats(team, q, correct);
     UI.updateTeam(team);
-    _scheduleNextQuestion(team);
+    // ⚠️ cycle111j：經典畫面加延遲（跟 SEN 一致：答啱 650ms / 答錯 1000ms）。
+    //    之前 delay = 0 → nextQuestion 即刻 `area.innerHTML = ''` 清走選項區
+    //    → highlightBtn 加落嘅 .correct/.wrong **只存活同一個 tick**，學生從來睇唔到。
+    //    實測（cycle111i playtest）：t0=1 → 下一 tick=0。
+    _scheduleNextQuestion(team, correct ? 650 : 1000);
   },
 
   handleRetryAnswer(team, value, btn, q, correct) {
@@ -3757,7 +3763,7 @@ const UI = {
     const dual = _isDualPlay();
     const tk = Game.state.teams.knight || { correct: 0, total: 0 };
     const tm = Game.state.teams.mage || { correct: 0, total: 0 };
-    const goal = Game.state.easyGoalTotal || 10;
+    const goal = Game.state.easyGoalTotal || _easyQuestionTotal();
     const L = Game.settings.playerLabel || (dual ? '左隊' : '你');
     const R = Game.settings.playerLabelRight || '右隊';
     const versus = !_isCoopTeam();
@@ -4174,7 +4180,7 @@ const UI = {
       // V3.6 cycle106 P0-D: st.total = 已答題數(答啱答錯都加),所以第一題顯示「第 0 題」。
       // 顯示「進行中嘅題號」= total + 1,並用 goal 收尾避免答完變「第 11 題」。
       if (qc) {
-        const _goalQ = Game.state.easyGoalTotal || 10;
+        const _goalQ = Game.state.easyGoalTotal || _easyQuestionTotal();
         qc.textContent = `第 ${Math.min(st.total + 1, _goalQ)} 題`;
       }
       if (who) {
@@ -4505,15 +4511,16 @@ function setupMenu() {
     });
     const ph = $('play-helper');
     if (ph) {
+      const nq = _easyQuestionTotal();
       if (!dual) {
         const sm = Game.settings.soloMode;
-        if (sm === 'boat') ph.textContent = '單人推船：答對船前進，10 題埋岸。';
-        else if (sm === 'ruler') ph.textContent = '單人拉力：答對拉尺去終點，10 題完。';
-        else ph.textContent = '單人鋪路：答對加一格橋，10 題過橋。';
-      } else if (arenaMode === 'coop' && skinMode === 'retro') ph.textContent = '復古鋪路：左藍右紫同時答，答對加一格橋，兩邊各 10 題一齊過橋。';
-      else if (arenaMode === 'coop') ph.textContent = '合作推船：左藍右紫同時答，答對船前進，兩邊各 10 題一齊埋島。';
-      else if (skinMode === 'retro') ph.textContent = '復古扯尺：左藍右紫同時答，答對就拉尺，兩邊各 10 題比邊邊贏。';
-      else ph.textContent = '對戰扯大欖：左藍右紫同時答，答對就拉繩，兩邊各 10 題比邊邊贏。';
+        if (sm === 'boat') ph.textContent = `單人推船：答對船前進，${nq} 題埋岸。`;
+        else if (sm === 'ruler') ph.textContent = `單人拉力：答對拉尺去終點，${nq} 題完。`;
+        else ph.textContent = `單人鋪路：答對加一格橋，${nq} 題過橋。`;
+      } else if (arenaMode === 'coop' && skinMode === 'retro') ph.textContent = `復古鋪路：左藍右紫同時答，答對加一格橋，兩邊各 ${nq} 題一齊過橋。`;
+      else if (arenaMode === 'coop') ph.textContent = `合作推船：左藍右紫同時答，答對船前進，兩邊各 ${nq} 題一齊埋島。`;
+      else if (skinMode === 'retro') ph.textContent = `復古扯尺：左藍右紫同時答，答對就拉尺，兩邊各 ${nq} 題比邊邊贏。`;
+      else ph.textContent = `對戰扯大欖：左藍右紫同時答，答對就拉繩，兩邊各 ${nq} 題比邊邊贏。`;
     }
     const bph = $('boss-play-hint');
     if (bph) bph.textContent = dual ? '而家：👥 雙隊打王' : '而家：🧍 單人打王';
@@ -4534,7 +4541,8 @@ function setupMenu() {
     else if (arenaMode === 'coop') playTxt = '雙隊·合作·推船';
     else if (skinMode === 'retro') playTxt = '雙隊·對戰·復古尺';
     else playTxt = '雙隊·對戰·扯大欖';
-    const summary = `${playTxt} · ${scopeTxt} · ${dual ? '各 10 題' : '10 題'}`;
+    const nq2 = _easyQuestionTotal();
+    const summary = `${playTxt} · ${scopeTxt} · ${dual ? `各 ${nq2} 題` : `${nq2} 題`}`;
     const sub = $('easy-start-sub');
     if (sub) sub.textContent = summary;
     const sumEl = $('class-start-summary');
@@ -4802,7 +4810,7 @@ function setupMenu() {
       const dh = $('diff-helper');
       if (dh) {
         dh.textContent = isEasy
-          ? '簡單模式：跟題目範疇 · 10 題 · 大掣 A/B/C'
+          ? `簡單模式：跟題目範疇 · ${_easyQuestionTotal()} 題 · 大掣 A/B/C`
           : '普通模式：4 選一、可用鍵盤、Boss 戰役';
       }
     };
@@ -4836,7 +4844,7 @@ function setupMenu() {
       const sub = $('easy-start-sub');
       if (sub) {
         const play = Game.settings.playLayout === 'dual' ? '雙隊' : '單人';
-        sub.textContent = `${play} · ${Game.settings.scopes.length} 個範疇 · 10 題`;
+        sub.textContent = `${play} · ${Game.settings.scopes.length} 個範疇 · ${_easyQuestionTotal()} 題`;
       }
     }
   }
@@ -4917,7 +4925,7 @@ function setupMenu() {
     advancedForcedOpen = false;
     syncMenuAdvanced();
     const dh = $('diff-helper');
-    if (dh) dh.textContent = '簡單模式：跟主頁範疇出題、少選項、答 10 題完';
+    if (dh) dh.textContent = `簡單模式：跟主頁範疇出題、少選項、答 ${_easyQuestionTotal()} 題完`;
     // 2. Lock to choice mode
     Game.settings.mode = 'choice';
     document.querySelectorAll('.opt-mode').forEach(x => {
@@ -5108,9 +5116,9 @@ function showOnboarding(onComplete) {
             '\n可以用手指指字母，或者自己撳掣。'
     },
     {
-      title: '⭐ 第三步：完成 10 題',
+      title: `⭐ 第三步：完成 ${_easyQuestionTotal()} 題`,
       body: '答啱會有獎勵。' +
-            '\n完成 10 題就有金銀銅獎！'
+            `\n完成 ${_easyQuestionTotal()} 題就有金銀銅獎！`
     }
   ];
   let i = 0;
@@ -5820,8 +5828,19 @@ function _stageCellFills(team) {
 
 // 局長：Stage 數 → 目標題數（每 Stage 3 格）＋ 硬上限（容錯 ×2）
 function _stageGoalQuestions() {
-  const stages = Math.max(1, Number(Game.settings.goalStages) || 3);
+  // ⚠️ cycle111j：唔用 `Number(x) || 4`（0 係 falsy → 會跳去 4）。
+  //    局長係老師可調 → 0 / 越界都要夾返（1..4 關），非法值先用預設 4。
+  const n = Number(Game.settings.goalStages);
+  const stages = Number.isFinite(n) ? Math.min(4, Math.max(1, Math.round(n))) : 4;
   return { stages, target: stages * STAGE_CELLS, hardCap: stages * STAGE_CELLS * 2 };
+}
+
+// ⚠️ cycle111j：畫面所有「N 題」文案嘅**唯一真實來源**。
+//    之前全部寫死「10 題」，但實際一局 = goalStages × 3（9 → 12）→ 學生見到嘅數字
+//    同真實題數對唔上，老師點題時會唔對數（cycle111i playtest F6）。
+//    → 所有文案都要讀呢個 function，唔准再寫死數字。
+function _easyQuestionTotal() {
+  return _stageGoalQuestions().target;
 }
 
 // ============================================================
@@ -5830,8 +5849,12 @@ function _stageGoalQuestions() {
 //    type 本身永遠唔會變（cycle 108 P0 教訓：easy scope 被 Adaptive 換成 add10）。
 //    同時亦唔會影響 classic mode（classic 有自己嘅 Adaptive ladder）。
 const SCOPE_LEVEL_MAX = 3;
-const LEVEL_UP_STREAK = 4;     // 連續 4 題答啱 → 升一級
-const LEVEL_DOWN_STREAK = 3;   // 連續 3 題答錯 → 降一級
+// ⚠️ cycle111j：**自動升降級已移除**（Ken 決定）。
+//    之前係「連續 4 對升級 / 連續 3 錯降級」，但 20 萬次模擬顯示：
+//    50% 答對率學生長期停喺 L1.25（L3 幾乎用唔到），而且每題 5.8% 變級率
+//    ≈ 每局 0.5 次「⬇️ 降級」彈出 —— 對 SEN 學生係純挫敗標籤。
+//    → 級數而家**固定 L1**（見 _scopeLevelOf）。
+//    L2 / L3 參數暫時冇用到，留住等老師手動設級（cycle 112）或者拎走。
 
 // 每個 scope 嘅 3 級參數（proposal §3.6 表）
 //   count20       個數上限        L1 1–3 · L2 1–5 · L3 1–10
@@ -5856,12 +5879,16 @@ function _scopeSupportsLevel(type) {
 }
 
 // 目前級數（1..3）。classic mode 一律 L1 —— 避免 easy 練習嘅級數影響經典題。
+//
+// ⚠️ cycle111j：**級數固定 L1**（自動升降級已移除，見上面 SCOPE_LEVEL_MAX 嘅註解）。
+//    之前呢度讀 `Profile.data.levelByType[type]`（由 _updateScopeLevel 寫入）。
+//    而家唔讀 —— 因為舊 profile 嘅 localStorage 仲殘留住 levelByType，
+//    如果仲讀 → 舊學生會由 L3/L2 開局（違反「固定 L1」契約）。
+//    單一真實來源 = 呢個 function（生成器路徑 + bank 路徑都讀佢）。
 function _scopeLevelOf(type) {
   if (!_scopeSupportsLevel(type)) return 1;
   if (Game.settings.difficulty !== 'easy') return 1;
-  const v = Number(Profile.data.levelByType && Profile.data.levelByType[type]);
-  if (!Number.isFinite(v)) return 1;
-  return Math.max(1, Math.min(SCOPE_LEVEL_MAX, Math.round(v)));
+  return 1;
 }
 
 // 目前級數嘅參數（唔支援就 null）
@@ -5912,33 +5939,6 @@ function _bankMatchesLevel(type, q, level) {
   }
   // learnL / findLDrink / findLItem → 冇 bank 種子，一律行生成器
   return true;
-}
-
-// 適應：連續 4 對 → 升級；連續 3 錯 → 降級。級數存 Profile（跨課堂保留）。
-// ⚠️ 永遠唔換 scope —— 只改同一個 type 嘅級數。
-function _updateScopeLevel(type, correct) {
-  if (!_scopeSupportsLevel(type)) return null;
-  if (Game.settings.difficulty !== 'easy') return null;
-  const P = Profile.data;
-  if (!P.levelByType) P.levelByType = {};
-  if (!P.levelStreak) P.levelStreak = {};
-  const cur = _scopeLevelOf(type);
-  const st = P.levelStreak[type] || (P.levelStreak[type] = { right: 0, wrong: 0 });
-  if (correct) { st.right = (st.right || 0) + 1; st.wrong = 0; }
-  else { st.wrong = (st.wrong || 0) + 1; st.right = 0; }
-  let next = cur;
-  if (st.right >= LEVEL_UP_STREAK && cur < SCOPE_LEVEL_MAX) { next = cur + 1; st.right = 0; }
-  else if (st.wrong >= LEVEL_DOWN_STREAK && cur > 1) { next = cur - 1; st.wrong = 0; }
-  if (next === cur) return cur;
-  P.levelByType[type] = next;
-  Profile.save();
-  const reg = TYPE_REGISTRY[type];
-  const label = reg ? reg.label : type;
-  if (typeof FX !== 'undefined' && FX.screenAlert) {
-    FX.screenAlert(next > cur ? `⬆️ 升級！${label} 而家係第 ${next} 級` : `⬇️ 降級 → ${label} 第 ${next} 級`,
-      next > cur ? '#34d399' : '#fbbf24');
-  }
-  return next;
 }
 
 //   M1 首次答啱 · M2 冇用提示連對 5 題 · M3 錯咗之後救回 · M4 同一局連對 10 題
@@ -6163,7 +6163,11 @@ function highlightBtn(btn, correct) {
   if (!btn) return;
   if (correct) { btn.classList.add('correct'); }
   else { btn.classList.add('wrong'); }
-  setTimeout(() => btn.classList.remove('correct', 'wrong'), 700);
+  // ⚠️ cycle111j：移除時間由 700ms 延長到 2200ms。
+  //    之前 700ms 短過「下一題出現」嘅延遲（而家係 650 / 1000ms）→
+  //    標記會喺學生仲望住嗰條題嗰陣就消失。
+  //    2200ms 覆蓋到下一次出題（之後 `area.innerHTML=''` 自然清走）。
+  setTimeout(() => btn.classList.remove('correct', 'wrong'), 2200);
 }
 
 // 重練題處理
@@ -6869,6 +6873,42 @@ function trapFocusInModal(modal) {
   return () => modal.removeEventListener('keydown', handler);
 }
 
+// ⚠️ cycle111j：畫面「N 題」文案嘅即時刷新（教師台改咗局長就要即刻更新）。
+//    呢 4 個 element 入面唯一嘅「數字 + 題」就係局長（scope 名冇帶「題」字），
+//    所以用 regex 原地替換唔會誤傷。
+function _refreshMenuQuestionCopy() {
+  const nq = _easyQuestionTotal();
+  ['easy-start-sub', 'class-start-summary', 'diff-helper', 'play-helper'].forEach(id => {
+    const el = $(id);
+    if (!el) return;
+    el.textContent = el.textContent.replace(/\d+\s*題/g, `${nq} 題`);
+  });
+}
+
+// 局長 selector 嘅 value 要喺「開 modal」時同步返（Profile 可能喺 setupTeacher 之後先 load）
+let _goalStagesSync = null;
+
+// ⚠️ cycle111j：局長（Stage 數）—— 老師可調一局幾多題（proposal §3.7）。
+//    4 關 = 12 題係預設（令 M4 里程碑正常流程達得到）。
+function _wireGoalStages() {
+  const sel = $('td-goal-stages');
+  if (!sel) return;
+  _goalStagesSync = () => { sel.value = String(Game.settings.goalStages); };
+  _goalStagesSync();
+  sel.onchange = () => {
+    const v = Number(sel.value);
+    const n = Number.isFinite(v) ? Math.min(4, Math.max(1, Math.round(v))) : 4;
+    Game.settings.goalStages = n;
+    Profile.data.goalStages = n;
+    Profile.save();
+    _refreshMenuQuestionCopy();
+    _goalStagesSync();
+    if (typeof announceToA11y === 'function') {
+      announceToA11y(`局長已設定為 ${n} 關，一局共 ${_easyQuestionTotal()} 題`);
+    }
+  };
+}
+
 /* ============== R2 (cycle 12) — setupTeacher sub-helpers ==============
  * 5 helpers + IIFE state container. setupTeacher() 6-line orchestrator.
  */
@@ -6888,6 +6928,7 @@ function _openTeacherModal() {
   const ch = _newTeacherChallenge();
   const hint = $('teacher-pwd-hint');
   if (hint) hint.textContent = `答啱呢題先可以入：${ch.q} = ?`;
+  if (_goalStagesSync) _goalStagesSync();   // cycle111j：局長 selector 跟返現況
   setTimeout(() => $('teacher-pwd').focus(), 50);
   // V3.4-AUDIT4: Esc 關閉 + focus-trap
   if (_teacherModalState.escHandler) document.removeEventListener('keydown', _teacherModalState.escHandler);
@@ -7225,6 +7266,7 @@ function _wireTeacherActions() {
       studentName: '', unlockedBosses: ['forest-troll'], unlockedScenes: ['forest'],
       unlockedChars: ['knight','mage'], badges: [], statsByType: { add10:{c:0,w:0}, sub10:{c:0,w:0}, add20:{c:0,w:0}, sub20:{c:0,w:0}, add2d:{c:0,w:0}, sub2d:{c:0,w:0} },
       adaptiveDowngrades: 0, masteredByType: {}, masteredCount: 0, sessionsPlayed: 0, lastPlayDate: '',
+      goalStages: 4,   // cycle111j：局長（Stage 數）—— 重設後回預設 4 關 = 12 題
     };
     Profile.save();
     renderBossSelect();
@@ -7256,6 +7298,7 @@ function setupTeacher() {
   $('teacher-close').onclick = _closeTeacherModal;
   _wireTeacherPassword();
   _wireTeacherActions();
+  _wireGoalStages();   // 局長（Stage 數）—— cycle111j
   _wireBankSection();  // 題庫管理 add / delete
 }
 
@@ -7670,8 +7713,13 @@ const Profile = {
     if (!this.data.masteredByType || typeof this.data.masteredByType !== 'object') this.data.masteredByType = {};
     if (typeof this.data.masteredCount !== 'number') this.data.masteredCount = 0;
     if (typeof this.data.studentName !== 'string') this.data.studentName = '';
-    if (!this.data.levelByType || typeof this.data.levelByType !== 'object') this.data.levelByType = {};
-    if (!this.data.levelStreak || typeof this.data.levelStreak !== 'object') this.data.levelStreak = {};
+    // ⚠️ cycle111j：levelByType / levelStreak 唔再 lazy-init
+    //    （自動升降級已移除 → 冇人再寫、冇人再讀；舊 profile 殘留嘅嘢唔會影響行為）。
+    //    局長（Stage 數）係老師可調 → 要持久化。0 係非法值 → 用 Number.isFinite。
+    const _gs = Number(this.data.goalStages);
+    this.data.goalStages = Number.isFinite(_gs)
+      ? Math.min(4, Math.max(1, Math.round(_gs)))
+      : 4;
   },
   save() { STORAGE.save(STORAGE.PROFILE_KEY, this.data); },
   isUnlocked(kind, id) {
@@ -8254,6 +8302,11 @@ window.addEventListener('DOMContentLoaded', () => {
   Profile.load();
   //   真正開 context 時 ensureGraph() 會用返呢個值）
   Audio.setMasterVolume(Profile.data.masterVolume);
+  // ⚠️ cycle111j：局長（Stage 數）由 Profile 讀返入 Game.settings（單一真實來源）。
+  //    setupMenu() 喺 Profile.load() 之前跑 → 選單文案要用新值刷新返。
+  Game.settings.goalStages = Profile.data.goalStages;
+  _refreshMenuQuestionCopy();
+  if (_goalStagesSync) _goalStagesSync();
     // lazy-migrate recommenda
   if (typeof Game.settings.recommendationEnabled !== 'boolean') {
     Game.settings.recommendationEnabled = true;

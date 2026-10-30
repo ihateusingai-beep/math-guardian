@@ -14,10 +14,11 @@
 |---|---|
 | 真機 playtest 場景 | **4 條新場景**（教師台 / 接力+級數 / 結算 / Boss），已變成正式守門 |
 | 總發現 | **8 條**（P0×1 · P1×4 · P2×2 · P3×1） |
-| 已修 | **2 條**（P0 boot crash 喺 cycle 111h 追加；P1 接力開局 banner 喺 cycle 111i） |
-| 待 Ken 拍板 | **5 條**（全部係「機制設計」問題，唔係 bug 級） |
-| 新守門 | regression **+8 條**（T111i-01..08）· 視覺 **+24 條** · 加咗 **strict-xfail** 機制 |
-| Gate | **5728 pass / 0 fail**（regression 933 · generator 4665 · audio 24 · asset 22 · visual 84） |
+| Ken 拍板 | 2026-10-30 揀咗 **4 條**落地（F3 / F4 / F5 / F6）→ **cycle 111j** |
+| 已修 | **6 條**（P0 boot crash · P1 開局 banner · P1 F3 · P1 F4 · P1 F5 · P2 F6） |
+| 仍未做 | **2 條**（F7 boss 進度格 · F8 單人 boss 無主城塔） |
+| 新守門 | regression **+17 條**（T111i-01..08 · T111j-01..09）· 視覺 **+28 條** · 加咗 **strict-xfail** 機制 |
+| Gate | **5738 pass / 0 fail**（regression 942 · generator 4662 · audio 24 · asset 22 · visual 88） |
 
 **最重要嘅一句**：呢個版本嘅核心玩法（Stage 進度格 / 接力 / 級數階梯 / 概念卡 / 島嶼旅程）
 **全部真機行得通、冇死鎖、冇 crash**；但有 **3 個「學生見唔到」嘅隱形缺陷**
@@ -101,7 +102,12 @@
   —— 即係**答案直出**，但唔係「我揀錯咗 / 邊個啱」嘅選項反饋
 - **⚠️ 同 cycle111f 嘅假設矛盾**：AGENTS.md 同 cycle111f 註解都寫「經典畫面一直有
   `.option-btn.correct/.wrong` + ✓/✗」—— 實際上**學生從來未見過**
-- **狀態**：🟡 **xfail 追蹤**（`playtest-boss` 場景，strict-xfail）· 待 Ken 拍板點改
+- **狀態**：✅ **cycle111j 已修** —— Ken 拍板「加 ~650ms 延遲（跟 SEN 一致）」
+  - 經典路徑答完 **650ms（答啱）/ 1000ms（答錯）**（SEN 路徑一直係咁）
+  - `highlightBtn` class 移除時間 700 → **2200ms**（要覆蓋到下一題出現，否則標記會喺學生仲望住嗰條題嗰陣消失）
+  - 真機驗證：`playtest-boss` 場景「逐個選項 ✓/✗ 可見」由 **fail → pass**
+  - ⚠️ 副作用：嗰 1 秒內 `Game.state.current[team]` 係 null（`_scheduleNextQuestion` 會即刻清空）
+    → 測試要等下一題出現；玩家喺呢段時間撳掣會被安全忽略（`handleAnswer` 見 `!q` 就 return）
 
 ---
 
@@ -114,7 +120,11 @@
   → **正常流程 9 < 10，永远達唔到**；只有撞 hardCap 18 嘅延長局先可能
 - **學生後果**：4 粒里程碑圓點永遠填唔滿 → 「概念卡」機制**永遠差一格**
 - **補充**：`goalStages` 係 hardcode，**冇任何 UI 可以調**（proposal §3.7 原本設計係老師可設 5/10/20 題）
-- **狀態**：🟡 **xfail 追蹤** · 待 Ken 拍板
+- **狀態**：✅ **cycle111j 已修** —— Ken 拍板「保留 M4 + 局長改 12 題」
+  - `Game.settings.goalStages` 預設 **3 → 4**（4 關 × 3 格 = **12 題**）
+  - 一局 12 題 → `sessionStreak >= 10` 正常流程達得到
+  - 真機驗證：完整跑一局（雙隊各 12 題 = 24 題全對）→ `milestonesByType.count20.m4` **有時間戳**
+  - 概念卡維持 **4 粒圓點**（唔使拎走 M4）
 
 ---
 
@@ -149,7 +159,13 @@
   | 方案 B（最近 10 題 8 對升 / 4 對降） | 1.38 | 4.2% | 84 | state 唔同，收益低 |
   | 方案 C（累計淨分 ≥+3 升 / ≤−4 降） | 2.23 | **0.7%** | 90 | state 唔同，升級太慢 |
 
-- **狀態**：📋 **建議，未改**（routing-layer change + 冇 field data → 要 Ken 拍板 + 試教驗證）
+- **狀態**：✅ **cycle111j 已處理** —— Ken 拍板「移除自動升降級（級數固定 L1）」
+  - 刪走 `_updateScopeLevel` / `LEVEL_UP_STREAK` / `LEVEL_DOWN_STREAK`
+  - `_scopeLevelOf()` 恆返 1（**唔讀** `Profile.data.levelByType` —— 舊 profile 殘留值唔可以影響行為）
+  - `Profile.data.levelByType` / `levelStreak` 一齊移除
+  - **學生唔會再見到「⬇️ 降級」挫敗提示**
+  - ⚠️ `SCOPE_LEVEL_PARAMS` 嘅 L2/L3 參數**暫時冇用**（留俾 cycle 112 老師手動設級）
+  - 真機驗證：`playtest-relay-level` 場景改成「級數固定 L1」（舊 profile 殘留 L3 都唔會升級）
 
 ---
 
@@ -161,7 +177,12 @@
 - **根因**：舊版 `easyGoalTotal = 10` 寫死 → cycle 109 改成 `goalStages × 3`（自然變 3/6/9/12 題）
   但**文案冇跟住改**；proposal §3.7 原本設計就係「局長 = 5/10/20 題，**教師控制台設**」
 - **學生/老師後果**：學生見「10 題」但只玩 9 題；**老師點題時會唔對數**
-- **狀態**：🟡 **xfail 追蹤** · 建議改為動態文案（讀 `goalStages`）並開放老師可調
+- **狀態**：✅ **cycle111j 已修** —— Ken 拍板「做」
+  - 新增 `_easyQuestionTotal()` = `goalStages × STAGE_CELLS` → 畫面所有「N 題」嘅**唯一真實來源**
+  - 改咗 **8 處**寫死「10 題」嘅文案（index.html 3 處 + app.js 5 處）
+  - **教師台加「局長」控制**（`#td-goal-stages`：1/2/3/4 關 = 3/6/9/12 題）→ 持久化落 `Profile.data.goalStages`
+  - 改局長即刻刷新選單文案（`_refreshMenuQuestionCopy()`）
+  - 真機驗證：`playtest-end-screen`「畫面宣稱嘅題數 == 實際題數」由 **fail → pass**
 
 ---
 
@@ -201,23 +222,25 @@ menu track / easy 安靜曲未做 · 冇 voice limit / node pooling · 離線支
 
 | 建議 cycle | 內容 | 對應 | 依據 | 風險 | 建議做唔做 |
 |---|---|---|---|---|---|
-| **111i**（今輪） | 修 F2 開局 banner · 4 條 playtest 場景入守門 · strict-xfail | — | F2 | 低 | ✅ 已做 |
-| **111j** | **文案對齊**（F6）：畫面題數改為動態讀 `goalStages`；`goalStages` 開放老師可調 | §3.7 局長 | F6 | 低（純文案 + 一個 setting） | ✅ 建議做 |
-| **111k** | **F3 經典畫面反饋**：經典路徑答完加 ~650ms 延遲（同行 SEN）→ 逐個選項 ✓/✗ 真正可見 | §3.9 | F3 | **中**（改 boss 節奏） | ⏸ 要 Ken 拍板節奏 |
+| **111i** | 修 F2 開局 banner · 4 條 playtest 場景入守門 · strict-xfail | — | F2 | 低 | ✅ 已做 |
+| **111j** | **F3 + F4 + F5 + F6 全部落地**（Ken 拍板）：經典逐個選項反饋延遲 · 局長 12 題令 M4 可達 · 移除自動升降級 · 動態題數 + 教師台局長控制 | §3.6 §3.7 §3.9 | F3 F4 F5 F6 | 中 | ✅ **已做** |
 | **111c** | **F7 boss 進度格**：boss HP 綁 Stage 進度格（proposal §3.9 原設計） | §3.9 | F7 | 中 | ⏸ 併入原定 cycle 111c |
-| **111l** | **F4 M4 解鎖**：改成「同一局連對 7 題」（≤ 9 可達）或「累計跨課堂」 | §3.8 | F4 | 低 | ✅ 建議做 |
-| **111m** | **F5 級數門檻**：升 連3對 / 降 連5錯（方案 A） | §3.6 | F5 | **中**（routing-layer） | ⏸ **要試教 field data** |
 | **111n** | **F8 單人 boss 城塔**：單人淨顯示一座 / 或加回血 | §3.9 | F8 | 中 | ⏸ 要 Ken 拍板 |
+| **112** | 教師台 8 項控制 + 班級模式 + 概念卡 UI + **老師手動設級**（L1/L2/L3 通道而家留咗） | §3.10 | F5 | 中 | 原定 |
 | **111d** | 4 scope + 3 UI icon + emoji-as-chrome 置換（asset） | §4.3-4.5 | 資產 | 低 | 原定 |
 | **112** | 教師台 8 項控制 + 班級模式 + 概念卡 UI + **重設級數掣** | §3.10 | 教師 | 中 | 原定 |
 
-### 3.2 建議優先做嘅三條（成本低 · 學生體感直接）
+### 3.2 cycle 111j 之後嘅下一步
 
-1. **F6 文案對齊 + `goalStages` 老師可調** —— 學生見到嘅題數同真實一致；
-   而且**一次過解決 F4（把 `goalStages` 開放後，局長可以是 10/12 題，M4 自然達得到）**
-2. **F4 M4 改成 ≤9 題可達** —— 一行 constant，概念卡 4 粒圓點填得滿，成就感機制先有回報
-3. **F5 級數門檻（方案 A）** —— 兩個常數；但**要試教 field data**（memory rule 7：
-   連續 2 個 routing-layer change 60 小時內 ship 就要停手等數據）
+1. **試教驗證 F5 嘅決定** —— 「固定 L1」係一個**冇 field data 嘅資訊決定**：
+   Ken 根據 20 萬次模擬 + 學生體感揀咗「唔好因為答錯就降級」。
+   → 下次上堂記低幾個學生嘅答對率同級數變化，再決定要不要開放老師手動設級（cycle 112）
+2. **F7 boss 進度格**（cycle 111c）—— boss 學生而家仍然唔知自己答到第幾題
+3. **F8 單人 boss 城塔** —— 有一座塔係學生控制唔到嘅
+
+> ⚠️ **Memory rule 7**：連續 2 個 routing-layer change 60 小時內 ship + 冇 field data
+> → pause 2-3 日，等 ≥50 routing decisions telemetry。cycle 111j 動咗 F5（routing-layer），
+> 所以 **cycle 111c/111n 之前建議先試教一輪**。
 
 ### 3.3 建議唔好做
 
@@ -238,6 +261,22 @@ menu track / easy 安靜曲未做 · 冇 voice limit / node pooling · 離線支
 | `playtest-relay-level.mjs` | 5 | 接力開局 banner + 只顯示輪到嗰隊 → 答啱傳手 → 答錯傳另一隊救（重播槽）→ 級數連 4 對升 L2 → 級數跨 reload 保留 |
 | `playtest-end-screen.mjs` | 5 | 題數文案 vs 實際（xfail）→ 一隊做完跳過佢唔死鎖 → 概念卡 4 粒圓點 → 島嶼 pips 8 格 → M4 可達性（xfail） |
 | `playtest-boss.mjs` | 5 | Boss 面板 + HP 條 render → 答啱 HP 真跌 → 城堡 HP 條 render → 答錯見到正確答案 + 錯題入 review → 逐個選項 ✓/✗ 可見性（xfail） |
+
+### 4.1b 已知缺陷索引（xfail 標記嘅 label 一定要喺呢度有記錄）
+
+> `tests/regression.js` T111i-08 會掃描全部 `playtest-*.mjs` 入面嘅 `xfail: true` 標記，
+> 逐條 label 喺呢個檔搵唔到就 **fail** → 已知缺陷唔會被靜靜清走。
+
+| 發現 | 狀態 | 對應守門 |
+|---|---|---|
+| F3 經典/boss 逐個選項 ✓/✗ 學生睇唔到 | ✅ cycle111j 已修（650/1000ms 延遲） | T111j-05 + `playtest-boss` |
+| F4 M4 里程碑正常單局唔可能達到 | ✅ cycle111j 已修（局長 12 題） | T111j-02 + `playtest-end-screen` |
+| F6 畫面寫「10 題」實際 9 題 | ✅ cycle111j 已修（動態文案） | T111j-01/06 + `playtest-end-screen` |
+| F5 級數階梯對中等學生冇作用 | ✅ cycle111j 已處理（移除自動升降級 → 固定 L1） | T111j-04 + `playtest-relay-level` |
+| F7 boss 畫面冇題目進度格 | 🟡 未做（併入 cycle 111c） | — |
+| F8 單人 boss 有一座城塔無主 | 🟡 未做（待 Ken 拍板） | — |
+
+**cycle111j 現況：0 個 xfail 標記**（3 條已知缺陷全部修好，行為已升級做正式 lock-in）。
 
 ### 4.2 strict-xfail：已知缺陷唔可以鎖成「永久預期行為」
 
@@ -283,3 +322,10 @@ menu track / easy 安靜曲未做 · 冇 voice limit / node pooling · 離線支
 
 - **cycle 111i** — 真機 playtest 檢視：4 條場景入守門 · 修 F2 開局 banner ·
   加 strict-xfail · regression T111i-01..08 · 視覺 60 → **84**
+- **cycle 111j** — Ken 拍板 4 條發現落地：
+  **F3** 經典/boss 逐個選項 ✓/✗ 真正可見（650/1000ms 延遲 + highlight 2200ms）·
+  **F4** M4 保留（局長 4 關 = 12 題 → 正常單局達得到，真機驗證有時間戳）·
+  **F5** 移除自動升降級 → 級數固定 L1（刪 `_updateScopeLevel` + Profile 欄位）·
+  **F6** 畫面「N 題」改動態 + 教師台加「局長」控制（1/2/3/4 關）·
+  regression **T111j-01..09** + T111b/T109/PLAN/T111h-15 更新 · generator-audit +3 functional ·
+  視覺 84 → **88** · **13 條還原驗證全部以正確原因 fail**

@@ -117,16 +117,16 @@ export default {
       },
     },
 
-    // ── 4. 級數階梯：連續 4 對 → 升級 ──
+    // ── 4. 級數固定 L1（cycle111j：自動升降級已移除）──
     {
       assert: {
-        label: '級數階梯：連續 4 對 → count20 由 L1 升到 L2（上限 3 → 5）',
+        label: '級數固定 L1：連續 4 題答啱都唔會升級（學生唔會再見到升/降級提示）',
         expr: `(async () => {
           const sleep = ms => new Promise(r => setTimeout(r, ms));
-          // 轉返 solo + 乾淨 levelStreak
+          // 轉返 solo + 乾淨 level 狀態
           Game.settings.playLayout = 'solo';
-          Game.settings.goalStages = 3;      // 預設值：一局 9 題
-          Profile.data.levelByType = {};
+          Game.settings.goalStages = 4;      // 預設：4 關 = 12 題
+          Profile.data.levelByType = { count20: 3 };   // 模擬舊 profile 殘留 L3
           Profile.data.levelStreak = {};
           Profile.save();
           Game.settings.scopes = ['count20'];
@@ -143,31 +143,34 @@ export default {
             const q = Game.state.current[team];
             if (q) seen.push(Number(q.answer));
           }
-          const lv = Number(Profile.data.levelByType.count20);
-          // L2 上限 = 5：跑 30 次生成器確認真係用咗新範圍
+          const lv = _scopeLevelOf('count20');
+          // L1 上限 = 3：生成器答案一定要 <= 3（唔會升到 L2/L3）
           let max = 0;
           for (let i = 0; i < 30; i++) {
             const q = Generators.count20('easy', _scopeLevelOf('count20'));
             max = Math.max(max, Number(q.answer));
           }
           return {
-            ok: lv === 2 && max > 3 && max <= 5,
-            detail: 'level=' + lv + ' · 4 題答案=' + seen.join(',') + ' · 30 次生成最大=' + max,
+            ok: lv === 1 && max <= 3,
+            detail: '連對 4 題後 level=' + lv + '（舊 profile 殘留 L3 都冇用）'
+              + ' · 4 題答案=' + seen.join(',') + ' · 30 次生成最大=' + max + '（L1 上限 3）',
           };
         })()`,
       },
     },
 
-    // ── 5. 級數跨課堂保留 ──
+    // ── 5. 級數跨「重新載入」都係 L1 ──
     {
       assert: {
-        label: '級數跨「重新載入」保留（Profile 持久化）',
+        label: '級數跨「重新載入」都固定 L1（Profile 有殘留 levelByType 都唔會影響）',
         expr: `(() => {
+          Profile.data.levelByType = { count20: 3 };
+          Profile.save();
           const before = _scopeLevelOf('count20');
           Profile.load();          // 模擬重新開 app（由 localStorage 讀返）
           const after = _scopeLevelOf('count20');
           return {
-            ok: before === 2 && after === 2,
+            ok: before === 1 && after === 1,
             detail: 'reload 前=' + before + ' · reload 後=' + after
               + ' · localStorage levelByType=' + JSON.stringify(Profile.data.levelByType),
           };

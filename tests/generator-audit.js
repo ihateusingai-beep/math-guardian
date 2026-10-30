@@ -159,10 +159,12 @@ function loadScopeLevel(env) {
   const code = `
     ${regSrc}
     ${scopeSrc}
+    // ⚠️ cycle111j：自動升降級已移除 → LEVEL_UP_STREAK / LEVEL_DOWN_STREAK /
+    //    _updateScopeLevel 已經由 app.js 刪走，呢度亦都唔再 export。
     return {
-      SCOPE_LEVEL_MAX, LEVEL_UP_STREAK, LEVEL_DOWN_STREAK, SCOPE_LEVEL_PARAMS,
+      SCOPE_LEVEL_MAX, SCOPE_LEVEL_PARAMS,
       _scopeSupportsLevel, _scopeLevelOf, _scopeLevelParams,
-      _bankMatchesLevel, _updateScopeLevel,
+      _bankMatchesLevel,
     };
   `;
   const fn = new Function('Game', 'Profile', 'FX', code);
@@ -507,6 +509,7 @@ function loadStageModule() {
   const consts = (body.match(/const STAGE_CELLS = 3;/) || [''])[0] + '\n' +
                  (body.match(/const CELL_UNITS = 4;/) || [''])[0];
   const fns = ['_cellUnits', '_applyStageUnits', '_stageCellFills', '_stageGoalQuestions',
+               '_easyQuestionTotal',
                '_easyHintL1', '_easyHintL2', '_easyHintL3', '_easyHintL4', '_easyHintText']
     .map(grabFn).join('\n');
 
@@ -514,7 +517,7 @@ function loadStageModule() {
     ${consts}
     ${fns}
     return { STAGE_CELLS, CELL_UNITS, _cellUnits, _applyStageUnits, _stageCellFills,
-             _stageGoalQuestions, _easyHintText };
+             _stageGoalQuestions, _easyQuestionTotal, _easyHintText };
   `;
   const __Game = {
     state: {
@@ -603,8 +606,23 @@ try {
     g.stages === 1 && g.target === 3 && g.hardCap === 6, JSON.stringify(g));
   Game.settings.goalStages = 0;
   g = _stageGoalQuestions();
-  check('goalStages = 0 唔會出 0 Stage（fallback 到預設 3）', g.stages === 3 && g.target === 9, JSON.stringify(g));
-  Game.settings.goalStages = 3;
+  // ⚠️ cycle111j：局長用 Number.isFinite + 夾值（0 → 1 關，非法值 → 預設 4）
+  check('goalStages = 0 要夾返 1 關（唔係 fallback 到預設）', g.stages === 1 && g.target === 3, JSON.stringify(g));
+  Game.settings.goalStages = 4;
+  g = _stageGoalQuestions();
+  check('局長 4 Stage → 目標 12 題、硬上限 24 題（M4 里程碑要 12 題先達得到）',
+    g.stages === 4 && g.target === 12 && g.hardCap === 24, JSON.stringify(g));
+  check('_easyQuestionTotal() == _stageGoalQuestions().target（畫面題數唯一真實來源）',
+    mod._easyQuestionTotal() === _stageGoalQuestions().target,
+    `helper=${mod._easyQuestionTotal()} target=${_stageGoalQuestions().target}`);
+  // ⚠️ 預設值由真實 app 原始碼抽出（唔係 mock）——避免 mock 同真實脫節
+  {
+    const realSrc = readAppJs();
+    const mDef = realSrc.match(/soloMode: 'bridge',[\s\S]{0,400}goalStages:\s*(\d+)/);
+    check('真實 app.js 嘅預設局長 = 4 關（目標 12 題）',
+      !!mDef && Number(mDef[1]) === 4, mDef ? mDef[0].slice(-40) : 'not found');
+    Game.settings.goalStages = 4;
+  }
 
   // --- 4) 提示階梯 4 層 ---
   const qCount = { type: 'count20', answer: 7, parts: ['🌟🌟🌟🌟🌟🌟🌟'] };
@@ -968,8 +986,11 @@ try {
         Array.isArray(params) && params.length === 3, JSON.stringify(params));
     }
     check('T111b-1 級數上限 = 3', SL.SCOPE_LEVEL_MAX === 3);
-    check('T111b-1 升級門檻 = 連續 4 對', SL.LEVEL_UP_STREAK === 4);
-    check('T111b-1 降級門檻 = 連續 3 錯', SL.LEVEL_DOWN_STREAK === 3);
+    // ⚠️ cycle111j：自動升降級已移除（Ken 決定）—— 門檻常數同 _updateScopeLevel 唔存在。
+    const appSrc111j = readAppJs();
+    check('T111b-1 升/降級門檻常數已移除', !/LEVEL_UP_STREAK/.test(appSrc111j) && !/LEVEL_DOWN_STREAK/.test(appSrc111j));
+    check('T111b-1 自動升降級函數已移除', !/function _updateScopeLevel/.test(appSrc111j));
+    check('T111b-1 模組 export 冇 _updateScopeLevel', SL._updateScopeLevel === undefined);
     // ⚠️ 適應只准喺同一 scope 內發生 → classic type 唔可以有級數階梯
     check('T111b-1 classic type 唔支援級數',
       !SL._scopeSupportsLevel('add10') && !SL._scopeSupportsLevel('sub10') &&
@@ -987,21 +1008,26 @@ try {
     const S = loadScopeLevel({ Game, Profile, FX: { screenAlert: () => {} } });
     check('T111b-2 classic type 一律 L1', S._scopeLevelOf('add10') === 1);
     check('T111b-2 未設定嘅 scope type = L1', S._scopeLevelOf('count20') === 1);
+    // ⚠️ cycle111j：級數**固定 L1** —— 舊 profile 殘留嘅 levelByType 唔再影響行為
+    //    （如果仲讀，舊學生會由 L3/L2 開局 → 違反「固定 L1」契約）。
     Profile.data.levelByType.count20 = 3;
-    check('T111b-2 L3 讀得到', S._scopeLevelOf('count20') === 3);
+    check('T111b-2 舊 profile 殘留 levelByType=3 → 仍然 L1', S._scopeLevelOf('count20') === 1,
+      `got ${S._scopeLevelOf('count20')}`);
     Profile.data.levelByType.count20 = 2;
-    // ⚠️ 若果用 `Number(x) || 1`，level=2 會被當成 falsy → 走咗 default
-    check('T111b-2 L2 唔會被當成 falsy default', S._scopeLevelOf('count20') === 2,
+    check('T111b-2 levelByType=2 → 仍然 L1', S._scopeLevelOf('count20') === 1,
       `got ${S._scopeLevelOf('count20')}`);
     Profile.data.levelByType.count20 = 0;
-    check('T111b-2 level=0 要夾返 L1', S._scopeLevelOf('count20') === 1,
+    check('T111b-2 levelByType=0 → L1', S._scopeLevelOf('count20') === 1,
       `got ${S._scopeLevelOf('count20')}`);
     Profile.data.levelByType.count20 = 99;
-    check('T111b-2 越界值夾到上限 L3', S._scopeLevelOf('count20') === 3);
+    check('T111b-2 越界值 → L1', S._scopeLevelOf('count20') === 1,
+      `got ${S._scopeLevelOf('count20')}`);
     Profile.data.levelByType.count20 = '2';
-    check('T111b-2 string 數字都讀得到', S._scopeLevelOf('count20') === 2);
+    check('T111b-2 string 數字 → L1', S._scopeLevelOf('count20') === 1,
+      `got ${S._scopeLevelOf('count20')}`);
     Profile.data.levelByType.count20 = NaN;
-    check('T111b-2 NaN → L1', S._scopeLevelOf('count20') === 1);
+    check('T111b-2 NaN → L1', S._scopeLevelOf('count20') === 1,
+      `got ${S._scopeLevelOf('count20')}`);
 
     // classic mode 一律 L1（easy 嘅級數唔會漏入 classic）
     const hard = mkScopeEnv('normal');
@@ -1010,69 +1036,30 @@ try {
     check('T111b-2 classic mode 一律 L1', S2._scopeLevelOf('count20') === 1);
   }
 
-  // --- 3. _updateScopeLevel 真實 state 變化 ---
+  // --- 3. ⚠️ cycle111j：自動升降級已移除 → 級數固定 L1 ---
   {
     const env = mkScopeEnv('easy');
     const S = loadScopeLevel(env);
     const P = env.Profile;
-
-    // 連續 3 錯 → 降級（L2 → L1）
-    P.data.levelByType.count20 = 2;
-    P.data.levelStreak.count20 = { right: 0, wrong: 0 };
-    S._updateScopeLevel('count20', false);
-    S._updateScopeLevel('count20', false);
-    check('T111b-3 L2 連錯 2 次未降級', S._scopeLevelOf('count20') === 2,
-      `got ${S._scopeLevelOf('count20')}`);
-    S._updateScopeLevel('count20', false);
-    check('T111b-3 L2 連錯 3 次 → 降到 L1', S._scopeLevelOf('count20') === 1,
-      `got ${S._scopeLevelOf('count20')}`);
-    check('T111b-3 降級後連錯 streak 歸零', P.data.levelStreak.count20.wrong === 0,
-      JSON.stringify(P.data.levelStreak.count20));
-
-    // 連續 4 對 → 升級（L1 → L2）
-    P.data.levelByType.count20 = 1;
-    P.data.levelStreak.count20 = { right: 0, wrong: 0 };
-    for (let i = 0; i < 3; i++) S._updateScopeLevel('count20', true);
-    check('T111b-3 L1 連對 3 次未升級', S._scopeLevelOf('count20') === 1,
-      `got ${S._scopeLevelOf('count20')}`);
-    S._updateScopeLevel('count20', true);
-    check('T111b-3 L1 連對 4 次 → 升到 L2', S._scopeLevelOf('count20') === 2,
-      `got ${S._scopeLevelOf('count20')}`);
-
-    // 答錯清空連對 streak
-    P.data.levelStreak.count20 = { right: 0, wrong: 0 };
-    S._updateScopeLevel('count20', true);
-    S._updateScopeLevel('count20', true);
-    S._updateScopeLevel('count20', false);
-    check('T111b-3 答錯清空連對 streak', P.data.levelStreak.count20.right === 0,
-      JSON.stringify(P.data.levelStreak.count20));
-
-    // 上限 / 下限
-    P.data.levelByType.count20 = 3;
-    P.data.levelStreak.count20 = { right: 0, wrong: 0 };
-    for (let i = 0; i < 10; i++) S._updateScopeLevel('count20', true);
-    check('T111b-3 L3 連對 10 次都唔會升過 L3', S._scopeLevelOf('count20') === 3,
-      `got ${S._scopeLevelOf('count20')}`);
-    P.data.levelByType.count20 = 1;
-    P.data.levelStreak.count20 = { right: 0, wrong: 0 };
-    for (let i = 0; i < 10; i++) S._updateScopeLevel('count20', false);
-    check('T111b-3 L1 連錯 10 次都唔會低過 L1', S._scopeLevelOf('count20') === 1,
-      `got ${S._scopeLevelOf('count20')}`);
-
-    // classic type / classic mode → 唔改 state
-    P.data.levelByType = {};
-    P.data.levelStreak = {};
     const savedBefore = P.saved;
-    check('T111b-3 classic type → 返回 null', S._updateScopeLevel('add10', true) === null);
-    check('T111b-3 classic type 唔會寫 levelByType',
-      Object.keys(P.data.levelByType).length === 0, JSON.stringify(P.data.levelByType));
-    check('T111b-3 classic type 唔會存檔', P.saved === savedBefore, `saved ${savedBefore} → ${P.saved}`);
+    const alertsBefore = env.FX.alerts.length;
 
+    check('T111b-3 級數恆 L1（冇任何路徑可以升級）', S._scopeLevelOf('count20') === 1,
+      `got ${S._scopeLevelOf('count20')}`);
+    check('T111b-3 冇寫 levelByType',
+      !P.data.levelByType || Object.keys(P.data.levelByType).length === 0,
+      JSON.stringify(P.data.levelByType));
+    check('T111b-3 冇 levelStreak（streak 機制已廢除）',
+      !P.data.levelStreak || Object.keys(P.data.levelStreak).length === 0,
+      JSON.stringify(P.data.levelStreak));
+    check('T111b-3 冇存檔', P.saved === savedBefore, `saved ${savedBefore} → ${P.saved}`);
+    check('T111b-3 冇升降級提示（學生唔會再見到「⬇️ 降級」）', env.FX.alerts.length === alertsBefore,
+      JSON.stringify(env.FX.alerts));
+
+    // classic mode 一樣固定 L1
     const env2 = mkScopeEnv('normal');
     const S2 = loadScopeLevel(env2);
-    check('T111b-3 classic mode → 返回 null', S2._updateScopeLevel('count20', true) === null);
-    check('T111b-3 classic mode 唔會寫 levelByType',
-      Object.keys(env2.Profile.data.levelByType).length === 0);
+    check('T111b-3 classic mode 都係 L1', S2._scopeLevelOf('count20') === 1);
   }
 
   // --- 4. 生成器真實產出符合級數 ---

@@ -129,6 +129,56 @@ export default {
       },
     },
 
+    // ── 6b. 局長（Stage 數）控制 · cycle111j ──
+    {
+      assert: {
+        label: '教師台有「局長」selector，value = 現況（預設 4 關 = 12 題）',
+        expr: `(() => {
+          const sel = document.getElementById('td-goal-stages');
+          if (!sel) return { ok: false, detail: 'td-goal-stages missing' };
+          const opts = Array.from(sel.options).map(o => o.value + ':' + o.textContent.trim());
+          return {
+            ok: sel.value === String(Game.settings.goalStages) && sel.options.length === 4,
+            detail: 'value=' + sel.value + ' · settings=' + Game.settings.goalStages
+              + ' · options=' + opts.join(' | '),
+          };
+        })()`,
+      },
+    },
+    {
+      assert: {
+        label: '改局長 → 選單「N 題」文案即刻跟住更新（唔會等到下次 render）',
+        expr: `(() => {
+          const sel = document.getElementById('td-goal-stages');
+          const sub = document.getElementById('easy-start-sub');
+          const before = sub ? sub.textContent : '';
+          sel.value = '1';
+          sel.dispatchEvent(new Event('change', { bubbles: true }));
+          const after = sub ? sub.textContent : '';
+          return {
+            ok: Game.settings.goalStages === 1 && /1 關/.test('') === false
+              && after !== before && /3 題/.test(after),
+            detail: 'before="' + before.trim() + '" → after="' + after.trim() + '"'
+              + ' · settings=' + Game.settings.goalStages,
+          };
+        })()`,
+      },
+    },
+    {
+      assert: {
+        label: '局長持久化落 Profile（老師下次開機唔使再設）',
+        expr: `(() => {
+          const v = Number(Profile.data.goalStages);
+          let stored = null;
+          try { stored = JSON.parse(localStorage.getItem('mg2.profile.v1')).goalStages; } catch (e) { stored = 'read-fail'; }
+          return {
+            ok: v === 1 && stored === 1,
+            detail: 'Profile.data.goalStages=' + v + ' · localStorage=' + stored,
+          };
+        })()`,
+      },
+    },
+
     // ── 7. 關 modal ──
     {
       assert: {

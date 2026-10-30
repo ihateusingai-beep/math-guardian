@@ -3888,18 +3888,18 @@
           <span id="class-start-emoji">🌉</span>
           <span id="class-start-preview-label" class="preview-label">單人·鋪路</span>
         </div>
-        <div id="class-start-summary" class="sr-only">單人 · 已選範疇 · 10 題</div>
+        <div id="class-start-summary" class="sr-only">單人 · 已選範疇 · 12 題</div>
         <button id="btn-easy-start" class="w-full btn text-white text-xl py-5 flex items-center justify-center gap-4"
           style="background:linear-gradient(135deg,#a78bfa,#7c3aed);border:3px solid #c4b5fd;box-shadow:0 0 24px rgba(167,139,250,0.5),0 4px 0 rgba(109,40,217,0.6);font-size:1.15rem;"
           aria-label="一鍵開始簡單練習">
           <span class="text-4xl">🌼</span>
           <span>
             <span class="block text-2xl font-extrabold" style="text-shadow:0 2px 8px rgba(0,0,0,0.3);">簡單練習 · 一鍵開始</span>
-            <span id="easy-start-sub" class="text-sm opacity-90">單人 · 已選範疇 · 10 題</span>
+            <span id="easy-start-sub" class="text-sm opacity-90">單人 · 已選範疇 · 12 題</span>
           </span>
         </button>
         <div id="diff-helper" class="text-xs text-muted-strong text-center leading-relaxed mt-2">
-          簡單模式：跟題目範疇 · 10 題 · 大掣 A/B/C
+          簡單模式：跟題目範疇 · 12 題 · 大掣 A/B/C
         </div>
       </div>
 
@@ -4383,6 +4383,23 @@
         <button id="teacher-pause" class="btn btn-boss text-sm py-2">⏸ 暫停</button>
         <button id="teacher-resume" class="btn bg-emerald-600 text-white text-sm py-2">▶ 恢復</button>
         <button id="teacher-end" class="btn btn-ghost text-sm py-2">🏁 強制結束</button>
+      </div>
+
+      <!-- ⚠️ cycle111j：局長（Stage 數）—— 老師可調一局幾多題（proposal §3.7）。
+           每 1 關 = 3 題。預設 4 關 = 12 題（令 M4 里程碑「同一局連對 10 題」
+           正常流程達得到 —— 之前 3 關 = 9 題，學生永遠見到 ●●●○ 填唔滿）。 -->
+      <div class="border-t border-white/10 pt-3 mb-4">
+        <h4 class="text-base font-bold text-cyan-300 mb-2">⏱ 課堂局長</h4>
+        <label for="td-goal-stages" class="flex items-center justify-between gap-3 cursor-pointer text-sm text-on-night">
+          <span>一局題數</span>
+          <select id="td-goal-stages" class="bg-black/40 border border-white/20 text-white rounded-lg px-3 py-2 text-sm font-bold">
+            <option value="1">1 關 · 3 題</option>
+            <option value="2">2 關 · 6 題</option>
+            <option value="3">3 關 · 9 題</option>
+            <option value="4">4 關 · 12 題</option>
+          </select>
+        </label>
+        <span id="td-goal-stages-desc" class="sr-only">決定一局有幾多題（每關 3 題）。預設 4 關 = 12 題。設定會記住，下次開機一樣。</span>
       </div>
 
       <!-- Dashboard -->

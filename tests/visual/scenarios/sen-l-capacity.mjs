@@ -27,8 +27,12 @@ export default {
       Game.settings.goalStages = 1;
       ${ANSWER_TARGET_SRC}
       window.__startAt = (lv) => {
-        Profile.data.levelByType.findLDrink = lv;
-        Profile.data.levelStreak.findLDrink = { right: 0, wrong: 0 };
+        // ⚠️ cycle111j：自動升降級已移除 → _scopeLevelOf() 恆返 L1，
+        //    所以**唔可以再靠 Profile.data.levelByType 造級數**（嗰條路徑已失效）。
+        //    L2/L3 嘅 render 路徑仍然有用（cycle 112 老師手動設級會行呢度）→
+        //    所以直接 patch 級數函數（app.js 係 classic script → 頂層 function = 全域）。
+        if (!window.__origScopeLevelOf) window.__origScopeLevelOf = window._scopeLevelOf;
+        window._scopeLevelOf = () => lv;
         startGame();
         return 'started L' + lv;
       };

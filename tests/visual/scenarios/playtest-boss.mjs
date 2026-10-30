@@ -139,18 +139,19 @@ export default {
 
     { shot: 'playtest-boss-3-wrong' },
 
-    // ── 逐個選項 ✓/✗ 標記（已知缺陷）──
-    // ⚠️ xfail：highlightBtn() 明明加咗 .correct/.wrong，但經典畫面
-    //    _scheduleNextQuestion(team) delay=0 → nextQuestion → `area.innerHTML=''`
-    //    即刻清走選項區 → 標記存活時間只有「同一個 tick」（實測 t0=1 / 下一 tick=0）。
-    //    學生實際見到嘅係 instant-hint 浮層（見上面那條），唔係逐個選項反饋。
-    //    呢條描述「**應有**嘅行為」，所以而家 fail → xfail 記 KNOWN-ISSUE。
+    // ── 逐個選項 ✓/✗ 標記 ──
+    // ✅ cycle111j 已修：經典路徑答完加延遲（答啱 650ms / 答錯 1000ms，跟 SEN 一致）
+    //    + highlightBtn 移除時間由 700ms 延長到 2200ms → 學生真係見到 ✓/✗。
+    //    之前 delay=0 → `area.innerHTML=''` 即刻清走 → 標記只存活同一個 tick（實測 t0=1 / 120ms=0）。
     {
       assert: {
         label: '經典畫面：逐個選項 ✓/✗ 標記喺答錯後仍然可見（學生見到自己揀錯咗）',
-        xfail: true,
         expr: `(async () => {
           const sleep = ms => new Promise(r => setTimeout(r, ms));
+          // ⚠️ cycle111j：經典畫面答完有 650/1000ms 延遲 → 嗰段時間 current[team] 係 null
+          //    （_scheduleNextQuestion 會即刻清空），所以要先等下一題出現。
+          let guard = 0;
+          while (guard++ < 80 && !Game.state.current.knight) await sleep(50);
           const q = Game.state.current.knight;
           if (!q) return { ok: false, detail: '冇題目' };
           const want = String(q.answer);
@@ -164,7 +165,7 @@ export default {
           return {
             ok: t120 > 0,
             detail: 'marked 同一 tick=' + t0 + ' · 120ms 後=' + t120
-              + '（highlightBtn 名義上保留 700ms，但選項區已被 innerHTML 清走）',
+              + '（cycle111j：經典答完延遲 650/1000ms → 標記喺下一題出現前都仲喺度）',
           };
         })()`,
       },

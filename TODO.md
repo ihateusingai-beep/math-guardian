@@ -11,13 +11,13 @@
 
 ---
 
-## 0. 現況（baseline · 2026-10-30 · post cycle 111i）
+## 0. 現況（baseline · 2026-10-30 · post cycle 111j）
 
 | 項 | 值 |
 |---|---|
-| Version | **v3.6** · cycle **111i** |
-| Tests | **5728 pass / 0 fail**（933 regression + 4665 generator-audit + 24 audio-audit + 22 asset-audit + 84 visual） |
-| Size | `index.html` **215,405 B**（< 260 KB）· `app.js` **383,441 B**（< 420 KB）· gzip 傳輸 **163,565 B**（< 200 KB） |
+| Version | **v3.6** · cycle **111j** |
+| Tests | **5738 pass / 0 fail**（942 regression + 4662 generator-audit + 24 audio-audit + 22 asset-audit + 88 visual） |
+| Size | `index.html` **216,594 B**（< 260 KB）· `app.js` **387,018 B**（< 420 KB）· gzip 傳輸 **165,674 B**（< 200 KB） |
 | Media payload | **0 bytes**（全部 runtime 合成） |
 | Visual readiness | **6.3 / 10**（Before cycle 106 = 4.56）· 見 `docs/VISUAL_QUALITY_RUBRIC.md` |
 | Core done | easy scopes · solo/dual arena · 黃/紫長短 · 數數分5 · 順序跟住 · bank v3 · 視覺 P0 修清 · **拆檔 + 註解清理** |
@@ -200,6 +200,27 @@
         **8 條還原驗證全部以正確原因 fail**（拎走 setSENTurn / 唔讀 currentTeam /
         拎走 xfail 支援 / 拎走場景 / 改 viewport / 拎走 xfail 標記）
       └ 詳見 **`docs/PLAYTEST_REVIEW.md`**（9 條發現 + 優化機制建議 + 建議 cycle 順序）
+- [x] **cycle 111j** Ken 拍板 4 條發現落地（F3 / F4 / F5 / F6）
+      └ **F6 · 局長（Stage 數）可調 + 動態題數文案**
+        - `_easyQuestionTotal()` = `goalStages × 3` → 畫面所有「N 題」嘅唯一真實來源
+          （之前寫死「10 題」但實際 9 題 → 老師點題唔對數）
+        - 預設局長 **4 關 = 12 題**；教師台 `#td-goal-stages`（1/2/3/4 關）→ 持久化落 Profile
+        - `Profile.data.goalStages` lazy-init 用 `Number.isFinite` + 夾 1..4
+        - `_refreshMenuQuestionCopy()` → 改局長即刻更新選單文案
+      └ **F4 · M4 里程碑保留**（靠 F6）：12 題局 → 正常流程達得到
+        （真機驗證：完整局 → `milestonesByType[type].m4` 有時間戳）
+      └ **F5 · 移除自動升降級 → 級數固定 L1**
+        - 刪 `_updateScopeLevel` / `LEVEL_UP_STREAK` / `LEVEL_DOWN_STREAK`
+        - `_scopeLevelOf()` 恆返 1，**唔讀**舊 profile 殘留嘅 `levelByType`
+        - `Profile.data.levelByType` / `levelStreak` 一齊移除
+        - 學生唔會再見到「⬇️ 降級」挫敗提示
+      └ **F3 · 經典/boss 逐個選項 ✓/✗ 真正可見**
+        - 經典路徑答完 **650ms（答啱）/ 1000ms（答錯）**（跟 SEN 一致）
+        - `highlightBtn` class 移除時間 700 → **2200ms**（覆蓋到下一題出現）
+      └ Lock-in：regression **T111j-01..09** + 更新 T111b-01/03/04/07/09 · T109-02 ·
+        PLAN-04/08 · T111h-15 · generator-audit T111b-1/2/3 · 視覺場景 4 條更新
+      └ **12 條還原驗證**（F3 延遲 / highlight 時間 / 局長 wiring / 持久化 / 預設局長 /
+        `_easyQuestionTotal` / 級數固定 / 加返 `_updateScopeLevel` …）
 - [ ] **cycle 111c** Boss 重新入場（進度格驅動 + HP）· 5 個 boss 守護者 sprite
       └ ✅ 預算已解：`app.js` 仲有 36,767 B 餘額（111c 約需 9,500 B）
 - [ ] **cycle 111d** 4 scope icon + 3 UI icon + emoji-as-chrome 置換（合共 16 個新 symbol）

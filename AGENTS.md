@@ -9,12 +9,12 @@ Vanilla JS + Tailwind CDN, no build, GitHub Pages.
 
 - Open `index.html` (double-click 都得 —— `app.js` 係 `<script defer>`,**唔係** `type="module"`) or `python3 -m http.server 8000`
 - Tests:
-  - `node tests/regression.js` → **933 pass / 0 fail** (structural regex lock-in, cycle 53–111i)
-  - `node tests/generator-audit.js` → **4665 pass / 0 fail** (functional truth-table, cycle 101+ · T108 Adaptive ladder · T109 Stage/提示階梯 · T110 里程碑 · T110b 接力 · T111b 級數階梯)
+  - `node tests/regression.js` → **942 pass / 0 fail** (structural regex lock-in, cycle 53–111j)
+  - `node tests/generator-audit.js` → **4662 pass / 0 fail** (functional truth-table, cycle 101+ · T108 Adaptive ladder · T109 Stage/提示階梯 · T110 里程碑 · T110b 接力 · T111b 級數階梯)
   - `node tests/audio-audit.js` → **24 pass / 0 fail** (audio call-site × export cross-check, cycle 105+ · cycle 111g **bus graph 拓撲**守門)
   - `node tests/asset-audit.js` → **22 pass / 0 fail** (像素資產品質, cycle 111a — 座標 / 倍率 / crispEdges / 死 symbol)
-  - `node tests/visual/run.mjs` → **84 pass / 0 fail** (實機視覺驗證, cycle 111e — 8 scope 可答 / 639×669 overflow / L 容量 / sprite；cycle 111f — SEN 逐個選項反饋 + verdict band 幾何守門；cycle 111g — 教師台主音量 slider + 深底對比度；cycle 111h — **boot console 乾淨**；cycle 111i — **4 條真機 playtest 場景**（教師台 / 接力+級數 / 結算 / Boss）；冇 Chrome 會 SKIP)
-- **總計 5728 pass / 0 fail**（cycle 111i）
+  - `node tests/visual/run.mjs` → **84 pass / 0 fail** (實機視覺驗證, cycle 111e — 8 scope 可答 / 639×669 overflow / L 容量 / sprite；cycle 111f — SEN 逐個選項反饋 + verdict band 幾何守門；cycle 111g — 教師台主音量 slider + 深底對比度；cycle 111h — **boot console 乾淨**；cycle 111i — **4 條真機 playtest 場景**（教師台 / 接力+級數 / 結算 / Boss）；cycle 111j — **局長可調 + 動態題數 + 級數固定 L1 + 經典逐個選項反饋**；冇 Chrome 會 SKIP)
+- **總計 5738 pass / 0 fail**（cycle 111j）
 - No lint / typecheck / build
 - Live: https://ihateusingai-beep.github.io/math-guardian/
 - **Deploy domain**: `CNAME` file 已移除(cycle 107)—— 站喺 `.github.io` 服務。
@@ -257,6 +257,28 @@ Rubric / 目標風格 / 基準喺 **`docs/VISUAL_QUALITY_RUBRIC.md`**。
     **突然 pass = ❌ 失敗**（逼人移除標記）→ 已知缺陷唔會被鎖成「永久預期行為」。
   - ⚠️ **斷言 fail 唔等於產品有 bug**：今輪 3 條 fail 入面 2 條係**測試自己寫錯**
     （等咗 1100ms 但 class 700ms 就冇咗 / 揀錯 selector）→ **先量時間軸、再讀 source**。
+- **Mechanism lock-in** (cycle111j, T111j-01..09 + 更新 T111b / T109 / PLAN / T111h-15):
+  - ⚠️ **Ken 2026-10-30 拍板**（cycle111i playtest 9 條發現揀 4 條）：
+    **F3 做**（經典畫面加延遲）· **F4 保留 M4**（靠 F6 局長 12 題）·
+    **F5 移除自動升降級**（級數固定 L1）· **F6 做**（動態題數 + 局長可調）
+  - **F6 · 局長（Stage 數）**：`_easyQuestionTotal()` = `goalStages × STAGE_CELLS` 係
+    畫面所有「N 題」文案嘅**唯一真實來源**（之前寫死「10 題」→ 實際 9 題 → 對唔上）
+    - `Game.settings.goalStages` 預設 **4**（= 12 題，令 M4 里程碑正常單局達得到）
+    - 教師台 `#td-goal-stages` selector（1/2/3/4 關 = 3/6/9/12 題）→ 持久化落
+      `Profile.data.goalStages`（lazy-init，**用 `Number.isFinite`** + 夾 1..4）
+    - 改完即刻刷新選單文案（`_refreshMenuQuestionCopy()`）—— 唔會等到下次 render
+  - **F4 · M4 里程碑**：`sessionStreak >= 10`，而家一局 12 題 → **正常流程達得到**
+    （真機驗證：完整局 24 題（雙隊各 12）→ `milestonesByType[type].m4` 有時間戳）
+  - **F5 · 級數階梯**：**自動升降級已移除** → 級數**固定 L1**
+    - 刪走 `_updateScopeLevel` / `LEVEL_UP_STREAK` / `LEVEL_DOWN_STREAK`
+    - `_scopeLevelOf()` 恆返 1（**唔讀** `Profile.data.levelByType` —— 舊 profile
+      殘留值唔可以影響行為）；`Profile.data.levelByType` / `levelStreak` 一齊移除
+    - ⚠️ `SCOPE_LEVEL_PARAMS` 嘅 L2/L3 參數**暫時冇用**（留俾 cycle 112 老師手動設級）
+  - **F3 · 經典/boss 逐個選項 ✓/✗**：之前 delay=0 → `area.innerHTML=''` 即刻清走
+    → 標記只存活同一個 tick。→ 經典路徑答完 **650ms（答啱）/ 1000ms（答錯）**（跟 SEN）
+    + `highlightBtn` 移除時間 700 → **2200ms**（覆蓋到下一題出現）
+    - ⚠️ 副作用：嗰 1 秒內 `Game.state.current[team]` 係 null（`_scheduleNextQuestion`
+      會即刻清空）→ 測試要等下一題出現
 - Student UI: **no** stigma「SEN」label; MC **A/B/C** badges by **render order**
 - `startGame`/resume helpers must be **module scope** (not nested in `setupMenu`)
 

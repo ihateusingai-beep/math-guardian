@@ -27,13 +27,11 @@ export default {
     })()` },
 
     // ── 單局實際題數 vs 畫面文案 ──
-    // ⚠️ xfail：目前 menu 一律寫「10 題」，但實際 target = 3 stages × 3 格 = 9 題。
-    //    呢條斷言描述「**應有**嘅行為」（畫面宣稱 == 實際題數），所以而家係 fail。
-    //    一日改好文案就會 pass → strict-xfail 會報「意外通過」→ 逼人移除 xfail 標記。
+    // ✅ cycle111j 已修：文案全部改讀 _easyQuestionTotal()（= goalStages × 3），
+    //    預設局長 4 關 = 12 題。xfail 標記已移除（strict-xfail 逼人移除 → 呢個係證明）。
     {
       assert: {
         label: '畫面宣稱嘅題數 == 單局實際題數（goalStages × STAGE_CELLS）',
-        xfail: true,
         expr: `(() => {
           const g = _stageGoalQuestions();
           const menu = document.getElementById('screen-menu');
@@ -123,7 +121,6 @@ export default {
     {
       assert: {
         label: 'M4 里程碑喺正常單局內**達得到**（一局題數 ≥ 連對門檻 10）',
-        xfail: true,
         expr: `(() => {
           const goal = _stageGoalQuestions();
           const need = 10;   // M4: st.sessionStreak >= 10
@@ -132,6 +129,24 @@ export default {
             detail: '一局 target=' + goal.target + ' 題 · M4 需要連對 ' + need
               + ' 題 → ' + (goal.target >= need ? '正常流程達得到' : '正常流程達唔到（死里程碑）')
               + (goal.hardCap >= need ? '（延長局 hardCap=' + goal.hardCap + ' 先可能）' : ''),
+          };
+        })()`,
+      },
+    },
+
+    // ── M4 真實解鎖（唔止算術，係真機跑完整局）──
+    {
+      assert: {
+        label: 'M4 里程碑真係解鎖到（12 題局連對 10 題 → milestonesByType[type].m4 有時間戳）',
+        expr: `(() => {
+          const ms = Profile.data.milestonesByType || {};
+          const keys = Object.keys(ms);
+          const m4 = ms.count20 ? ms.count20.m4 : null;
+          return {
+            ok: !!m4 && m4 > 0,
+            detail: 'milestones keys=' + keys.join(',') + ' · count20.m4=' + m4
+              + ' · sessionStreak=' + (Game.state.sessionStreak)
+              + ' · 一局 target=' + _stageGoalQuestions().target + ' 題',
           };
         })()`,
       },
