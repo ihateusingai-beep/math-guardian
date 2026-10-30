@@ -41,6 +41,7 @@ node tests/visual/run.mjs --keep-shots             # 保留截圖 + Chrome profi
 | `playtest-teacher-flow` | **教師台完整流程**（cycle111i）· 密碼 → 答錯有 error → 答啱解鎖 → 儀表板 → 題庫管理 → 主音量 slider → 關閉 focus 還原 → 暫停 → 續玩 |
 | `playtest-relay-level` | **easy dual 接力 + 級數階梯真機跑一次**（cycle111i）· 開局 banner + 只顯示輪到嗰隊 → 答啱傳手 → 答錯傳另一隊救 → 連 4 對升 L2 → 級數跨 reload 保留 |
 | `playtest-end-screen` | **接力收尾 + 結算畫面**（cycle111i）· 題數文案 vs 實際（xfail）· 一隊做完跳過佢唔死鎖 · 概念卡 4 粒圓點 · 島嶼 pips 8 格 · M4 可達性（xfail） |
+| `guardian-stage` | **關卡守護者 + F7 classic 進度格**（cycle111c）· 守護者 sprite 真係 render + href 跟題型 family → 答啱填 1 格（HP = Stage 3 格）+ 受傷動畫 → 第 3 題過關（守護者退場 + 關卡 +1 + 格數歸零）→ 經典/boss 畫面答啱真係填格 |
 | `playtest-boss` | **Boss 戰役**（cycle111i）· HP 條 render + 答啱真跌 · 城堡 HP 條 · 答錯見到正確答案 + 錯題入 review · 逐個選項 ✓/✗ 可見性（xfail） |
 
 ### strict-xfail（cycle111i）

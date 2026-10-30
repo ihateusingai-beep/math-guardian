@@ -186,14 +186,16 @@
 
 ---
 
-### F7 · 🟡 P2 · 經典 / boss 畫面**冇題目進度格**
+### F7 · 🟡 P2 · 經典 / boss 畫面**冇題目進度格**（✅ cycle111c 已修）
 
-- **現實**：Stage 進度格 `.sen-cell` 只存在於 **SEN 畫面**（`index.html:4283` / `4309`）
+- **現實**：Stage 進度格 `.sen-cell` 只存在於 **SEN 畫面**（`index.html` `sen-cells-knight` / `sen-cells-mage`）
   → 經典畫面（boss）**完全冇**「答到第幾題 / 仲有幾多題」
 - **學生後果**：boss 學生淨係見到 boss HP 條同兩條城塔，**唔知自己進度**
-- **對齊**：proposal §3.9「Boss 重新入場」原本就係要用**進度格驅動 boss**（HP = 3 格），
-  呢部分**未做**
-- **狀態**：📋 建議 · 併入 cycle 111c
+- **對齊**：proposal §3.9「Boss 重新入場」原本就係要用**進度格驅動 boss**（HP = 3 格）
+- **狀態**：✅ **cycle111c 已修** —— 經典/boss 畫面每隊加 `#classic-cells-{team}`（3 格）
+  + label「第 N 題 · 關卡 M」；classic 路徑接 `_applyStageUnits(team, CELL_UNITS)`
+  （喺 `UI.updateTeam()` 之前，唔會慢一拍）
+  → lock-in：regression T111c-08/09/10 + 視覺 `guardian-stage` 第 4 條
 
 ---
 
@@ -224,23 +226,26 @@ menu track / easy 安靜曲未做 · 冇 voice limit / node pooling · 離線支
 |---|---|---|---|---|---|
 | **111i** | 修 F2 開局 banner · 4 條 playtest 場景入守門 · strict-xfail | — | F2 | 低 | ✅ 已做 |
 | **111j** | **F3 + F4 + F5 + F6 全部落地**（Ken 拍板）：經典逐個選項反饋延遲 · 局長 12 題令 M4 可達 · 移除自動升降級 · 動態題數 + 教師台局長控制 | §3.6 §3.7 §3.9 | F3 F4 F5 F6 | 中 | ✅ **已做** |
-| **111c** | **F7 boss 進度格**：boss HP 綁 Stage 進度格（proposal §3.9 原設計） | §3.9 | F7 | 中 | ⏸ 併入原定 cycle 111c |
+| **111c** | **守護者重新入場 + F7 boss 進度格**：easy 每關一隻守護者（HP = Stage 3 格）· 5 隻守護者 sprite · classic 畫面補進度格 | §3.9 | F7 | 中 | ✅ **已做** |
 | **111n** | **F8 單人 boss 城塔**：單人淨顯示一座 / 或加回血 | §3.9 | F8 | 中 | ⏸ 要 Ken 拍板 |
 | **112** | 教師台 8 項控制 + 班級模式 + 概念卡 UI + **老師手動設級**（L1/L2/L3 通道而家留咗） | §3.10 | F5 | 中 | 原定 |
 | **111d** | 4 scope + 3 UI icon + emoji-as-chrome 置換（asset） | §4.3-4.5 | 資產 | 低 | 原定 |
 | **112** | 教師台 8 項控制 + 班級模式 + 概念卡 UI + **重設級數掣** | §3.10 | 教師 | 中 | 原定 |
 
-### 3.2 cycle 111j 之後嘅下一步
+### 3.2 cycle 111c 之後嘅下一步
 
 1. **試教驗證 F5 嘅決定** —— 「固定 L1」係一個**冇 field data 嘅資訊決定**：
    Ken 根據 20 萬次模擬 + 學生體感揀咗「唔好因為答錯就降級」。
    → 下次上堂記低幾個學生嘅答對率同級數變化，再決定要不要開放老師手動設級（cycle 112）
-2. **F7 boss 進度格**（cycle 111c）—— boss 學生而家仍然唔知自己答到第幾題
-3. **F8 單人 boss 城塔** —— 有一座塔係學生控制唔到嘅
+2. **試教觀察守護者**（cycle111c 新增）—— 學生係咪真係睇得出「填格 = 打守護者」？
+   → 記低：學生會唔會主動指住守護者講「我打佢」／過關嗰下有冇反應
+3. **F8 單人 boss 城塔** —— 有一座塔係學生控制唔到嘅（要 Ken 拍板）
+4. **cycle 111d** icon 置換 · **cycle 112** 教師台 8 項控制 + 老師手動設級
 
 > ⚠️ **Memory rule 7**：連續 2 個 routing-layer change 60 小時內 ship + 冇 field data
 > → pause 2-3 日，等 ≥50 routing decisions telemetry。cycle 111j 動咗 F5（routing-layer），
-> 所以 **cycle 111c/111n 之前建議先試教一輪**。
+> cycle 111c 動咗守護者 species 映射（**唔係** routing-layer，係同一 scope 內嘅呈現），
+> 所以**唔算連續 2 個 routing-layer** —— 但仍然建議 cycle 111d / 111n 之前試教一輪。
 
 ### 3.3 建議唔好做
 
@@ -273,7 +278,7 @@ menu track / easy 安靜曲未做 · 冇 voice limit / node pooling · 離線支
 | F4 M4 里程碑正常單局唔可能達到 | ✅ cycle111j 已修（局長 12 題） | T111j-02 + `playtest-end-screen` |
 | F6 畫面寫「10 題」實際 9 題 | ✅ cycle111j 已修（動態文案） | T111j-01/06 + `playtest-end-screen` |
 | F5 級數階梯對中等學生冇作用 | ✅ cycle111j 已處理（移除自動升降級 → 固定 L1） | T111j-04 + `playtest-relay-level` |
-| F7 boss 畫面冇題目進度格 | 🟡 未做（併入 cycle 111c） | — |
+| F7 boss 畫面冇題目進度格 | ✅ cycle111c 已修（classic 路徑接 Stage 進度） | T111c-08/09/10 + `guardian-stage` |
 | F8 單人 boss 有一座城塔無主 | 🟡 未做（待 Ken 拍板） | — |
 
 **cycle111j 現況：0 個 xfail 標記**（3 條已知缺陷全部修好，行為已升級做正式 lock-in）。

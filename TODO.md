@@ -11,16 +11,16 @@
 
 ---
 
-## 0. 現況（baseline · 2026-10-30 · post cycle 111j）
+## 0. 現況（baseline · 2026-10-30 · post cycle 111c）
 
 | 項 | 值 |
 |---|---|
-| Version | **v3.6** · cycle **111j** |
-| Tests | **5738 pass / 0 fail**（942 regression + 4662 generator-audit + 24 audio-audit + 22 asset-audit + 88 visual） |
-| Size | `index.html` **216,594 B**（< 260 KB）· `app.js` **387,018 B**（< 420 KB）· gzip 傳輸 **165,674 B**（< 200 KB） |
+| Version | **v3.6** · cycle **111c** |
+| Tests | **5781 pass / 0 fail**（955 regression + 4687 generator-audit + 24 audio-audit + 23 asset-audit + 92 visual） |
+| Size | `index.html` **223,187 B**（< 260 KB）· `app.js` **392,537 B**（< 420 KB）· gzip 傳輸 **166,327 B**（< 200 KB） |
 | Media payload | **0 bytes**（全部 runtime 合成） |
 | Visual readiness | **6.3 / 10**（Before cycle 106 = 4.56）· 見 `docs/VISUAL_QUALITY_RUBRIC.md` |
-| Core done | easy scopes · solo/dual arena · 黃/紫長短 · 數數分5 · 順序跟住 · bank v3 · 視覺 P0 修清 · **拆檔 + 註解清理** |
+| Core done | easy scopes · solo/dual arena · 黃/紫長短 · 數數分5 · 順序跟住 · bank v3 · 視覺 P0 修清 · **拆檔 + 註解清理** · **關卡守護者 + boss 進度格** |
 
 **Design ground truth（cycle 106 起）**
 - Art direction：**2D 像素插畫 + 高對比大圖示嘅課室教學遊戲**
@@ -221,8 +221,27 @@
         PLAN-04/08 · T111h-15 · generator-audit T111b-1/2/3 · 視覺場景 4 條更新
       └ **12 條還原驗證**（F3 延遲 / highlight 時間 / 局長 wiring / 持久化 / 預設局長 /
         `_easyQuestionTotal` / 級數固定 / 加返 `_updateScopeLevel` …）
-- [ ] **cycle 111c** Boss 重新入場（進度格驅動 + HP）· 5 個 boss 守護者 sprite
-      └ ✅ 預算已解：`app.js` 仲有 36,767 B 餘額（111c 約需 9,500 B）
+- [x] **cycle 111c** 關卡守護者重新入場（proposal §3.9）+ **F7** 經典/boss 畫面進度格 ✅ 已 ship
+      └ **守護者（easy 畫面）**：每關一隻守護者，**HP = Stage 進度格 3 格**
+        - 答啱填 1 格 = 打守護者 1 格（`.is-hurt` 白閃 + 震）
+        - 3 格填滿 = 守護者退場（`.is-defeated`）= 過關 → 下一關新一隻
+        - ⚠️ **HP 唔係獨立欄位** → 唯一真實來源 = `.sen-cell` 進度格
+        - ⚠️ **species per-Stage 鎖定**（`showQuestionSEN` 鎖 / 過關清空）
+          —— per-question 會每條題換守護者，答題後鎖會鎖錯 family
+      └ **5 隻守護者 sprite**（16×16 · 整數座標 · crispEdges · 48px 顯示）
+        `px-boss-count` 果籃怪 / `px-boss-length` 拉長獸 / `px-boss-height` 疊高獸 /
+        `px-boss-order` 迷路蟲 / `px-boss-capacity` 渴飲獸
+      └ **F7 · 經典/boss 畫面進度格**（原本 `.sen-cell` 淨係存在於 SEN 畫面）
+        - classic 路徑接 `_applyStageUnits(team, CELL_UNITS)`（喺 `UI.updateTeam` 之前）
+        - `#classic-cells-{team}` + label「第 N 題 · 關卡 M」
+        - ⚠️ 進度格 render 抽成 `_renderStageCells()` 單一真實來源（兩個畫面共用）
+      └ **SEN 安全**：守護者動畫只係自己郁（冇 screen shake / hit-stop）
+        + CSS + JS 兩層 respect `prefers-reduced-motion`
+      └ Lock-in：regression **T111c-01..13** · generator-audit **T111c-1..4**
+        （真實執行 species 映射 + 過關清空 + 跨檔 symbol 接線）·
+        視覺場景 **`guardian-stage`**（4 條：sprite 真 render / 填格 / 退場 / F7 填格）
+      └ **14 條還原驗證全部以正確原因 fail**（含 2 條真機場景）
+- [ ] **cycle 111n** F8 單人 boss 城塔「無主」（要 Ken 拍板：淨顯示一座 / 或加回血）
 - [ ] **cycle 111d** 4 scope icon + 3 UI icon + emoji-as-chrome 置換（合共 16 個新 symbol）
 - [ ] **cycle 112** 教師台 8 項控制 + 班級模式 + 概念卡 UI
       └ ⚠️ **老師級數可見性**（cycle111b 留低嘅一項）：學生而家喺第幾級，老師喺教師台
@@ -321,9 +340,11 @@
 
 **Gates（每 cycle 必跑）**
 ```
-node tests/regression.js       # 825 pass / 0 fail
-node tests/generator-audit.js  # 4554 pass / 0 fail
-node tests/audio-audit.js      # 12 pass / 0 fail
+node tests/regression.js       # 955 pass / 0 fail
+node tests/generator-audit.js  # 4687 pass / 0 fail
+node tests/audio-audit.js      # 24 pass / 0 fail
+node tests/asset-audit.js      # 23 pass / 0 fail
+node tests/visual/run.mjs      # 92 pass / 0 fail
 ```
 改咗 UI / CSS / token → 額外：headless Chrome + CDP 重 capture 受影響 state + 重量對比度（見 `docs/VISUAL_QUALITY_RUBRIC.md` §4 驗證方法）。
 

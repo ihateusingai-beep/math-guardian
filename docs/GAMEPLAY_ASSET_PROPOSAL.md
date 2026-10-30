@@ -337,11 +337,11 @@ const q = QuestionGen.make(type, Game.settings.mode);   // 重練 = 抽一條全
 
 | id | 用途 | viewBox | 預估 bytes | Tier | 備註 |
 |---|---|---|---|---|---|
-| `px-boss-count` | 數數守護者 | 0 0 16 16 | 1,900 | T1 | 新做 |
-| `px-boss-length` | 長短守護者 | 0 0 16 16 | 1,900 | T1 | 新做 |
-| `px-boss-height` | 高矮守護者 | 0 0 16 16 | 1,900 | T1 | 新做 |
-| `px-boss-order` | 順序守護者 | 0 0 16 16 | 1,900 | T1 | 新做 |
-| `px-boss-capacity` | 容量守護者 | 0 0 16 16 | 1,900 | T1 | 新做；或重用 `px-troll` 改色 |
+| `px-boss-count` | 數數守護者（果籃怪） | 0 0 16 16 | ~700 | T1 | ✅ cycle111c |
+| `px-boss-length` | 長短守護者（拉長獸） | 0 0 16 16 | ~600 | T1 | ✅ cycle111c |
+| `px-boss-height` | 高矮守護者（疊高獸） | 0 0 16 16 | ~600 | T1 | ✅ cycle111c |
+| `px-boss-order` | 順序守護者（迷路蟲） | 0 0 16 16 | ~650 | T1 | ✅ cycle111c |
+| `px-boss-capacity` | 容量守護者（渴飲獸） | 0 0 16 16 | ~650 | T1 | ✅ cycle111c |
 | `px-badge-count` | 數數概念徽章 | 0 0 16 16 | **0（重用 `px-badge-star`）** | T1 | |
 | `px-badge-length` | 長短概念徽章 | 0 0 16 16 | **0（重用 `px-badge-shield`）** | T1 | |
 | `px-badge-height` | 高矮概念徽章 | 0 0 16 16 | **0（重用 `px-badge-leaf`）** | T1 | |
@@ -429,6 +429,9 @@ const q = QuestionGen.make(type, Game.settings.mode);   // 重練 = 抽一條全
 | **109** | **玩法骨架** | Stage + 進度格（3 格 · 半格）· 局長 = Stage 數 · 提示階梯 4 層 · 錯題原地重播 + 局完重練關卡 | **0 新 asset**（全部 CSS） | behavioural test：Stage 推進 / 提示層級解鎖 / 重播係同一條 payload |
 | **110** | **協作 + 動機** | L1 接力（答錯傳手）· L2 共用目標 · 概念卡 + 4 里程碑 · 班級島進度 | 重用 5 個 `px-badge-*` · `px-abacus` · `px-target` | behavioural test：接力換手 / 里程碑解鎖條件 |
 | **111** | **資產 + 品質** | Boss 重新入場（進度格驅動）· scope 內 3 級難度（生成器加 level 參數） | 21 個新 symbol + **像素品質全修**（座標 / 倍率 / crispEdges）+ 死 symbol 清理 | `tests/asset-audit.js`（6 條 check）· 生成器 level 參數真值表 |
+| ↳ **111a** | 像素品質全修 + `asset-audit` | — | 座標 / 倍率 / crispEdges / 死 symbol | ✅ 已 ship |
+| ↳ **111b** | scope 內 3 級難度 | — | — | ✅ 已 ship |
+| ↳ **111c** | **守護者重新入場（進度格驅動）+ F7 classic 進度格** | **5 隻守護者 sprite**（`px-boss-count/length/height/order/capacity`） | `asset-audit`（8 組 check）· generator-audit species 真實執行 · 視覺 `guardian-stage` | ✅ 已 ship |
 | **112** | **教師台 + 班級** | 8 項教師控制 · 班級模式 · 概念卡 UI | `px-island` + scope icon | 教師台互動測試 |
 
 **每 cycle 必須**：
@@ -489,5 +492,7 @@ const q = QuestionGen.make(type, Game.settings.mode);   // 重練 = 抽一條全
 
 | 111j | 2026-10-30 | **Ken 拍板 4 條 playtest 發現落地**。**F6 局長可調**：新增 `_easyQuestionTotal()` = `goalStages × STAGE_CELLS` → 畫面所有「N 題」嘅唯一真實來源（改咗 8 處寫死「10 題」嘅文案，之前實際 9 題 → 老師點題唔對數）；`Game.settings.goalStages` 預設 **3 → 4**（4 關 = 12 題）；教師台新增 **「局長」控制**（`#td-goal-stages` 1/2/3/4 關 = 3/6/9/12 題）持久化落 `Profile.data.goalStages`（lazy-init 用 `Number.isFinite` + 夾 1..4），改完即刻刷新選單文案。**F4 M4 保留**：12 題局 → `sessionStreak >= 10` 正常流程達得到（真機驗證 `milestonesByType[type].m4` 有時間戳），概念卡維持 4 粒圓點。**F5 移除自動升降級**：刪 `_updateScopeLevel` / `LEVEL_UP_STREAK` / `LEVEL_DOWN_STREAK`，`_scopeLevelOf()` 恆返 1（唔讀舊 profile 殘留嘅 `levelByType`），學生唔會再見到「⬇️ 降級」挫敗提示。**F3 經典/boss 逐個選項 ✓/✗ 真正可見**：經典路徑答完 650ms（答啱）/ 1000ms（答錯，跟 SEN）+ `highlightBtn` 移除時間 700 → 2200ms（之前 delay=0 → `area.innerHTML=''` 即刻清走 → 標記只存活同一個 tick）。Lock-in：regression T111j-01..09 + 更新 T111b-01/03/04/07/09 · T109-02 · PLAN-04/08 · T111h-15；generator-audit +3 functional（局長 4 關 = 12 題 / `_easyQuestionTotal` == target / 真實預設局長）；**13 條還原驗證全部以正確原因 fail**。詳見 `docs/PLAYTEST_REVIEW.md`。 |
 
-| 111c | 下一步 | Boss 重新入場（進度格驅動 + HP）· 5 個 boss 守護者 sprite。 |
+| 111c | 2026-10-30 | **關卡守護者重新入場（§3.9）+ F7 經典/boss 畫面進度格**。easy 畫面每關有一隻「守護者」，**HP = Stage 進度格 3 格** → 答啱填 1 格 = 打守護者 1 格（`.is-hurt` 白閃 + 震）；3 格填滿 = 守護者退場（`.is-defeated`）= 過關 → 下一關新一隻。⚠️ **HP 唔係獨立欄位** —— 唯一真實來源 = `.sen-cell` 進度格（全檔唔准出現 `guardianHp` 之類第二個 HP 欄位）。⚠️ **species 係 per-Stage 鎖定**（`showQuestionSEN()` 顯示新題嗰刻鎖 / 過關時 `_applyStageUnits()` 清空 `s.family`）—— per-question 會每條題換守護者，喺答題後鎖會鎖錯 family。新增 **5 隻守護者 sprite**（`px-boss-count` 果籃怪 / `px-boss-length` 拉長獸 / `px-boss-height` 疊高獸 / `px-boss-order` 迷路蟲 / `px-boss-capacity` 渴飲獸；16×16 · 整數座標 · crispEdges · 48px 顯示）。**F7 已修**：經典/boss 畫面原本 `.sen-cell` **只存在於 SEN 畫面** → boss 學生唔知自己答到第幾題；今次每隊加 `#classic-cells-{team}` + label「第 N 題 · 關卡 M」，classic 路徑接 `_applyStageUnits(team, CELL_UNITS)`（喺 `UI.updateTeam()` 之前）。⚠️ 進度格 render 抽成 **`_renderStageCells()` 單一真實來源**（兩個畫面共用，唔會各寫一份漂移）。SEN 安全：守護者動畫只係自己郁（冇 screen shake / hit-stop）+ CSS + JS 兩層 respect `prefers-reduced-motion`。Lock-in：regression T111c-01..13 + generator-audit T111c-1..4（真實執行 species 映射 / 過關清空 / **跨檔 symbol 接線** —— 捉「宣告咗但冇接線」同 cycle111h `_wirePauseOverlay` 同類）+ 視覺場景 `guardian-stage`（4 條）；**14 條還原驗證全部以正確原因 fail**。 |
+
+| 111n | 下一步 | F8：單人 boss 右塔「無主」（要 Ken 拍板：淨顯示一座 / 或加回血）。 |
 | 111d | 下一步 | 4 scope icon + 3 UI icon + emoji-as-chrome 置換（合共 16 個新 symbol）。 |

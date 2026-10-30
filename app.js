@@ -2852,7 +2852,9 @@ const Game = {
         Game.state.teams[team].total++;
         Game.state.teams[team].correct++;
         _recordAnswerStats(team, q, true);
-        _applyStageUnits(team, _cellUnits(true, usedHint, isReplay));
+        const _stHit = _applyStageUnits(team, _cellUnits(true, usedHint, isReplay));
+        // ⚠️ cycle111c：守護者受傷 / 過關退場（HP = 3 格進度格）
+        _senGuardianHit(team, _stHit.cleared);
         Game.state.replayQ = null;
         Game.state.replayTries = 0;
         Game.state.hintLevel[team] = 0;
@@ -2906,7 +2908,9 @@ const Game = {
           if (_isCoopTeam()) Audio.boatRow && Audio.boatRow();
           else Audio.tugPull && Audio.tugPull();
         }
-        _applyStageUnits(team, units);
+        const _stHit2 = _applyStageUnits(team, units);
+        // ⚠️ cycle111c：守護者受傷 / 過關退場（HP = 3 格進度格）
+        _senGuardianHit(team, _stHit2.cleared);
       } else {
         Game.state.teams[team].wrong++;
         _haptic(false);  // V3.6 cycle84 C3
@@ -2931,6 +2935,9 @@ const Game = {
     const prevRagePct = s_prevRagePct();
     if (correct) _applyCorrectEffects(team, q, btn, prevRagePct);
     else _applyWrongEffects(team, q, btn);
+    // ⚠️ cycle111c · F7：經典 / boss 畫面嘅關卡進度格（答啱填 1 格）。
+    //    一定要喺 UI.updateTeam 之前做，否則 cells 慢一拍先更新。
+    if (correct) _applyStageUnits(team, CELL_UNITS);
     _recordAnswerStats(team, q, correct);
     UI.updateTeam(team);
     // ⚠️ cycle111j：經典畫面加延遲（跟 SEN 一致：答啱 650ms / 答錯 1000ms）。
@@ -3352,6 +3359,16 @@ const UI = {
     const ePct = (t.energy / 100) * 100;
     $(`${team}-energy-fill`).style.width = ePct + '%';
     $(`${team}-energy-text`).textContent = t.energy;
+    // ⚠️ cycle111c · F7：經典 / boss 畫面原本**完全冇**題目進度格
+    //    （`.sen-cell` 淨係存在喺 SEN 畫面）→ boss 學生唔知自己答到第幾題。
+    //    cell render 用同一個單一真實來源（_renderStageCells）。
+    const classicCells = $(`classic-cells-${team}`);
+    if (classicCells) {
+      _renderStageCells(`classic-cells-${team}`, team);
+      const sg = (Game.state.stage && Game.state.stage[team]) || { index: 0 };
+      const lbl = $(`classic-stage-label-${team}`);
+      if (lbl) lbl.textContent = `第 ${t.total + 1} 題 · 關卡 ${sg.index + 1}`;
+    }
     // 大絕按鈕：能量滿 + charge>=1 才亮（charge 由獨立題補充）
     const ultBtn = $(`${team}-ultimate`);
     const ready = t.energy >= 100 && t.ultCharge >= 1;
@@ -3897,6 +3914,11 @@ const UI = {
   showQuestionSEN(q, team) {
     if (!q) return;
     const t = team || 'knight';
+    // ⚠️ cycle111c：鎖定本關守護者 species（per-Stage）。
+    //    喺「顯示新題」呢一刻鎖（唔喺答題之後）—— 否則答完嗰刻 current 仲係舊題，
+    //    會鎖錯 family，變成每關都係同一隻守護者。
+    const stg = Game.state.stage && Game.state.stage[t];
+    if (stg && !stg.family) stg.family = _guardianFamilyOf(q.type);
     const { emojiEl, textEl, optsArea, fb, done } = UI._senEls(t);
     if (fb) fb.innerHTML = '';
     if (Game.state.hintLevel) Game.state.hintLevel[t] = 0;
@@ -4188,20 +4210,11 @@ const UI = {
         who.textContent = side + (labels[tm] || '同學');
       }
       const cellsWrap = $(`sen-cells-${tm}`);
-      if (cellsWrap) {
-        const fills = _stageCellFills(tm);
-        const cellEls = cellsWrap.querySelectorAll('.sen-cell');
-        let activeIdx = fills.findIndex(f => f < 1);
-        if (activeIdx < 0) activeIdx = fills.length - 1;
-        cellEls.forEach((el, i) => {
-          const pct = Math.round((fills[i] || 0) * 100);
-          el.style.setProperty('--p', pct + '%');
-          el.classList.toggle('is-filled', pct > 0);
-          el.classList.toggle('is-active', i === activeIdx);
-        });
-        const done = fills.reduce((a, b) => a + b, 0);
-        cellsWrap.setAttribute('aria-valuenow', String(Math.round(done)));
-      }
+      // ⚠️ cycle111c：cell render 抽咗出嚟做單一真實來源（_renderStageCells），
+      //    經典/boss 畫面（classic-cells-*）用同一個 function（F7）。
+      if (cellsWrap) _renderStageCells(`sen-cells-${tm}`, tm);
+      // ⚠️ cycle111c：守護者 sprite（species = 本關鎖定 family）
+      _renderGuardian(tm);
       const stageLabel = $(`sen-stage-label-${tm}`);
       if (stageLabel) {
         const sg = (Game.state.stage && Game.state.stage[tm]) || { index: 0 };
@@ -5799,7 +5812,7 @@ function _cellUnits(correct, usedHintLevel, isReplay) {
 // 推進 Stage 進度；回傳 { cleared, stageIndex }
 function _applyStageUnits(team, units) {
   const st = Game.state;
-  const s = st.stage[team] || (st.stage[team] = { index: 0, units: 0, cleared: 0 });
+  const s = st.stage[team] || (st.stage[team] = { index: 0, units: 0, cleared: 0, family: null });
   if (!units) return { cleared: false, stageIndex: s.index };
   s.units += units;
   if (s.units < 0) s.units = 0;   // cycle110: 扣格（答錯兩次）唔可以變負
@@ -5809,6 +5822,9 @@ function _applyStageUnits(team, units) {
     s.units -= need;
     s.cleared += 1;
     s.index += 1;
+    // ⚠️ cycle111c：新一關 = 新一隻守護者 → 清空 species 鎖
+    //    （鎖住係 per-Stage，唔係 per-question —— 否則每條題都換守護者 = 畫面跳）
+    s.family = null;
     cleared = true;
   }
   return { cleared, stageIndex: s.index };
@@ -5841,6 +5857,97 @@ function _stageGoalQuestions() {
 //    → 所有文案都要讀呢個 function，唔准再寫死數字。
 function _easyQuestionTotal() {
   return _stageGoalQuestions().target;
+}
+
+// ============================================================
+// V3.6 cycle111c：關卡守護者（proposal §3.9「Boss 重新入場」）
+//
+// ⚠️ **HP 唔係獨立欄位** —— 守護者 HP = Stage 進度格 3 格（`.sen-cell`）。
+//    同一個概念只有一個真實來源：答啱填 1 格 = 打守護者 1 格；
+//    3 格填滿 = 守護者退場 = 過一關。唔准再開一個 guardianHp 欄位（會同進度格漂移）。
+//
+// species（守護者品種）= 題型 family，**per-Stage 鎖定**（唔係 per-question，
+// 否則每條題都換守護者 → 畫面跳，學生見唔到「同一隻被打」）。
+const GUARDIAN_BY_FAMILY = {
+  count:    'px-boss-count',
+  length:   'px-boss-length',
+  height:   'px-boss-height',
+  order:    'px-boss-order',
+  capacity: 'px-boss-capacity',
+};
+const GUARDIAN_NAME = {
+  count: '果籃怪', length: '拉長獸', height: '疊高獸',
+  order: '迷路蟲', capacity: '渴飲獸',
+};
+// scope type → 守護者 family
+const TYPE_GUARDIAN_FAMILY = {
+  count20: 'count', count10: 'count', count1to3: 'count',
+  groupAdd: 'count', compareGroup: 'count',
+  compareLength: 'length',
+  compareHeight: 'height',
+  orderAsc20: 'order', orderDesc20: 'order', ordering: 'order',
+  learnL: 'capacity', findLDrink: 'capacity', findLItem: 'capacity',
+};
+function _guardianFamilyOf(type) {
+  return TYPE_GUARDIAN_FAMILY[type] || 'count';
+}
+function _guardianSvgIdOf(type) {
+  return GUARDIAN_BY_FAMILY[_guardianFamilyOf(type)];
+}
+
+// 進度格 render —— SEN 畫面（sen-cells-*）同經典/boss 畫面（classic-cells-*）**共用**。
+// ⚠️ 之前兩邊各自一份 → F7 補經典畫面嗰陣好易寫歪；一個真實來源。
+function _renderStageCells(wrapId, team) {
+  const wrap = $(wrapId);
+  if (!wrap) return;
+  const fills = _stageCellFills(team);
+  const cellEls = wrap.querySelectorAll('.sen-cell');
+  let activeIdx = fills.findIndex(f => f < 1);
+  if (activeIdx < 0) activeIdx = fills.length - 1;
+  cellEls.forEach((el, i) => {
+    const pct = Math.round((fills[i] || 0) * 100);
+    el.style.setProperty('--p', pct + '%');
+    el.classList.toggle('is-filled', pct > 0);
+    el.classList.toggle('is-active', i === activeIdx);
+  });
+  const done = fills.reduce((a, b) => a + b, 0);
+  wrap.setAttribute('aria-valuenow', String(Math.round(done)));
+}
+
+// 守護者 sprite render（species = 本關鎖定 family）
+function _renderGuardian(team) {
+  const gEl = $(`sen-guardian-${team}`);
+  const gUse = $(`sen-guardian-use-${team}`);
+  if (!gEl || !gUse) return;
+  const stg = (Game.state.stage && Game.state.stage[team]) || null;
+  const cur = Game.state.current && Game.state.current[team];
+  const fam = (stg && stg.family) || _guardianFamilyOf(cur && cur.type);
+  const want = '#' + (GUARDIAN_BY_FAMILY[fam] || GUARDIAN_BY_FAMILY.count);
+  if (gUse.getAttribute('href') !== want) gUse.setAttribute('href', want);
+  gEl.setAttribute('aria-label', `關卡守護者：${GUARDIAN_NAME[fam] || GUARDIAN_NAME.count}`);
+}
+
+// 守護者受傷 / 退場（純動畫，唔改 state）
+// ⚠️ SEN 安全：唔做 screen shake / hit-stop，只係守護者自己郁一下。
+function _senGuardianHit(team, cleared) {
+  const el = document.getElementById(`sen-guardian-${team}`);
+  if (!el) return;
+  const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (reduce) return;   // CSS 已經 disable 動畫（兩層都 respect）
+  if (cleared) {
+    el.classList.remove('is-hurt');
+    el.classList.add('is-defeated');
+    if (Audio.bossDefeat) Audio.bossDefeat();
+    setTimeout(() => {
+      el.classList.remove('is-defeated');
+      if (typeof UI !== 'undefined' && UI.refreshSENScreen) UI.refreshSENScreen();
+    }, 620);
+    return;
+  }
+  el.classList.remove('is-hurt');
+  void el.offsetWidth;   // restart CSS animation
+  el.classList.add('is-hurt');
+  setTimeout(() => el.classList.remove('is-hurt'), 400);
 }
 
 // ============================================================

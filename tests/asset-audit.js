@@ -238,7 +238,8 @@ group('A111-C7 顯示倍率整數');
     return { w: parseFloat(w[1]), h: parseFloat(h[1]), wUnit: unit(w), hUnit: unit(h) };
   }
   // 像素 icon 容器：CSS 尺寸必須係 px（em 會隨父字體變 → 非整數倍）
-  const PX_CONTAINERS = ['.icon-mini', '.icon-md', '.icon-lg', '.pic-card-svg', '.bi-svg', '.boss-svg', '.meteor', '.char-svg'];
+  // cycle111c: .sen-guardian（關卡守護者 · 16×16 symbol）都係像素 icon 容器 → 一樣要 px 尺寸
+  const PX_CONTAINERS = ['.icon-mini', '.icon-md', '.icon-lg', '.pic-card-svg', '.bi-svg', '.boss-svg', '.meteor', '.char-svg', '.sen-guardian'];
   for (const sel of PX_CONTAINERS) {
     const s = cssSize(sel);
     if (!s) { check(`C7-00 ${sel} 有 px 尺寸規則`, false, '搵唔到 width/height'); continue; }

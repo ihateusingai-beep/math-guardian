@@ -9,12 +9,12 @@ Vanilla JS + Tailwind CDN, no build, GitHub Pages.
 
 - Open `index.html` (double-click 都得 —— `app.js` 係 `<script defer>`,**唔係** `type="module"`) or `python3 -m http.server 8000`
 - Tests:
-  - `node tests/regression.js` → **942 pass / 0 fail** (structural regex lock-in, cycle 53–111j)
-  - `node tests/generator-audit.js` → **4662 pass / 0 fail** (functional truth-table, cycle 101+ · T108 Adaptive ladder · T109 Stage/提示階梯 · T110 里程碑 · T110b 接力 · T111b 級數階梯)
+  - `node tests/regression.js` → **955 pass / 0 fail** (structural regex lock-in, cycle 53–111c)
+  - `node tests/generator-audit.js` → **4687 pass / 0 fail** (functional truth-table, cycle 101+ · T108 Adaptive ladder · T109 Stage/提示階梯 · T110 里程碑 · T110b 接力 · T111b 級數階梯 · T111c 守護者 species/HP)
   - `node tests/audio-audit.js` → **24 pass / 0 fail** (audio call-site × export cross-check, cycle 105+ · cycle 111g **bus graph 拓撲**守門)
-  - `node tests/asset-audit.js` → **22 pass / 0 fail** (像素資產品質, cycle 111a — 座標 / 倍率 / crispEdges / 死 symbol)
-  - `node tests/visual/run.mjs` → **84 pass / 0 fail** (實機視覺驗證, cycle 111e — 8 scope 可答 / 639×669 overflow / L 容量 / sprite；cycle 111f — SEN 逐個選項反饋 + verdict band 幾何守門；cycle 111g — 教師台主音量 slider + 深底對比度；cycle 111h — **boot console 乾淨**；cycle 111i — **4 條真機 playtest 場景**（教師台 / 接力+級數 / 結算 / Boss）；cycle 111j — **局長可調 + 動態題數 + 級數固定 L1 + 經典逐個選項反饋**；冇 Chrome 會 SKIP)
-- **總計 5738 pass / 0 fail**（cycle 111j）
+  - `node tests/asset-audit.js` → **23 pass / 0 fail** (像素資產品質, cycle 111a — 座標 / 倍率 / crispEdges / 死 symbol)
+  - `node tests/visual/run.mjs` → **92 pass / 0 fail** (實機視覺驗證, cycle 111e — 8 scope 可答 / 639×669 overflow / L 容量 / sprite；cycle 111f — SEN 逐個選項反饋 + verdict band 幾何守門；cycle 111g — 教師台主音量 slider + 深底對比度；cycle 111h — **boot console 乾淨**；cycle 111i — **4 條真機 playtest 場景**（教師台 / 接力+級數 / 結算 / Boss）；cycle 111j — **局長可調 + 動態題數 + 級數固定 L1 + 經典逐個選項反饋**；cycle 111c — **關卡守護者（HP = Stage 進度格）+ F7 經典/boss 進度格**；冇 Chrome 會 SKIP)
+- **總計 5781 pass / 0 fail**（cycle 111c）
 - No lint / typecheck / build
 - Live: https://ihateusingai-beep.github.io/math-guardian/
 - **Deploy domain**: `CNAME` file 已移除(cycle 107)—— 站喺 `.github.io` 服務。
@@ -43,7 +43,7 @@ Vanilla JS + Tailwind CDN, no build, GitHub Pages.
 ├── tests/generator-audit.js # functional truth-table (generators × 30 trials + T108 Adaptive ladder + T111b 級數階梯)
 ├── tests/audio-audit.js    # audio pipeline audit (call-site × export cross-check)
 ├── tests/asset-audit.js    # 像素資產品質 audit (cycle111a — 8 組 check: viewBox / 重複 id / 座標 / 整數倍 / 死 symbol / crispEdges)
-├── tests/visual/           # 實機視覺驗證 (cycle111e — headless Chrome + CDP；11 個 scenario；見 tests/visual/README.md)
+├── tests/visual/           # 實機視覺驗證 (cycle111e — headless Chrome + CDP；12 個 scenario；見 tests/visual/README.md)
 ├── tools/squeeze-comments.cjs # cycle111h — 安全註解清理器（gate-aware，見下）
 └── .harness/               # changelogs, docs, plans
 ```
@@ -126,10 +126,10 @@ Rubric / 目標風格 / 基準喺 **`docs/VISUAL_QUALITY_RUBRIC.md`**。
 - Every behavior change lands a matching assertion in `tests/regression.js`
 - Assertions = source regex only (no DOM)
 - **File budget（cycle111h 起 · per-file，唔再係單檔 600 KB）**
-  - `index.html` raw **< 260,000 bytes**（current: 215,405 · 餘 **44,595**）
-  - `app.js` raw **< 420,000 bytes**（current: 382,147 · 餘 **37,853**）
+  - `index.html` raw **< 260,000 bytes**（current: 223,187 · 餘 **36,813**）
+  - `app.js` raw **< 420,000 bytes**（current: 392,537 · 餘 **27,463**）
   - 傳輸量（真正限制學生下載速度嘅係呢個）：**gzip < 200,000 bytes**
-    （實測 raw 608 KB → gzip **166,135 bytes**；cycle111h 剝完註解 + 拆檔後 → raw 597,552 · gzip **160,607 bytes**）
+    （實測 raw 608 KB → gzip **166,135 bytes**；cycle111h 剝完註解 + 拆檔後 → raw 597,552 · gzip **160,607 bytes**；cycle111c 加完 5 隻守護者 → gzip **166,327 bytes**）
   - ⚠️ **拆檔唔會加快學生下載** —— 之前以為拆檔可以救 raw 預算，
     其實 gzip 之後兩者一樣，拆檔只係令 **per-file 預算** 有意義
   - 唔好為咗慳位刪 feature（cycle111a 教訓）；慳位優先用 `tools/squeeze-comments.cjs`
@@ -279,6 +279,28 @@ Rubric / 目標風格 / 基準喺 **`docs/VISUAL_QUALITY_RUBRIC.md`**。
     + `highlightBtn` 移除時間 700 → **2200ms**（覆蓋到下一題出現）
     - ⚠️ 副作用：嗰 1 秒內 `Game.state.current[team]` 係 null（`_scheduleNextQuestion`
       會即刻清空）→ 測試要等下一題出現
+- **Guardian lock-in** (cycle111c, T111c-01..13 + generator-audit T111c-1..4 + 視覺 `guardian-stage`):
+  - **關卡守護者**（proposal §3.9「Boss 重新入場」+ F7）：easy 畫面每關有一隻守護者，
+    **HP = Stage 進度格 3 格** → 答啱填 1 格 = 打守護者 1 格；3 格填滿 = 守護者退場 = 過關
+  - ⚠️ **HP 唔係獨立欄位** —— 唯一真實來源 = `.sen-cell` 進度格
+    （`GUARDIAN_BY_FAMILY` / `TYPE_GUARDIAN_FAMILY` / `_renderStageCells`）
+    → 全檔唔准出現 `guardianHp` 之類嘅第二個 HP 欄位（T111c-05 / T111c-4）
+  - ⚠️ **species 係 per-Stage 鎖定**（唔係 per-question）：鎖喺 `showQuestionSEN()`
+    顯示新題嗰刻；過關時 `_applyStageUnits()` 清空 `s.family` → 下一關換新守護者
+    - 冇 per-Stage 鎖 → 每條題都換守護者 = 學生見唔到「同一隻被打」
+    - 喺答題之後鎖 → `current[team]` 仲係舊題 → 每關都鎖錯 family
+  - ⚠️ **跨檔接線**要真實驗（generator-audit T111c-1）：`GUARDIAN_BY_FAMILY` 嘅每個值
+    都要喺 `index.html` 真係有 `<symbol id="...">` —— 呢條正正捉「宣告咗但冇接線」
+    （cycle111h `_wirePauseOverlay` 事故同類）
+  - **F7 · 經典/boss 畫面進度格**：原本 `.sen-cell` **只存在於 SEN 畫面** → boss 學生
+    唔知自己答到第幾題。→ classic 路徑接 `_applyStageUnits(team, CELL_UNITS)`
+    （喺 `UI.updateTeam()` **之前**，唔會慢一拍）+ `#classic-cells-{team}` markup
+  - ⚠️ **進度格 render 單一真實來源**：`_renderStageCells(wrapId, team)` 兩個畫面共用
+    （之前 SEN 嗰邊有一份、classic 又寫一份 → 一定會走樣）
+  - **SEN 安全**：守護者動畫只係守護者自己郁（冇 screen shake / hit-stop）
+    + CSS + JS 兩層 respect `prefers-reduced-motion`
+  - 5 隻守護者 sprite：`px-boss-count` / `px-boss-length` / `px-boss-height` /
+    `px-boss-order` / `px-boss-capacity`（16×16 · 整數座標 · crispEdges · 48px 顯示）
 - Student UI: **no** stigma「SEN」label; MC **A/B/C** badges by **render order**
 - `startGame`/resume helpers must be **module scope** (not nested in `setupMenu`)
 

@@ -507,9 +507,12 @@ function loadStageModule() {
   }
 
   const consts = (body.match(/const STAGE_CELLS = 3;/) || [''])[0] + '\n' +
-                 (body.match(/const CELL_UNITS = 4;/) || [''])[0];
+                 (body.match(/const CELL_UNITS = 4;/) || [''])[0] + '\n' +
+                 // V3.6 cycle111c: 關卡守護者（family → sprite / type → family）
+                 (body.match(/const GUARDIAN_BY_FAMILY = \{[\s\S]*?\};/) || [''])[0] + '\n' +
+                 (body.match(/const TYPE_GUARDIAN_FAMILY = \{[\s\S]*?\};/) || [''])[0];
   const fns = ['_cellUnits', '_applyStageUnits', '_stageCellFills', '_stageGoalQuestions',
-               '_easyQuestionTotal',
+               '_easyQuestionTotal', '_guardianFamilyOf', '_guardianSvgIdOf',
                '_easyHintL1', '_easyHintL2', '_easyHintL3', '_easyHintL4', '_easyHintText']
     .map(grabFn).join('\n');
 
@@ -517,7 +520,8 @@ function loadStageModule() {
     ${consts}
     ${fns}
     return { STAGE_CELLS, CELL_UNITS, _cellUnits, _applyStageUnits, _stageCellFills,
-             _stageGoalQuestions, _easyQuestionTotal, _easyHintText };
+             _stageGoalQuestions, _easyQuestionTotal, _easyHintText,
+             GUARDIAN_BY_FAMILY, TYPE_GUARDIAN_FAMILY, _guardianFamilyOf, _guardianSvgIdOf };
   `;
   const __Game = {
     state: {
@@ -1234,6 +1238,86 @@ try {
   }
 } catch (e) {
   check('T111b scope level audit 執行得到（唔好 throw）', false, e.message);
+}
+
+// ============================================================
+// [T111c] V3.6 cycle-111c（關卡守護者 functional audit）
+//
+// 為咩呢度要**真實執行**（唔淨係 regex / mock）：
+//   · 「family → sprite id」係**跨檔接線**（app.js 常數 → index.html <symbol>）
+//     —— 呢類斷言正正捉到 cycle111h `_wirePauseOverlay` 事故（宣告咗但從來冇接線）
+//   · 「species per-Stage 鎖定」係**狀態被改寫**（過關要清空 family）
+//   · 「守護者 HP = 3 格進度格」→ 過關後進度格真係歸零
+// ============================================================
+console.log('\n[T111c] V3.6 cycle-111c (關卡守護者 functional audit: HP = Stage 進度格 + species 映射)');
+
+try {
+  const { mod, Game } = loadStageModule();
+  const appSrc = readAppSource();
+
+  // --- 1. family → sprite 映射 + 真實 symbol 存在（跨檔接線）---
+  {
+    const fams = Object.keys(mod.GUARDIAN_BY_FAMILY);
+    check('T111c-1 有 5 個守護者 family', fams.length === 5, fams.join(','));
+    for (const f of fams) {
+      const id = mod.GUARDIAN_BY_FAMILY[f];
+      check(`T111c-1 family ${f} → ${id} 喺 index.html 真係有 <symbol>`,
+        appSrc.includes(`<symbol id="${id}"`), id);
+    }
+    check('T111c-1 每個 family 指向唔同嘅 sprite（唔會 5 個 family 撞同一隻）',
+      new Set(fams.map(f => mod.GUARDIAN_BY_FAMILY[f])).size === 5);
+  }
+
+  // --- 2. type → family 映射（8 個 easy scope + 兜底）---
+  {
+    const expect = {
+      count20: 'count', compareLength: 'length', compareHeight: 'height',
+      orderAsc20: 'order', orderDesc20: 'order',
+      learnL: 'capacity', findLDrink: 'capacity', findLItem: 'capacity',
+    };
+    for (const [t, f] of Object.entries(expect)) {
+      check(`T111c-2 ${t} → ${f}`, mod._guardianFamilyOf(t) === f, `got ${mod._guardianFamilyOf(t)}`);
+    }
+    check('T111c-2 未知 type 兜底 = count（唔會 undefined）', mod._guardianFamilyOf('add10') === 'count');
+    check('T111c-2 undefined type 唔會 throw', mod._guardianFamilyOf(undefined) === 'count');
+    check('T111c-2 _guardianSvgIdOf 跟 family map',
+      mod._guardianSvgIdOf('compareLength') === mod.GUARDIAN_BY_FAMILY.length);
+    check('T111c-2 _guardianSvgIdOf 未知 type 都係有效 sprite id（唔會指去空）',
+      appSrc.includes(`<symbol id="${mod._guardianSvgIdOf('zzz-unknown')}"`));
+  }
+
+  // --- 3. species per-Stage 鎖定（過關 = 新一隻守護者）---
+  {
+    const st = Game.state.stage.knight;
+    st.index = 0; st.units = 0; st.cleared = 0; st.family = 'count';
+    mod._applyStageUnits('knight', 4);
+    mod._applyStageUnits('knight', 4);
+    check('T111c-3 未過關：species 唔會被清空（同一關係同一隻守護者）',
+      st.family === 'count', `family=${st.family}`);
+    const r = mod._applyStageUnits('knight', 4);
+    check('T111c-3 過關：cleared=true + index+1', r.cleared === true && st.index === 1,
+      `cleared=${r.cleared} index=${st.index}`);
+    check('T111c-3 過關：species 清空（下一關會鎖新守護者）', st.family === null, `family=${st.family}`);
+    check('T111c-3 過關後進度格歸零（守護者 HP = 3 格，由頭開始）',
+      mod._stageCellFills('knight').every(f => f === 0),
+      JSON.stringify(mod._stageCellFills('knight')));
+  }
+
+  // --- 4. 守護者 HP 唔係獨立欄位（單一真實來源）---
+  {
+    // ⚠️ 剝走註解先檢查 —— 否則「唔准開 guardianHp 欄位」呢句註解本身就會令個檢查 fail
+    const jsCode = readAppJs()
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .split('\n')
+      .filter(l => !/^\s*(\/\/|\*|\/\*)/.test(l))
+      .join('\n');
+    check('T111c-4 全檔冇獨立嘅守護者 HP 欄位（HP = Stage 進度格）',
+      !/guardianHp|guardian_hp|guardianHP/.test(jsCode));
+    check('T111c-4 進度格 render 由 _stageCellFills 驅動（單一真實來源）',
+      /function _renderStageCells\(wrapId, team\)[\s\S]{0,600}_stageCellFills\(team\)/.test(jsCode));
+  }
+} catch (e) {
+  check('T111c 守護者 audit 執行得到（唔好 throw）', false, e.message);
 }
 
 // summary

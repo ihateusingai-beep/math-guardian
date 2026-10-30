@@ -3053,6 +3053,76 @@ assert('T111j-09 局長有真機守門（教師台場景實測 selector + 文案
   /td-goal-stages/.test(fs.readFileSync(path.join(__dirname, 'visual', 'scenarios', 'playtest-teacher-flow.mjs'), 'utf8')) &&
   /Profile\.data\.goalStages/.test(fs.readFileSync(path.join(__dirname, 'visual', 'scenarios', 'playtest-teacher-flow.mjs'), 'utf8')));
 
+// ============================================================
+// [T111c] V3.6 cycle-111c（關卡守護者：HP = Stage 進度格 + F7 經典/boss 進度格）
+//
+// proposal §3.9「Boss 重新入場」+ PLAYTEST_REVIEW F7：
+//   · 目標學生（easy mode）之前完全冇 boss 層 → 每關加一隻「守護者」
+//   · 守護者 HP **唔係獨立欄位** = Stage 進度格 3 格（單一真實來源）
+//   · 答啱填 1 格 = 打守護者 1 格；3 格填滿 = 守護者退場 = 過關
+//   · 經典 / boss 畫面之前**完全冇**題目進度格 → F7 補返
+// ============================================================
+console.log('\n[T111c] V3.6 cycle-111c (關卡守護者：HP = Stage 進度格 + F7 經典/boss 進度格)');
+
+const guardianIds = ['px-boss-count', 'px-boss-length', 'px-boss-height', 'px-boss-order', 'px-boss-capacity'];
+const guardianScene = fs.readFileSync(path.join(__dirname, 'visual', 'scenarios', 'guardian-stage.mjs'), 'utf8');
+
+assert('T111c-01 5 隻關卡守護者 sprite 存在（16×16 · crispEdges）',
+  guardianIds.every(id => new RegExp(`<symbol id="${id}" viewBox="0 0 16 16" shape-rendering="crispEdges">`).test(src)));
+
+assert('T111c-02 .sen-guardian 用 px 尺寸 + 唔准重複定義（避免 cascade 覆蓋 + 死碼）',
+  /\.sen-guardian\s*\{[^}]*width:\s*48px[^}]*height:\s*48px/.test(src) &&
+  !/\.sen-guardian\s*\{[^}]*width:\s*(em|rem|vw|clamp)/.test(src) &&
+  (src.match(/^\s*\.sen-guardian\s*\{/gm) || []).length === 1);
+
+const gmap = (srcCode.match(/const GUARDIAN_BY_FAMILY = \{([\s\S]*?)\};/) || ['', ''])[1];
+const gvals = (gmap.match(/'([^']+)'/g) || []).map(x => x.replace(/'/g, ''));
+assert('T111c-03 每個守護者 family 都對應一個真實存在嘅 <symbol>（冇死引用）',
+  gvals.length === 5 && gvals.every(v => src.includes(`<symbol id="${v}"`)));
+
+assert('T111c-04 8 個 easy scope 全部有守護者 family 映射',
+  ['count20', 'compareLength', 'compareHeight', 'orderAsc20', 'orderDesc20', 'learnL', 'findLDrink', 'findLItem']
+    .every(t => new RegExp(`\\b${t}:\\s*'(count|length|height|order|capacity)'`).test(srcCode)));
+
+assert('T111c-05 守護者 HP 唔係獨立欄位（唯一真實來源 = Stage 進度格）',
+  !/guardianHp|guardian_hp|guardianHP/.test(srcCode) &&
+  /function _renderStageCells\(wrapId, team\)/.test(srcCode));
+
+assert('T111c-06 守護者 species 係 per-Stage 鎖定（過關清空 + 顯示新題時鎖定）',
+  /s\.family = null;/.test(srcCode) &&
+  /if \(stg && !stg\.family\) stg\.family = _guardianFamilyOf\(q\.type\);/.test(srcCode));
+
+assert('T111c-07 SEN 畫面兩隊都有守護者 element（唔會淨得其中一隊有）',
+  /id="sen-guardian-knight"/.test(src) && /id="sen-guardian-mage"/.test(src) &&
+  (src.match(/class="pixel sen-guardian"/g) || []).length === 2);
+
+assert('T111c-08 F7：經典 / boss 畫面有題目進度格（原本完全冇）',
+  /id="classic-cells-knight"/.test(src) && /id="classic-cells-mage"/.test(src) &&
+  (src.match(/class="sen-cells"/g) || []).length >= 4);
+
+assert('T111c-09 classic 答對路徑接 Stage 進度（且喺 UI.updateTeam 之前，唔會慢一拍）',
+  /if \(correct\) _applyStageUnits\(team, CELL_UNITS\);[\s\S]{0,200}UI\.updateTeam\(team\);/.test(srcCode));
+
+assert('T111c-10 進度格 render 單一真實來源（兩個畫面都用 _renderStageCells）',
+  (srcCode.match(/_renderStageCells\(/g) || []).length >= 3 &&
+  // 舊嗰份重複實作已經收埋（唔准兩份 render 邏輯漂移）
+  !/const fills = _stageCellFills\(tm\);[\s\S]{0,80}cellEls\.forEach/.test(srcCode));
+
+assert('T111c-11 守護者動畫 respect prefers-reduced-motion（CSS + JS 兩層）',
+  /\.sen-guardian\.is-hurt, \.sen-guardian\.is-defeated \{ animation: none !important; \}/.test(src) &&
+  /const reduce = window\.matchMedia && window\.matchMedia\('\(prefers-reduced-motion: reduce\)'\)\.matches;/.test(srcCode));
+
+const ghIdx = srcCode.indexOf('function _senGuardianHit');
+assert('T111c-12 SEN 安全：守護者動畫只係守護者自己郁（冇 screen shake / hit-stop）',
+  ghIdx > -1 &&
+  /classList\.(add|remove)\('is-(hurt|defeated)'\)/.test(srcCode.slice(ghIdx, ghIdx + 1200)) &&
+  !/shake|hit-?stop/i.test(srcCode.slice(ghIdx, ghIdx + 1200)));
+
+assert('T111c-13 守護者有真機守門（HP = 進度格 / 退場 / F7 進度格）',
+  /is-defeated/.test(guardianScene) &&
+  /classic-cells-knight/.test(guardianScene) &&
+  /sen-cells-knight/.test(guardianScene));
+
 // =========== summary ===========
 console.log(`\n========== ${pass} pass / ${fail} fail ==========`);
 if (fail > 0) {
