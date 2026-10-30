@@ -11,12 +11,12 @@
 
 ---
 
-## 0. 現況（baseline · 2026-10-30 · post cycle 111c）
+## 0. 現況（baseline · 2026-10-30 · post cycle 111n）
 
 | 項 | 值 |
 |---|---|
-| Version | **v3.6** · cycle **111c** |
-| Tests | **5781 pass / 0 fail**（955 regression + 4687 generator-audit + 24 audio-audit + 23 asset-audit + 92 visual） |
+| Version | **v3.6** · cycle **111n** |
+| Tests | **5817 pass / 0 fail**（964 regression + 4709 generator-audit + 24 audio-audit + 23 asset-audit + 97 visual） |
 | Size | `index.html` **223,187 B**（< 260 KB）· `app.js` **392,537 B**（< 420 KB）· gzip 傳輸 **166,327 B**（< 200 KB） |
 | Media payload | **0 bytes**（全部 runtime 合成） |
 | Visual readiness | **6.3 / 10**（Before cycle 106 = 4.56）· 見 `docs/VISUAL_QUALITY_RUBRIC.md` |
@@ -241,7 +241,28 @@
         （真實執行 species 映射 + 過關清空 + 跨檔 symbol 接線）·
         視覺場景 **`guardian-stage`**（4 條：sprite 真 render / 填格 / 退場 / F7 填格）
       └ **14 條還原驗證全部以正確原因 fail**（含 2 條真機場景）
-- [ ] **cycle 111n** F8 單人 boss 城塔「無主」（要 Ken 拍板：淨顯示一座 / 或加回血）
+- [x] **cycle 111n** F8 單人 boss 城塔「無主」+ **F8b 窄屏 compact 模式** ✅ 已 ship
+      └ **F8 · 單人 boss 淨一座城塔**（右隊 panel 收埋 → 右塔冇人控制，
+        之前約 50% 嘅 HP 流失學生阻唔到，失敗條件要「兩座都跌到 0」）
+        - 城塔數量 / HP 上限 / 失敗條件收埋成**單一真實來源**：
+          `_castleSides()` / `_castleMax()` / `_castleAlive()` / `_castleFallen()`
+        - 單人嗰座塔 HP = **200**（= 舊版兩座加埋）→ **保住原本生存時間預算**
+          （如果淨收細做 100 血塔 → 生存時間砍半 ≈ 62s，學生打唔死 boss）
+        - boss 攻擊只打存在嘅塔；**塔同受傷角色綁定**（左翼→騎士 / 右翼→法師）
+          —— 之前兩者各自 random，會出現「法師動畫 + 左翼塔掉血」嘅矛盾
+        - 雙隊語義不變（兩座各 100 HP · 跌一座唔即刻輸）
+      └ **F8b · 窄屏 compact（≤767px）** —— 真機量測捉到嘅**長久 P1**：
+        boss / 經典畫面嘅 boss panel 被 flex-shrink 壓到 **26px**
+        （HP 條 + boss 圖溢出蓋住 team card → 學生**完全睇唔到 boss HP 條**）
+        - ① `#screen-game > *` 唔准 shrink（內容高過 viewport 就滾動）
+        - ② boss panel 改細格：sprite 96→48 · 名字 + HP 條排右邊（263 → 80px）
+        - ③ 城塔條改一行細條（icon 48→32）+ sticky 喺底部（always 見到）
+        - → 問題 + 選項 + boss HP 條 **一屏晒，唔使捲**
+      └ Lock-in：regression **T111n-01..09** · generator-audit **T111n-1..4**
+        （真實執行城塔數量 / HP 上限 / 失敗語義）· 視覺場景 **`castle-solo`**（5 條，
+        含**幾何斷言**：sticky 城塔條同答案掣重疊 = 0）
+      └ ⚠️ **舊 lock-in 反映舊行為**：`playtest-boss` 條「右塔 HP > 0」斷言喺 F8 後
+        必然 fail → 改成 layout-aware（單人一座 / 雙隊兩座）
 - [ ] **cycle 111d** 4 scope icon + 3 UI icon + emoji-as-chrome 置換（合共 16 個新 symbol）
 - [ ] **cycle 112** 教師台 8 項控制 + 班級模式 + 概念卡 UI
       └ ⚠️ **老師級數可見性**（cycle111b 留低嘅一項）：學生而家喺第幾級，老師喺教師台
@@ -340,11 +361,11 @@
 
 **Gates（每 cycle 必跑）**
 ```
-node tests/regression.js       # 955 pass / 0 fail
-node tests/generator-audit.js  # 4687 pass / 0 fail
+node tests/regression.js       # 964 pass / 0 fail
+node tests/generator-audit.js  # 4709 pass / 0 fail
 node tests/audio-audit.js      # 24 pass / 0 fail
 node tests/asset-audit.js      # 23 pass / 0 fail
-node tests/visual/run.mjs      # 92 pass / 0 fail
+node tests/visual/run.mjs      # 97 pass / 0 fail
 ```
 改咗 UI / CSS / token → 額外：headless Chrome + CDP 重 capture 受影響 state + 重量對比度（見 `docs/VISUAL_QUALITY_RUBRIC.md` §4 驗證方法）。
 

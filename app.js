@@ -2743,7 +2743,7 @@ const Game = {
     currentTeam: 'knight', // 合作時：每答完切換；巔峰：兩隊並進
     lastAnswerAt: { knight: 0, mage: 0 },
 
-    castle: { left: 100, right: 100, max: 100 },
+    castle: { left: 100, right: 100 },
 
     teams: {
       knight: { correct: 0, wrong: 0, total: 0, energy: 0, ultCharge: 0 },
@@ -3389,10 +3389,18 @@ const UI = {
 
   updateCastle() {
     const c = Game.state.castle;
+    const max = _castleMax();
+    // ⚠️ cycle111n · F8：兩邊都更新（唔淨更新存在嘅塔）——
+    //    單人模式右塔係 hidden，但佢個 DOM 仲喺度；唔更新就會留低 stale 數字
+    //    （畫面係 hidden 睇唔到，但任何讀 DOM 嘅守門都會讀到錯值）。
     for (const side of ['left', 'right']) {
-      const pct = Math.max(0, (c[side] / c.max) * 100);
-      $(`castle-${side}-fill`).style.width = pct + '%';
-      $(`castle-${side}-text`).textContent = Math.max(0, Math.round(c[side]));
+      const pct = Math.max(0, ((c[side] || 0) / max) * 100);
+      const fill = $(`castle-${side}-fill`);
+      const text = $(`castle-${side}-text`);
+      const maxEl = $(`castle-${side}-max`);
+      if (fill) fill.style.width = pct + '%';
+      if (text) text.textContent = Math.max(0, Math.round(c[side] || 0));
+      if (maxEl) maxEl.textContent = String(max);
     }
   },
 
@@ -5341,6 +5349,14 @@ function startGame() {
   // V3.6-SEN: easy mode hides castle bars
   const castleRow = $('castle-bar-row');
   if (castleRow) castleRow.classList.toggle('hidden', isEasy);
+  // ⚠️ cycle111n · F8：單人 boss 淨顯示一座城塔（右隊嗰座冇人控制 → 唔應該存在）
+  //    row 變單欄 + 右塔 hide + 左塔 label 由「左翼城塔」改成「城塔」
+  const _castleSidesNow = _castleSides();
+  const _rightWrap = $('castle-right-wrap');
+  if (_rightWrap) _rightWrap.classList.toggle('hidden', !_castleSidesNow.includes('right'));
+  if (castleRow) castleRow.classList.toggle('is-solo', !_castleSidesNow.includes('right'));
+  const _leftLabel = $('castle-left-label');
+  if (_leftLabel) _leftLabel.textContent = _castleSidesNow.includes('right') ? '左翼城塔' : '城塔';
   // V3.6-SEN: easy mode hides energy rows + ult buttons
   ['knight', 'mage'].forEach(tm => {
     const er = $(`${tm}-energy-row`);
@@ -5421,8 +5437,11 @@ function startGame() {
   }
   Game.state.bossMaxHp = Game.settings.initialBossHp;
   Game.state.bossHp = Game.settings.initialBossHp;
-  Game.state.castle.left = 100;
-  Game.state.castle.right = 100;
+  // ⚠️ cycle111n · F8：單人 boss 淨得一座城塔（右隊嗰座冇人控制 → 唔應該存在）
+  //    單人嗰座 HP = 200（= 舊版兩座加埋），保住原本嘅生存時間預算。
+  const _castleMaxNow = _castleMax();
+  Game.state.castle.left = _castleMaxNow;
+  Game.state.castle.right = _castleSides().includes('right') ? _castleMaxNow : 0;
   Game.state.bossFrostTicks = 0;
   Game.state.review = [];
   Game.state.pendingUlt = null;
@@ -6377,7 +6396,7 @@ function gameLoop() {
     $('badge-time').textContent = `${String(mm).padStart(2,'0')}:${String(ss).padStart(2,'0')}`;
     if (s.timeLeftSec === 0) {
       // 時間到：依 castle HP 判定
-      endGame(s.castle.left > 0 && s.castle.right > 0);
+      endGame(_castleAlive());
     }
   }
 
@@ -6398,6 +6417,38 @@ function gameLoop() {
   }
 }
 
+// ============================================================
+// V3.6 cycle111n · F8：城塔嘅**唯一真實來源**
+//
+// ⚠️ 之前單人 boss 有**兩座**城塔，但右隊 panel 喺單人模式係收埋嘅
+//    → 約 50% 嘅 HP 流失學生點都阻唔到（佢見到一座自己救唔到嘅塔跌落去），
+//    而且失敗條件係「兩座都跌到 0」。
+//    → 單人淨顯示**一座**城塔（右隊嗰座根本唔存在）；雙隊先係每隊一座。
+//
+// ⚠️ 單人嗰座塔 HP **加倍（200）** —— 因為舊版兩座塔加埋都係 200 總血量，
+//    boss 每 10s 攻擊一次、每次 12–20 傷 → 舊版單人實際生存時間 ≈ 125s。
+//    如果淨收細做一座 100 血塔，生存時間會砍半 ≈ 62s（學生根本打唔死 boss）。
+//    → 200 血 = 保住原本嘅時間預算。
+function _castleSides() {
+  return Game.settings.playLayout === 'dual' ? ['left', 'right'] : ['left'];
+}
+function _castleMax() {
+  return Game.settings.playLayout === 'dual' ? 100 : 200;
+}
+function _castleAlive() {
+  const c = Game.state.castle;
+  // 單人：唯一嗰座塔企住 = 仲守得住
+  // 雙隊：兩座都仲企住先算守住（原本限時判定就係咁）
+  return _castleSides().every(side => (c[side] || 0) > 0);
+}
+// 城塔**倒塌**（即時失敗）—— 單人 = 唯一嗰座塔跌到 0；雙隊 = 兩座都跌到 0。
+// ⚠️ 同 `_castleAlive()` 唔係純粹相反：雙隊版要保留原本「兩座都跌先算倒」嘅語義，
+//    唔好順手改成「跌一座就輸」—— 會改變雙隊 boss 嘅失敗難度。
+function _castleFallen() {
+  const c = Game.state.castle;
+  return _castleSides().every(side => (c[side] || 0) <= 0);
+}
+
 function bossAttackCastle() {
   const s = Game.state;
   // 冰凍期間可能會跳過攻擊（30% 機率）
@@ -6409,9 +6460,12 @@ function bossAttackCastle() {
   // Boss 受擊的城塔對應嘅隊伍角色都 hurt
   // 左翼 tower → knight hurt；右翼 → mage hurt
   // 注意：呢個係 visual cue，角色未必知道
-  const victimTeam = Math.random() < 0.5 ? 'knight' : 'mage';
+  // ⚠️ cycle111n · F8：塔同角色**綁定**（之前兩者各自 random →
+  //    會出現「動畫係法師受傷，但跌嘅係左翼塔」嘅矛盾）
+  const sides = _castleSides();
+  const side = sides[Math.floor(Math.random() * sides.length)];
+  const victimTeam = side === 'left' ? 'knight' : 'mage';
   charAnimate(victimTeam, 'hurting');
-  const side = Math.random() < 0.5 ? 'left' : 'right';
   const dmg = 12 + randInt(0, 8);
   s.castle[side] = Math.max(0, s.castle[side] - dmg);
   // Castle HP 低過 30% 用重擊音效
@@ -6422,7 +6476,9 @@ function bossAttackCastle() {
   if (hpPct < s.bossRageThreshold && hpPct > s.bossFrostThreshold && Math.random() < 0.3) {
     Audio.bossEnraged();
   }
-  FX.screenAlert(`巨魔攻擊${side === 'left' ? '左' : '右'}翼城塔 -${dmg}`, '#dc2626');
+  // ⚠️ cycle111n · F8：單人只有一座塔 → 唔好講「左翼／右翼」（畫面冇左右分）
+  const _castleWord = sides.length > 1 ? (side === 'left' ? '左翼' : '右翼') : '';
+  FX.screenAlert(`巨魔攻擊${_castleWord}城塔 -${dmg}`, '#dc2626');
   const wrap = $('castle-' + side + '-wrap');
   FX.shake(wrap, 'castle-hit');
   FX.burst(
@@ -6433,7 +6489,7 @@ function bossAttackCastle() {
   );
   UI.updateCastle();
   Snapshot.schedule('castle-hit');  // P1-A
-  if (s.castle.left <= 0 && s.castle.right <= 0) {
+  if (_castleFallen()) {
     endGame(false);
   }
 }
@@ -6661,7 +6717,7 @@ function _endTitleFor(victory) {
     };
   }
   if (Game.settings.win === 'time') {
-    const castleAlive = Game.state.castle.left > 0 && Game.state.castle.right > 0;
+    const castleAlive = _castleAlive();
     if (castleAlive) {
       return { title: `時間到！完成 ${star(true)}`, msg: `在 ${Game.settings.minutes} 分鐘內完成挑戰！`, icon: '🏆' };
     }

@@ -1962,6 +1962,83 @@
     background-repeat: no-repeat, repeat;
   }
   .fill.hp-castle{ background: linear-gradient(90deg, #f59e0b, #facc15); }
+  /* cycle111n · F8：單人 boss 淨一座城塔 → row 變單欄（左塔全寬，唔好留一半空位）*/
+  #castle-bar-row.is-solo { grid-template-columns: 1fr; }
+  /* cycle111n · P1（真機量到）：#screen-game 係 `flex flex-col` + `height:100vh`，
+     高嘅 team card 會把其他 flex 子項 squeeze 晒；boss panel 本身 `overflow:hidden`
+     → 被壓到 **26px**，HP 條 + 96px boss 圖溢出咗面板、蓋喺 team card 上面。
+     結果：學校 iPad 639×669 嘅 boss / 經典畫面，學生**完全睇唔到 boss HP 條**。
+     → 直接子項唔准 shrink：內容高過 viewport 就滾動，唔好 squeeze。*/
+  #screen-game > * { flex-shrink: 0; }
+
+  /* ============================================================
+     cycle111n · 窄屏（學校 iPad 639px）· 經典 / boss 畫面 compact 模式
+     ------------------------------------------------------------
+     問題（真機量測，cycle111j 已經存在，唔係 cycle111c 引入）：
+       #screen-game 係 `flex flex-col` + `height:100vh` → 高嘅 team card
+       會把其他 flex 子項 squeeze 晒；boss panel 本身 `overflow:hidden`
+       → 被壓到 **26px**，96px boss 圖 + HP 條溢出面板、蓋喺 team card 上面。
+       結果：學校 iPad 639×669 嘅 boss / 經典畫面，學生**完全睇唔到 boss HP 條**。
+     解：
+       ① 直接子項唔准 shrink（內容高過 viewport 就滾動，唔好 squeeze）
+       ② boss panel 改「細格」：sprite 96→48（16×3 整數倍），名字 + HP 條排右邊
+       ③ 城塔條改一行細條（icon 48→32）
+       → 問題 + 答案選項唔使捲就可以見到
+     ============================================================ */
+  @media (max-width: 767px) {
+    /* ② boss panel → 細格 */
+    #boss-panel .boss-panel-center {
+      display: grid;
+      grid-template-columns: 56px 1fr;
+      grid-template-areas: "stage top" "stage hp" "stage meta";
+      align-items: center;
+      gap: 0.1rem 0.5rem;
+      text-align: left;
+    }
+    #boss-panel .boss-stage {
+      grid-area: stage;
+      width: 56px; height: 56px;
+      margin: 0;
+      align-self: center;
+    }
+    #boss-panel .boss-svg { width: 48px; height: 48px; }
+    #boss-panel .boss-stage svg { width: 48px !important; height: 48px !important; }
+    #boss-panel .boss-panel-top { grid-area: top; margin-bottom: 0; }
+    #boss-panel .boss-hp-wrap { grid-area: hp; margin: 0; padding: 0; }
+    #boss-panel .boss-hp-meta { grid-area: meta; margin: 0; font-size: 0.7rem; }
+    #boss-panel #boss-combat-hint { display: none; }
+
+    /* ③ 城塔條 → 一行細條
+       ⚠️ 一定要 `:not(.hidden)` —— 呢條 rule 嘅 `display:flex` specificity 高過
+          Tailwind 嘅 `.hidden{display:none}`，唔加呢個會令「隱藏右塔」完全失效。*/
+    #castle-bar-row { gap: 0.5rem; }
+    #castle-bar-row .castle-tower:not(.hidden) {
+      display: flex; align-items: center; gap: 0.5rem;
+      text-align: left; padding: 0.35rem 0.6rem;
+    }
+    #castle-bar-row .castle-tower:not(.hidden) > svg {
+      width: 32px !important; height: 32px !important;
+      margin: 0 !important; flex: 0 0 auto;
+    }
+    #castle-bar-row .castle-tower .castle-meta { flex: 1 1 auto; min-width: 0; }
+    #castle-bar-row .castle-tower .mb-1 { margin-bottom: 0.2rem !important; }
+
+    /* ④ 城塔條 sticky 喺底部 —— 佢喺 team card 之後，窄屏會跌出摺線；
+          釘住底就等於「城塔 HP 條」always 見到（boss 模式嘅防守目標）。
+          ⚠️ 佢會蓋住 team card 底部 → 所以要夠短 + #screen-game 加 bottom padding，
+             唔然會遮住答案掣（由 `castle-solo` 場景嘅幾何斷言守門）。*/
+    #castle-bar-row {
+      position: sticky; bottom: 0; z-index: 20;
+      background: linear-gradient(180deg, rgba(2,6,23,0) 0%, rgba(2,6,23,0.75) 30%);
+    }
+    /* boss panel 收窄少少 + 城塔條夠短 → 答案掣唔會被 sticky 條遮住
+       ⚠️ 唔好加 `padding-bottom` 落 #screen-game —— sticky 條嘅底線係相對 scrollport
+          **content box**，加 padding 會把佢推上去、反而遮住答案掣（實測重疊 89px）。*/
+    #boss-panel { padding: 0.5rem; }
+    #castle-bar-row .castle-tower:not(.hidden) { padding: 0.25rem 0.6rem; }
+    /* 收窄 flex gap（12→8）· 爭返幾 px 畀答案掣（sticky 條同掣之間要有淨空）*/
+    #screen-game { gap: 0.5rem; }
+  }
   .fill.energy   { background: linear-gradient(90deg, #06b6d4, #67e8f9); }
   .fill.low      { background: linear-gradient(90deg, #ef4444, #f87171) !important; animation: pulse-bar 1s infinite; }
 
@@ -4286,19 +4363,31 @@
       </div>
     </div>
 
-    <!-- Castle 防禦條 (V3.6-SEN: hidden in easy mode) -->
+    <!-- Castle 防禦條 (V3.6-SEN: hidden in easy mode)
+         ⚠️ cycle111n · F8：單人 boss 淨得一座城塔（右隊嗰座冇人控制）→
+            右塔會被 hide + row 變單欄（.is-solo）；HP 上限係動態嘅（單人 200 / 雙隊 100）
+         ⚠️ cycle111n · 窄屏 compact：`.castle-tower` 喺 ≤767px 會變一行細條
+            （icon + label/HP + 條），令問題同選項唔使捲就見到。-->
     <div id="castle-bar-row" class="grid grid-cols-2 gap-3">
-      <div id="castle-left-wrap" class="bg-gradient-to-br from-slate-800 to-slate-900 border-2 border-amber-300/40 rounded-2xl p-3 text-center">
+      <div id="castle-left-wrap" class="castle-tower bg-gradient-to-br from-slate-800 to-slate-900 border-2 border-amber-300/40 rounded-2xl p-3 text-center">
         <svg class="pixel mx-auto mb-1" style="width:48px;height:48px"><use href="#px-castle"/></svg>
-        <div class="text-xs text-amber-200 mb-1">左翼城塔</div>
-        <div class="track"><div id="castle-left-fill" class="fill hp-castle" style="width:100%"></div></div>
-        <div class="text-xs mt-1"><span id="castle-left-text">100</span> / 100</div>
+        <div class="castle-meta">
+          <div class="flex items-center justify-between gap-2 text-xs text-amber-200 mb-1">
+            <span id="castle-left-label">左翼城塔</span>
+            <span class="text-amber-100/90"><span id="castle-left-text">100</span>/<span id="castle-left-max">100</span></span>
+          </div>
+          <div class="track"><div id="castle-left-fill" class="fill hp-castle" style="width:100%"></div></div>
+        </div>
       </div>
-      <div id="castle-right-wrap" class="bg-gradient-to-br from-slate-800 to-slate-900 border-2 border-amber-300/40 rounded-2xl p-3 text-center">
+      <div id="castle-right-wrap" class="castle-tower bg-gradient-to-br from-slate-800 to-slate-900 border-2 border-amber-300/40 rounded-2xl p-3 text-center">
         <svg class="pixel mx-auto mb-1" style="width:48px;height:48px"><use href="#px-castle"/></svg>
-        <div class="text-xs text-amber-200 mb-1">右翼城塔</div>
-        <div class="track"><div id="castle-right-fill" class="fill hp-castle" style="width:100%"></div></div>
-        <div class="text-xs mt-1"><span id="castle-right-text">100</span> / 100</div>
+        <div class="castle-meta">
+          <div class="flex items-center justify-between gap-2 text-xs text-amber-200 mb-1">
+            <span id="castle-right-label">右翼城塔</span>
+            <span class="text-amber-100/90"><span id="castle-right-text">100</span>/<span id="castle-right-max">100</span></span>
+          </div>
+          <div class="track"><div id="castle-right-fill" class="fill hp-castle" style="width:100%"></div></div>
+        </div>
       </div>
     </div>
   </section>

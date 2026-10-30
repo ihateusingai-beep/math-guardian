@@ -199,14 +199,38 @@
 
 ---
 
-### F8 · 🟡 P2 · 單人 boss 有**一座城塔係「無主」嘅**
+### F8 · 🟡 P2 · 單人 boss 有**一座城塔係「無主」嘅**（✅ cycle111n 已修）
 
-- **現實**：`bossAttackCastle()`（app.js:6290-6328）**隨機**打 `left` 或 `right`；
-  城塔 HP **只有跌、冇任何回血機制**（只有 `startGame` 重設 100，app.js:5403-5404）
-- **單人模式**：只有騎士作答（右隊 panel 收埋，app.js:5348），
-  但**右塔照樣被 boss 隨機攻擊**，而失敗條件係 `castle.left <= 0 && castle.right <= 0`（app.js:6325）
+- **現實**：`bossAttackCastle()`（app.js）**隨機**打 `left` 或 `right`；
+  城塔 HP **只有跌、冇任何回血機制**（只有 `startGame` 重設）
+- **單人模式**：只有騎士作答（右隊 panel 收埋），
+  但**右塔照樣被 boss 隨機攻擊**，而失敗條件係 `castle.left <= 0 && castle.right <= 0`
   → **約 50% 嘅 HP 流失係學生控制唔到嘅**，而且學生會見到一座「自己點都救唔到」嘅塔跌落去
-- **狀態**：📋 建議（單人 boss 應該淨顯示一座塔 / 或兩隊都控制得到）
+- **狀態**：✅ **cycle111n 已修** —— 單人 boss **淨顯示一座城塔**
+  - 城塔數量 / HP 上限 / 失敗條件全部收埋成**單一真實來源**
+    （`_castleSides()` / `_castleMax()` / `_castleAlive()` / `_castleFallen()`）
+  - 單人嗰座塔 HP = **200**（= 舊版兩座加埋）→ **保住原本嘅生存時間預算**
+    （如果淨收細做一座 100 血塔，生存時間會砍半 ≈ 62s，學生根本打唔死 boss）
+  - boss 攻擊只打存在嘅塔；**塔同受傷角色綁定**（左翼→騎士 / 右翼→法師）
+    —— 之前兩者各自 random，會出現「法師動畫 + 左翼塔掉血」嘅矛盾
+  - 雙隊 boss **語義不變**：兩座塔各 100 HP、跌一座唔即刻輸（要兩座都跌先算倒）
+  → lock-in：regression T111n-01..06 + generator-audit T111n-1..4 + 視覺 `castle-solo`
+
+### F8b · 🟠 P1 · boss / 經典畫面喺學校 iPad **boss 面板被壓扁**（✅ cycle111n 已修）
+
+- **現實**（真機量測，**cycle111j 已經存在**，唔係 cycle111c 引入）：
+  `#screen-game` 係 `flex flex-col` + `height:100vh` → 高嘅 team card 會把其他 flex 子項
+  **squeeze 晒**；boss panel 本身 `overflow:hidden` → 被壓到 **26px**，
+  96px boss 圖 + HP 條**溢出咗面板、蓋喺 team card 上面**
+  → 學校 iPad 639×669 嘅 boss / 經典畫面，學生**完全睇唔到 boss HP 條**
+- **之前點解冇人發現**：`playtest-boss` 場景只斷「元素存在 + HP 文字 > 0」，
+  **冇斷幾何** → 一個「panel 被壓到 26px」嘅 P0 長期全綠
+- **狀態**：✅ **cycle111n 已修** —— 窄屏（≤767px）compact 模式：
+  ① `#screen-game > *` 唔准 shrink（內容高過 viewport 就滾動，唔好 squeeze）
+  ② boss panel 改「細格」：sprite 96→48（16×3 整數倍），名字 + HP 條排右邊（263 → 80px）
+  ③ 城塔條改一行細條（icon 48→32）並 **sticky 喺底部**（城塔 HP 條 always 見到）
+  → 問題 + 答案選項 + boss HP 條 **一屏晒，唔使捲**
+  → lock-in：regression T111n-07..09 + 視覺 `castle-solo`（幾何斷言：重疊 = 0）
 
 ---
 
@@ -279,7 +303,8 @@ menu track / easy 安靜曲未做 · 冇 voice limit / node pooling · 離線支
 | F6 畫面寫「10 題」實際 9 題 | ✅ cycle111j 已修（動態文案） | T111j-01/06 + `playtest-end-screen` |
 | F5 級數階梯對中等學生冇作用 | ✅ cycle111j 已處理（移除自動升降級 → 固定 L1） | T111j-04 + `playtest-relay-level` |
 | F7 boss 畫面冇題目進度格 | ✅ cycle111c 已修（classic 路徑接 Stage 進度） | T111c-08/09/10 + `guardian-stage` |
-| F8 單人 boss 有一座城塔無主 | 🟡 未做（待 Ken 拍板） | — |
+| F8 單人 boss 有一座城塔無主 | ✅ cycle111n 已修（單人淨一座 + HP 200 保住生存時間） | T111n-01..06 + `castle-solo` |
+| F8b boss 面板喺 iPad 被壓扁成 26px | ✅ cycle111n 已修（窄屏 compact 模式） | T111n-07..09 + `castle-solo` 幾何 |
 
 **cycle111j 現況：0 個 xfail 標記**（3 條已知缺陷全部修好，行為已升級做正式 lock-in）。
 

@@ -3123,6 +3123,67 @@ assert('T111c-13 守護者有真機守門（HP = 進度格 / 退場 / F7 進度�
   /classic-cells-knight/.test(guardianScene) &&
   /sen-cells-knight/.test(guardianScene));
 
+// ============================================================
+// [T111n] V3.6 cycle-111n（F8 · 單人 boss 城塔「無主」+ 窄屏 compact 模式）
+//
+// F8（PLAYTEST_REVIEW）：單人 boss 之前有**兩座**城塔，但右隊 panel 喺單人模式係收埋嘅
+//   → 約 50% 嘅 HP 流失學生點都阻唔到，而且失敗條件要「兩座都跌到 0」。
+//
+// 順手捉到嘅**長久 P1**（cycle111j 已經存在，唔係 cycle111c 引入）：
+//   #screen-game 係 `flex flex-col` + `height:100vh` → 高嘅 team card 會 squeeze 其他項，
+//   boss panel（overflow:hidden）被壓到 **26px**，HP 條 + 96px boss 圖溢出蓋住 team card
+//   → 學校 iPad 639×669 嘅 boss / 經典畫面，學生**完全睇唔到 boss HP 條**。
+// ============================================================
+console.log('\n[T111n] V3.6 cycle-111n (F8 · 單人 boss 城塔 + 窄屏 compact 模式)');
+
+const castleScene = fs.readFileSync(path.join(__dirname, 'visual', 'scenarios', 'castle-solo.mjs'), 'utf8');
+
+assert('T111n-01 城塔數量 / HP 上限 / 失敗條件有**單一真實來源**（4 個 helper）',
+  /function _castleSides\(\)/.test(srcCode) &&
+  /function _castleMax\(\)/.test(srcCode) &&
+  /function _castleAlive\(\)/.test(srcCode) &&
+  /function _castleFallen\(\)/.test(srcCode) &&
+  /_castleSides\(\)\.every/.test(srcCode) &&
+  /_castleSides\(\)\.includes\('right'\)/.test(srcCode));
+
+assert('T111n-02 單人 boss 淨顯示一座城塔（右塔 hide + row 單欄 + label 變「城塔」）',
+  /_rightWrap\.classList\.toggle\('hidden', !_castleSidesNow\.includes\('right'\)\)/.test(srcCode) &&
+  /castleRow\.classList\.toggle\('is-solo', !_castleSidesNow\.includes\('right'\)\)/.test(srcCode) &&
+  /_leftLabel\.textContent = _castleSidesNow\.includes\('right'\) \? '左翼城塔' : '城塔'/.test(srcCode));
+
+assert('T111n-03 失敗條件統一用 helper（唔准再硬寫「left > 0 && right > 0」）',
+  /endGame\(_castleAlive\(\)\)/.test(srcCode) &&
+  /if \(_castleFallen\(\)\)/.test(srcCode) &&
+  /const castleAlive = _castleAlive\(\);/.test(srcCode) &&
+  !/castle\.left > 0 && .*castle\.right > 0/.test(srcCode) &&
+  !/castle\.left <= 0 && .*castle\.right <= 0/.test(srcCode));
+
+assert('T111n-04 唔准再存在 `castle.max` 欄位（HP 上限只可以由 _castleMax() 決定）',
+  !/castle:\s*\{[^}]*max/.test(srcCode) && !/c\.max/.test(srcCode));
+
+assert('T111n-05 boss 攻擊：塔同受傷角色**綁定**（唔准各自 random）',
+  /const side = sides\[Math\.floor\(Math\.random\(\) \* sides\.length\)\];/.test(srcCode) &&
+  /const victimTeam = side === 'left' \? 'knight' : 'mage';/.test(srcCode));
+
+assert('T111n-06 城塔 HP 上限係動態（單人 200 / 雙隊 100）→ markup 要有 max 欄位',
+  /id="castle-left-max"/.test(src) && /id="castle-right-max"/.test(src) &&
+  /maxEl\.textContent = String\(max\)/.test(srcCode));
+
+assert('T111n-07 窄屏 compact：直接子項唔准 shrink（boss panel 唔可以被壓扁）',
+  /#screen-game > \* \{ flex-shrink: 0; \}/.test(src) &&
+  /@media \(max-width: 767px\)/.test(src) &&
+  /#boss-panel \.boss-svg \{ width: 48px; height: 48px; \}/.test(src));
+
+assert('T111n-08 compact 規則唔准令 Tailwind `.hidden` 失效（要用 :not(.hidden)）',
+  /#castle-bar-row \.castle-tower:not\(\.hidden\)/.test(src) &&
+  !/#castle-bar-row \.castle-tower \{/.test(src));
+
+assert('T111n-09 城塔 + compact 有真機守門（單人一座 + boss 只打玩家嗰座 + 幾何唔遮答案掣）',
+  /bossAttackCastle\(\)/.test(castleScene) &&
+  /重疊=/.test(castleScene) &&
+  /is-solo/.test(castleScene) &&
+  /boss-panel h=/.test(castleScene));
+
 // =========== summary ===========
 console.log(`\n========== ${pass} pass / ${fail} fail ==========`);
 if (fail > 0) {

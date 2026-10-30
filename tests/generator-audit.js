@@ -488,23 +488,27 @@ try {
 // 行為 bug（進度推錯、提示層錯、局長計錯）regex 結構測試捉唔到，
 // 所以喺呢度抽出真實模組、mock 環境實際執行、斷言實際數值。
 
+// balanced-brace extractor for a named function declaration
+// ⚠️ cycle111n：抽咗做**共用** helper（之前只有 loadStageModule 內部有一份）
+//    → cycle111n 嘅 castle 模組都係用同一個 extractor，唔好各寫一份。
+function grabFnFrom(body, name) {
+  const marker = `function ${name}(`;
+  const i = body.indexOf(marker);
+  if (i === -1) throw new Error(`${name} not found`);
+  let depth = 0, started = false, end = -1;
+  for (let j = i; j < body.length; j++) {
+    if (body[j] === '{') { depth++; started = true; }
+    else if (body[j] === '}') { depth--; if (started && depth === 0) { end = j + 1; break; } }
+  }
+  if (end === -1) throw new Error(`${name} end not found`);
+  return body.slice(i, end);
+}
+
 function loadStageModule() {
   const body = readAppJs();
   if (!body) throw new Error('No <script> found in index.html');
 
-  // balanced-brace extractor for a named function declaration
-  function grabFn(name) {
-    const marker = `function ${name}(`;
-    const i = body.indexOf(marker);
-    if (i === -1) throw new Error(`${name} not found`);
-    let depth = 0, started = false, end = -1;
-    for (let j = i; j < body.length; j++) {
-      if (body[j] === '{') { depth++; started = true; }
-      else if (body[j] === '}') { depth--; if (started && depth === 0) { end = j + 1; break; } }
-    }
-    if (end === -1) throw new Error(`${name} end not found`);
-    return body.slice(i, end);
-  }
+  const grabFn = (name) => grabFnFrom(body, name);
 
   const consts = (body.match(/const STAGE_CELLS = 3;/) || [''])[0] + '\n' +
                  (body.match(/const CELL_UNITS = 4;/) || [''])[0] + '\n' +
@@ -1318,6 +1322,86 @@ try {
   }
 } catch (e) {
   check('T111c 守護者 audit 執行得到（唔好 throw）', false, e.message);
+}
+
+// ============================================================
+// [T111n] V3.6 cycle111n（F8 · 單人 boss 城塔「無主」functional audit）
+//
+// 為咩要**真實執行**：
+//   · 城塔數量 / HP 上限 / 失敗條件全部係「狀態被改寫」嘅邏輯
+//   · 雙隊版「跌一座唔即刻輸」呢個語義**好易喺重構時被順手改壞**
+//     （`_castleAlive()` 係 every → `!alive` 會變成「跌一座就輸」）
+// ============================================================
+console.log('\n[T111n] V3.6 cycle111n (F8 · 單人 boss 城塔 functional audit)');
+
+function loadCastleModule(playLayout) {
+  const body = readAppJs();
+  const fns = ['_castleSides', '_castleMax', '_castleAlive', '_castleFallen']
+    .map(n => grabFnFrom(body, n)).join('\n');
+  const code = `${fns}\nreturn { _castleSides, _castleMax, _castleAlive, _castleFallen };`;
+  const __Game = { settings: { playLayout: playLayout }, state: { castle: { left: 0, right: 0 } } };
+  const fn = new Function('Game', code);
+  return { mod: fn(__Game), Game: __Game };
+}
+
+try {
+  // --- 1. 單人：淨一座塔 + HP 加倍 ---
+  {
+    const { mod, Game } = loadCastleModule('solo');
+    check('T111n-1 單人 boss 淨得一座城塔（右隊嗰座冇人控制）',
+      JSON.stringify(mod._castleSides()) === JSON.stringify(['left']),
+      JSON.stringify(mod._castleSides()));
+    check('T111n-1 單人嗰座塔 HP = 200（= 舊版兩座加埋，保住生存時間）',
+      mod._castleMax() === 200, `got ${mod._castleMax()}`);
+    Game.state.castle.left = 200; Game.state.castle.right = 0;
+    check('T111n-1 單人：塔仲企得住', mod._castleAlive() === true);
+    Game.state.castle.left = 0;
+    check('T111n-1 單人：唯一嗰座塔跌到 0 = 倒塌（= 輸）',
+      mod._castleFallen() === true && mod._castleAlive() === false);
+  }
+
+  // --- 2. 雙隊：兩座塔 + 保留原本失敗語義 ---
+  {
+    const { mod, Game } = loadCastleModule('dual');
+    check('T111n-2 雙隊 boss 每隊一座城塔',
+      JSON.stringify(mod._castleSides()) === JSON.stringify(['left', 'right']),
+      JSON.stringify(mod._castleSides()));
+    check('T111n-2 雙隊每座塔 HP = 100', mod._castleMax() === 100, `got ${mod._castleMax()}`);
+    Game.state.castle.left = 50; Game.state.castle.right = 50;
+    check('T111n-2 雙隊：兩座都企住 = 守住', mod._castleAlive() === true);
+    Game.state.castle.left = 0; Game.state.castle.right = 50;
+    check('T111n-2 雙隊：跌一座**唔即刻輸**（保留原本「兩座都跌先算倒」語義）',
+      mod._castleFallen() === false, `fallen=${mod._castleFallen()}`);
+    check('T111n-2 雙隊：跌一座就已經唔算守住（限時判定用）',
+      mod._castleAlive() === false);
+    Game.state.castle.right = 0;
+    check('T111n-2 雙隊：兩座都跌到 0 = 倒塌', mod._castleFallen() === true);
+  }
+
+  // --- 3. 跨檔接線：castle UI 元素真係喺 index.html ---
+  {
+    const appSrc = readAppSource();
+    for (const id of ['castle-bar-row', 'castle-left-wrap', 'castle-right-wrap',
+                      'castle-left-fill', 'castle-right-fill',
+                      'castle-left-text', 'castle-right-text',
+                      'castle-left-max', 'castle-right-max',
+                      'castle-left-label']) {
+      check(`T111n-3 ${id} 喺 index.html 真係存在`, appSrc.includes(`id="${id}"`));
+    }
+  }
+
+  // --- 4. 唔准再出現第二套城塔數量 / HP 邏輯 ---
+  {
+    const js = readAppJs().replace(/\/\*[\s\S]*?\*\//g, '').split('\n')
+      .filter(l => !/^\s*(\/\/|\*|\/\*)/.test(l)).join('\n');
+    check('T111n-4 唔准再出現 `castle.max` 欄位（HP 上限 = _castleMax() 唯一真實來源）',
+      !/castle:\s*\{[^}]*max/.test(js) && !/c\.max/.test(js));
+    check('T111n-4 唔准再出現硬寫嘅雙塔失敗條件',
+      !/castle\.left > 0 && .*castle\.right > 0/.test(js) &&
+      !/castle\.left <= 0 && .*castle\.right <= 0/.test(js));
+  }
+} catch (e) {
+  check('T111n 城塔 audit 執行得到（唔好 throw）', false, e.message);
 }
 
 // summary

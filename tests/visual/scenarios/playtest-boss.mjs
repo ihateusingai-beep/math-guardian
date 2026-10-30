@@ -82,23 +82,32 @@ export default {
     },
 
     // ── 城堡 HP 條（左翼 / 右翼城塔）──
-    // ⚠️ 呢個唔係「進度格」—— 城堡條係兩座城塔嘅 HP（#castle-left/right-fill），
-    //    真實嘅「題目進度格」(.sen-cell) 只存在於 SEN 畫面，經典 boss 畫面冇。
+    // ⚠️ 呢個唔係「進度格」—— 城堡條係城塔嘅 HP（#castle-left/right-fill）。
+    //    ✅ cycle111n · F8：單人 boss **淨得一座塔**（右隊 panel 收埋 → 右塔冇人控制），
+    //    所以單人模式右塔係隱藏 + HP 0；雙隊先係兩座都見到。
     {
       assert: {
-        label: '城堡 HP 條（左翼 / 右翼城塔）喺 boss 模式真係 render',
+        label: '城堡 HP 條喺 boss 模式真係 render（單人一座 / 雙隊兩座）',
         expr: `(() => {
           const row = document.getElementById('castle-bar-row');
           const lf = document.getElementById('castle-left-fill');
           const rf = document.getElementById('castle-right-fill');
           const lt = document.getElementById('castle-left-text');
           const rt = document.getElementById('castle-right-text');
+          const rw = document.getElementById('castle-right-wrap');
+          const solo = Game.settings.playLayout !== 'dual';
+          const rightHidden = !!rw && rw.classList.contains('hidden');
+          const rightOk = solo
+            ? (rightHidden && Number(rt.textContent) === 0)
+            : (!rightHidden && Number(rt.textContent) > 0);
           return {
             ok: !!row && !row.classList.contains('hidden')
               && !!lf && !!rf && !!lt && !!rt
-              && Number(lt.textContent) > 0 && Number(rt.textContent) > 0,
+              && Number(lt.textContent) > 0 && rightOk,
             detail: 'left=' + (lt ? lt.textContent : '?') + '(' + (lf ? lf.style.width : '?') + ')'
-              + ' · right=' + (rt ? rt.textContent : '?') + '(' + (rf ? rf.style.width : '?') + ')',
+              + ' · right=' + (rt ? rt.textContent : '?') + '(' + (rf ? rf.style.width : '?') + ')'
+              + ' · 模式=' + (solo ? 'solo（單人：右塔隱藏）' : 'dual（雙隊：兩座塔）')
+              + ' · 右塔 hidden=' + rightHidden,
           };
         })()`,
       },

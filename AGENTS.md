@@ -9,12 +9,12 @@ Vanilla JS + Tailwind CDN, no build, GitHub Pages.
 
 - Open `index.html` (double-click 都得 —— `app.js` 係 `<script defer>`,**唔係** `type="module"`) or `python3 -m http.server 8000`
 - Tests:
-  - `node tests/regression.js` → **955 pass / 0 fail** (structural regex lock-in, cycle 53–111c)
-  - `node tests/generator-audit.js` → **4687 pass / 0 fail** (functional truth-table, cycle 101+ · T108 Adaptive ladder · T109 Stage/提示階梯 · T110 里程碑 · T110b 接力 · T111b 級數階梯 · T111c 守護者 species/HP)
+  - `node tests/regression.js` → **964 pass / 0 fail** (structural regex lock-in, cycle 53–111n)
+  - `node tests/generator-audit.js` → **4709 pass / 0 fail** (functional truth-table, cycle 101+ · T108 Adaptive ladder · T109 Stage/提示階梯 · T110 里程碑 · T110b 接力 · T111b 級數階梯 · T111c 守護者 species/HP · T111n 城塔數量/HP/失敗語義)
   - `node tests/audio-audit.js` → **24 pass / 0 fail** (audio call-site × export cross-check, cycle 105+ · cycle 111g **bus graph 拓撲**守門)
   - `node tests/asset-audit.js` → **23 pass / 0 fail** (像素資產品質, cycle 111a — 座標 / 倍率 / crispEdges / 死 symbol)
-  - `node tests/visual/run.mjs` → **92 pass / 0 fail** (實機視覺驗證, cycle 111e — 8 scope 可答 / 639×669 overflow / L 容量 / sprite；cycle 111f — SEN 逐個選項反饋 + verdict band 幾何守門；cycle 111g — 教師台主音量 slider + 深底對比度；cycle 111h — **boot console 乾淨**；cycle 111i — **4 條真機 playtest 場景**（教師台 / 接力+級數 / 結算 / Boss）；cycle 111j — **局長可調 + 動態題數 + 級數固定 L1 + 經典逐個選項反饋**；cycle 111c — **關卡守護者（HP = Stage 進度格）+ F7 經典/boss 進度格**；冇 Chrome 會 SKIP)
-- **總計 5781 pass / 0 fail**（cycle 111c）
+  - `node tests/visual/run.mjs` → **92 pass / 0 fail** (實機視覺驗證, cycle 111e — 8 scope 可答 / 639×669 overflow / L 容量 / sprite；cycle 111f — SEN 逐個選項反饋 + verdict band 幾何守門；cycle 111g — 教師台主音量 slider + 深底對比度；cycle 111h — **boot console 乾淨**；cycle 111i — **4 條真機 playtest 場景**（教師台 / 接力+級數 / 結算 / Boss）；cycle 111j — **局長可調 + 動態題數 + 級數固定 L1 + 經典逐個選項反饋**；cycle 111c — **關卡守護者（HP = Stage 進度格）+ F7 經典/boss 進度格**；cycle 111n — **F8 單人 boss 一座城塔 + 窄屏 compact 模式**；冇 Chrome 會 SKIP)
+- **總計 5817 pass / 0 fail**（cycle 111n）
 - No lint / typecheck / build
 - Live: https://ihateusingai-beep.github.io/math-guardian/
 - **Deploy domain**: `CNAME` file 已移除(cycle 107)—— 站喺 `.github.io` 服務。
@@ -43,7 +43,7 @@ Vanilla JS + Tailwind CDN, no build, GitHub Pages.
 ├── tests/generator-audit.js # functional truth-table (generators × 30 trials + T108 Adaptive ladder + T111b 級數階梯)
 ├── tests/audio-audit.js    # audio pipeline audit (call-site × export cross-check)
 ├── tests/asset-audit.js    # 像素資產品質 audit (cycle111a — 8 組 check: viewBox / 重複 id / 座標 / 整數倍 / 死 symbol / crispEdges)
-├── tests/visual/           # 實機視覺驗證 (cycle111e — headless Chrome + CDP；12 個 scenario；見 tests/visual/README.md)
+├── tests/visual/           # 實機視覺驗證 (cycle111e — headless Chrome + CDP；13 個 scenario；見 tests/visual/README.md)
 ├── tools/squeeze-comments.cjs # cycle111h — 安全註解清理器（gate-aware，見下）
 └── .harness/               # changelogs, docs, plans
 ```
@@ -301,6 +301,30 @@ Rubric / 目標風格 / 基準喺 **`docs/VISUAL_QUALITY_RUBRIC.md`**。
     + CSS + JS 兩層 respect `prefers-reduced-motion`
   - 5 隻守護者 sprite：`px-boss-count` / `px-boss-length` / `px-boss-height` /
     `px-boss-order` / `px-boss-capacity`（16×16 · 整數座標 · crispEdges · 48px 顯示）
+- **Castle lock-in** (cycle111n, T111n-01..09 + generator-audit T111n-1..4 + 視覺 `castle-solo`):
+  - **F8 · 單人 boss 淨一座城塔**（右隊 panel 收埋 → 右塔根本冇人控制，
+    之前約 50% 嘅 HP 流失學生阻唔到，而且失敗條件要「兩座都跌到 0」）
+  - ⚠️ **城塔數量 / HP 上限 / 失敗條件全部收埋成單一真實來源**：
+    `_castleSides()` / `_castleMax()` / `_castleAlive()` / `_castleFallen()`
+    → 全檔唔准再出現硬寫嘅 `castle.left > 0 && castle.right > 0`（T111n-03）
+  - ⚠️ **單人嗰座塔 HP = 200**（= 舊版兩座加埋）—— 保住原本嘅生存時間預算；
+    如果淨收細做一座 100 血塔，生存時間會砍半 ≈ 62s，學生根本打唔死 boss（T111n-1）
+  - ⚠️ **雙隊語義唔可以順手改**：跌一座**唔即刻輸**（要兩座都跌先算倒）；
+    `_castleAlive()`（守住）同 `_castleFallen()`（倒塌）**唔係純粹相反**（T111n-2）
+  - **塔同受傷角色綁定**（左翼→騎士 / 右翼→法師）—— 之前兩者各自 random，
+    會出現「法師動畫 + 左翼塔掉血」嘅矛盾（T111n-05）
+  - **窄屏 compact 模式（≤767px）· F8b**：boss / 經典畫面之前喺學校 iPad
+    **boss panel 被 flex-shrink 壓到 26px**（HP 條 + boss 圖溢出蓋住 team card
+    → 學生**完全睇唔到 boss HP 條**）
+    - ① `#screen-game > *` 唔准 shrink（內容高過 viewport 就滾動，唔好 squeeze）
+    - ② boss panel 改「細格」：sprite 96→48（16×3 整數倍），名字 + HP 條排右邊（263 → 80px）
+    - ③ 城塔條改一行細條（icon 48→32）+ **sticky 喺底部**（城塔 HP 條 always 見到）
+    - ⚠️ 唔好加 `padding-bottom` 落 `#screen-game` —— sticky 條嘅底線係相對 scrollport
+      **content box**，加 padding 會把佢推上去、反而遮住答案掣（實測重疊 89px）
+    - ⚠️ compact 嘅 `display:flex` 規則一定要寫 `:not(.hidden)` —— 佢嘅 specificity
+      高過 Tailwind 嘅 `.hidden{display:none}`，唔加就會令「隱藏右塔」完全失效（T111n-08）
+  - ⚠️ **舊 lock-in 會反映舊行為** —— F8 改完，`playtest-boss` 條「右塔 HP > 0」斷言
+    必然 fail（單人模式右塔依家隱藏 + HP 0）→ 改成 layout-aware（單人一座 / 雙隊兩座）
 - Student UI: **no** stigma「SEN」label; MC **A/B/C** badges by **render order**
 - `startGame`/resume helpers must be **module scope** (not nested in `setupMenu`)
 
