@@ -11,13 +11,13 @@
 
 ---
 
-## 0. 現況（baseline · 2026-10-30 · post cycle 111n）
+## 0. 現況（baseline · 2026-10-31 · post cycle 111d）
 
 | 項 | 值 |
 |---|---|
-| Version | **v3.6** · cycle **111n** |
-| Tests | **5817 pass / 0 fail**（964 regression + 4709 generator-audit + 24 audio-audit + 23 asset-audit + 97 visual） |
-| Size | `index.html` **223,187 B**（< 260 KB）· `app.js` **392,537 B**（< 420 KB）· gzip 傳輸 **166,327 B**（< 200 KB） |
+| Version | **v3.6** · cycle **111d** |
+| Tests | **5891 pass / 0 fail**（974 regression + 4762 generator-audit + 24 audio-audit + 27 asset-audit + 104 visual） |
+| Size | `index.html` **237,192 B**（< 260 KB）· `app.js` **396,995 B**（< 420 KB）· gzip 傳輸 **171,320 B**（< 200 KB） |
 | Media payload | **0 bytes**（全部 runtime 合成） |
 | Visual readiness | **6.3 / 10**（Before cycle 106 = 4.56）· 見 `docs/VISUAL_QUALITY_RUBRIC.md` |
 | Core done | easy scopes · solo/dual arena · 黃/紫長短 · 數數分5 · 順序跟住 · bank v3 · 視覺 P0 修清 · **拆檔 + 註解清理** · **關卡守護者 + boss 進度格** |
@@ -263,7 +263,22 @@
         含**幾何斷言**：sticky 城塔條同答案掣重疊 = 0）
       └ ⚠️ **舊 lock-in 反映舊行為**：`playtest-boss` 條「右塔 HP > 0」斷言喺 F8 後
         必然 fail → 改成 layout-aware（單人一座 / 雙隊兩座）
-- [ ] **cycle 111d** 4 scope icon + 3 UI icon + emoji-as-chrome 置換（合共 16 個新 symbol）
+- [x] **cycle 111d** emoji-as-chrome 置換：18 個 chrome 位置（8 scope + 5 chip + 2 team +
+      2 icon-only 提示掣 + 1 教師台結束掣）改用 inline SVG symbol ✅ 已 ship
+      └ **11 隻新 sprite**（7 隻原計畫 + 4 隻補充：8 個 scope 掣要 8 隻唔同 icon，
+        proposal §4.4 原本只俾 4 隻 → 補 `px-scope-order-desc` / `px-scope-drink` /
+        `px-scope-bucket` / `px-icon-all`）
+      └ **scope→icon 單一真實來源**：`SCOPE_CATALOG.emoji`（死碼）→ `.icon`（sprite id）
+        + 新 `SCOPE_PRESET_ICON`；generator-audit 真實 eval 模組再對 index.html markup
+        （跨檔接線 —— 捉「宣告咗但 HTML 冇 `<symbol>`」→ 學生見到空白掣）
+      └ ⚠️ **emoji-as-content 留**（題目水果 emoji）· 行內說明 💡 留（TTS 會讀）
+      └ Lock-in：regression **T111d-01..10** · generator-audit **T111d-1..6**（跨檔真值表）
+        · asset-audit **C9**（新 sprite §4 色板）· 視覺場景 **`scope-icons`**（7 條，
+        含幾何斷言：icon 完全喺掣入面 + 8 隻 icon 全部唔同）
+      └ ⚠️ **還原驗證捉到 3 條「假守門」**（T111d-02 / T111d-05 / T111d-10）——
+        集合斷言 `[].every()` 匹配唔到嘢時永遠 true → 已加「同時斷數量」守門
+    - [ ] **cycle 111e** emoji-as-chrome 續：題型選擇器 `reg.emoji`（23 個 type 要
+          23 隻 icon）· `.combo-emoji` 場景 emoji · 教具 emoji · 教師台其他 emoji
 - [ ] **cycle 112** 教師台 8 項控制 + 班級模式 + 概念卡 UI
       └ ⚠️ **老師級數可見性**（cycle111b 留低嘅一項）：學生而家喺第幾級，老師喺教師台
         或結算畫面都睇唔到 → 級數系統對老師係「隱形」嘅

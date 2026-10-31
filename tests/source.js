@@ -35,4 +35,13 @@ function readAppJs() {
   return fs.readFileSync(APP, 'utf8');
 }
 
-module.exports = { ROOT, INDEX, APP, readAppSource, readAppJs };
+/**
+ * 淨係 index.html（HTML + inline CSS + inline SVG symbol）。
+ * ⚠️ 跨檔接線嘅斷言（例如「某個 sprite id 真係喺 index.html 有 <symbol>」）
+ *    要用呢個，唔好用 readAppSource() —— 咁樣會混入 app.js，regex 會搵錯地方。
+ */
+function readIndexHtml() {
+  return fs.readFileSync(INDEX, 'utf8');
+}
+
+module.exports = { ROOT, INDEX, APP, readAppSource, readAppJs, readIndexHtml };

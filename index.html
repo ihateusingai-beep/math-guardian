@@ -2397,6 +2397,18 @@
   .icon-md   { width: 32px; height: 32px; }
   .icon-lg   { width: 48px; height: 48px; }
 
+  /* ⚠️ emoji-as-chrome 置換用嘅像素 icon 容器。
+     ⚠️ 尺寸一定要 px（asset-audit C7-01 守門）—— em/vw/clamp 會令顯示倍率唔係整數倍，
+        像素邊就會有灰邊。16×16 symbol 嘅合法顯示尺寸 = 16 / 32 / 48 px（1× / 2× / 3×）。*/
+  .scope-ico    { width: 32px; height: 32px; flex: 0 0 auto; display: inline-block; vertical-align: middle; }
+  .scope-ico-sm { width: 16px; height: 16px; flex: 0 0 auto; display: inline-block; vertical-align: middle; }
+
+  /* 選擇類掣嘅排版：icon 左 + 文字右（原本係 emoji + 文字同一行）。
+     flex + align-items:center 令 icon 唔會歪，文字仍然靠左。*/
+  .opt-scope, .opt-team { display: flex; align-items: center; gap: 0.55rem; }
+  .opt-scope-preset    { display: inline-flex; align-items: center; gap: 0.3rem; }
+  .chrome-ico-btn      { display: inline-flex; align-items: center; gap: 0.35rem; }
+
   /* 重練 chip：hover / long-press 顯示答案 (P0-2) */
   .review-chip { position: relative; cursor: pointer; }
   .review-chip:hover,
@@ -3717,6 +3729,111 @@
       <rect x="4" y="13" width="8" height="2" fill="#0369a1"/>
     </symbol>
 
+    <!-- scope icon + UI icon（proposal §4.4 · 取代 emoji-as-chrome）
+         ⚠️ emoji-as-chrome 禁、emoji-as-content 留（docs/ART_STYLE_GUIDE.md）——
+            呢啲係「介面零件」，所以用像素 sprite；題目內容（水果 emoji）唔郁。-->
+    <symbol id="px-scope-length" viewBox="0 0 16 16" shape-rendering="crispEdges">
+      <rect x="1" y="5" width="14" height="6" fill="#fcd34d"/>
+      <rect x="1" y="5" width="14" height="1" fill="#fde68a"/>
+      <rect x="1" y="10" width="14" height="1" fill="#78350f"/>
+      <rect x="3" y="7" width="1" height="2" fill="#78350f"/>
+      <rect x="6" y="7" width="1" height="3" fill="#78350f"/>
+      <rect x="9" y="7" width="1" height="2" fill="#78350f"/>
+      <rect x="12" y="7" width="1" height="3" fill="#78350f"/>
+    </symbol>
+
+    <symbol id="px-scope-height" viewBox="0 0 16 16" shape-rendering="crispEdges">
+      <rect x="3" y="9" width="4" height="5" fill="#3b82f6"/>
+      <rect x="9" y="3" width="4" height="11" fill="#a855f7"/>
+      <rect x="3" y="9" width="4" height="1" fill="#93c5fd"/>
+      <rect x="9" y="3" width="4" height="1" fill="#f0f9ff"/>
+    </symbol>
+
+    <symbol id="px-scope-order" viewBox="0 0 16 16" shape-rendering="crispEdges">
+      <rect x="2" y="11" width="3" height="3" fill="#94a3b8"/>
+      <rect x="6" y="8" width="3" height="6" fill="#cbd5e1"/>
+      <rect x="10" y="4" width="3" height="10" fill="#f0f9ff"/>
+      <rect x="13" y="1" width="2" height="4" fill="#fbbf24"/>
+    </symbol>
+
+    <symbol id="px-scope-capacity" viewBox="0 0 16 16" shape-rendering="crispEdges">
+      <rect x="5" y="1" width="6" height="2" fill="#bae6fd"/>
+      <rect x="6" y="3" width="4" height="3" fill="#38bdf8"/>
+      <rect x="4" y="6" width="8" height="9" fill="#38bdf8"/>
+      <rect x="4" y="9" width="8" height="1" fill="#0369a1"/>
+      <rect x="4" y="6" width="8" height="1" fill="#bae6fd"/>
+      <rect x="7" y="12" width="2" height="3" fill="#0369a1"/>
+    </symbol>
+
+    <symbol id="px-icon-hint" viewBox="0 0 16 16" shape-rendering="crispEdges">
+      <rect x="6" y="0" width="4" height="1" fill="#fbbf24"/>
+      <rect x="2" y="4" width="1" height="3" fill="#fbbf24"/>
+      <rect x="13" y="4" width="1" height="3" fill="#fbbf24"/>
+      <rect x="4" y="2" width="8" height="6" fill="#fde68a"/>
+      <rect x="5" y="8" width="6" height="2" fill="#fbbf24"/>
+      <rect x="6" y="10" width="4" height="3" fill="#94a3b8"/>
+      <rect x="6" y="12" width="4" height="1" fill="#475569"/>
+      <rect x="7" y="4" width="2" height="2" fill="#b45309"/>
+    </symbol>
+
+    <symbol id="px-icon-rescue" viewBox="0 0 16 16" shape-rendering="crispEdges">
+      <rect x="1" y="7" width="5" height="3" fill="#f0f9ff"/>
+      <rect x="5" y="6" width="3" height="5" fill="#f0f9ff"/>
+      <rect x="11" y="6" width="4" height="5" fill="#bae6fd"/>
+      <rect x="7" y="3" width="4" height="4" fill="#fbbf24"/>
+      <rect x="8" y="4" width="2" height="2" fill="#fde68a"/>
+    </symbol>
+
+    <symbol id="px-icon-stage" viewBox="0 0 16 16" shape-rendering="crispEdges">
+      <rect x="2" y="1" width="2" height="14" fill="#94a3b8"/>
+      <rect x="4" y="1" width="3" height="3" fill="#f0f9ff"/>
+      <rect x="7" y="1" width="3" height="3" fill="#1e293b"/>
+      <rect x="10" y="1" width="3" height="3" fill="#f0f9ff"/>
+      <rect x="4" y="4" width="3" height="3" fill="#1e293b"/>
+      <rect x="7" y="4" width="3" height="3" fill="#f0f9ff"/>
+      <rect x="10" y="4" width="3" height="3" fill="#1e293b"/>
+    </symbol>
+
+    <!-- ⚠️ proposal §4.4 只俾 4 隻 scope icon（length/height/order/capacity）
+         + 重用 abacus，但 menu 上面有 **8 個 scope 掣**（count20/compareLength/compareHeight/
+         orderAsc20/orderDesc20/learnL/findLDrink/findLItem）——
+         8 個 scope 一定要 8 隻唔同 icon，否則學生揀唔到（原本靠 emoji 區分）。
+         呢 4 隻補返 proposal 漏咗嘅區分：倒序 / 飲品 / 物品 / 「全部」快捷。
+         ⚠️ emoji-as-content 留（題目嘅水果 emoji 唔郁），emoji-as-chrome 先換。-->
+    <symbol id="px-scope-order-desc" viewBox="0 0 16 16" shape-rendering="crispEdges">
+      <rect x="11" y="11" width="3" height="3" fill="#94a3b8"/>
+      <rect x="7" y="8" width="3" height="6" fill="#cbd5e1"/>
+      <rect x="3" y="4" width="3" height="10" fill="#f0f9ff"/>
+      <rect x="1" y="1" width="2" height="4" fill="#fbbf24"/>
+    </symbol>
+
+    <symbol id="px-scope-drink" viewBox="0 0 16 16" shape-rendering="crispEdges">
+      <rect x="9" y="0" width="2" height="6" fill="#fbbf24"/>
+      <rect x="3" y="4" width="10" height="11" fill="#bae6fd"/>
+      <rect x="4" y="8" width="8" height="6" fill="#38bdf8"/>
+      <rect x="3" y="4" width="10" height="1" fill="#f0f9ff"/>
+      <rect x="4" y="8" width="8" height="1" fill="#bae6fd"/>
+      <rect x="4" y="14" width="8" height="1" fill="#0369a1"/>
+    </symbol>
+
+    <symbol id="px-scope-bucket" viewBox="0 0 16 16" shape-rendering="crispEdges">
+      <rect x="5" y="1" width="6" height="1" fill="#94a3b8"/>
+      <rect x="5" y="1" width="1" height="4" fill="#94a3b8"/>
+      <rect x="10" y="1" width="1" height="4" fill="#94a3b8"/>
+      <rect x="2" y="5" width="12" height="2" fill="#e2e8f0"/>
+      <rect x="3" y="7" width="10" height="7" fill="#94a3b8"/>
+      <rect x="10" y="7" width="3" height="7" fill="#475569"/>
+      <rect x="3" y="14" width="10" height="1" fill="#475569"/>
+      <rect x="4" y="8" width="2" height="4" fill="#e2e8f0"/>
+    </symbol>
+
+    <symbol id="px-icon-all" viewBox="0 0 16 16" shape-rendering="crispEdges">
+      <rect x="2" y="2" width="5" height="5" fill="#3b82f6"/>
+      <rect x="9" y="2" width="5" height="5" fill="#fbbf24"/>
+      <rect x="2" y="9" width="5" height="5" fill="#a855f7"/>
+      <rect x="9" y="9" width="5" height="5" fill="#38bdf8"/>
+    </symbol>
+
   </defs>
 </svg>
 
@@ -4008,36 +4125,46 @@
       <div class="menu-section-card">
         <div class="menu-section-title">③ 題目範疇（可多選）</div>
         <div class="scope-preset-row" role="group" aria-label="範疇快捷">
-          <button type="button" class="opt-scope-preset" data-scope-preset="count">🔢 只數數</button>
-          <button type="button" class="opt-scope-preset" data-scope-preset="length">📏 只長短</button>
-          <button type="button" class="opt-scope-preset" data-scope-preset="height">↕️ 只高矮</button>
-          <button type="button" class="opt-scope-preset" data-scope-preset="capacity">🧃 只容量</button>
-          <button type="button" class="opt-scope-preset" data-scope-preset="all">✨ 全部</button>
+          <button type="button" class="opt-scope-preset" data-scope-preset="count"><svg class="pixel scope-ico-sm" aria-hidden="true"><use href="#px-abacus"/></svg><span>只數數</span></button>
+          <button type="button" class="opt-scope-preset" data-scope-preset="length"><svg class="pixel scope-ico-sm" aria-hidden="true"><use href="#px-scope-length"/></svg><span>只長短</span></button>
+          <button type="button" class="opt-scope-preset" data-scope-preset="height"><svg class="pixel scope-ico-sm" aria-hidden="true"><use href="#px-scope-height"/></svg><span>只高矮</span></button>
+          <button type="button" class="opt-scope-preset" data-scope-preset="capacity"><svg class="pixel scope-ico-sm" aria-hidden="true"><use href="#px-scope-capacity"/></svg><span>只容量</span></button>
+          <button type="button" class="opt-scope-preset" data-scope-preset="all"><svg class="pixel scope-ico-sm" aria-hidden="true"><use href="#px-icon-all"/></svg><span>全部</span></button>
         </div>
         <div id="scope-picker" class="grid grid-cols-2 gap-3" role="group" aria-label="題目範疇">
+          <!-- ⚠️ emoji-as-chrome 置換 —— 每個 scope 一隻像素 icon
+               （emoji 靠系統字體，冇 font 會變 monochrome；8 個 scope 亦要 8 隻唔同 icon 先揀得返）。-->
           <button type="button" class="opt-scope btn btn-ghost opt-selected py-3 text-left" data-scope="count20" aria-pressed="true">
-            🔢 數數 1–10<br><span class="text-xs opacity-70">睇圖數有幾多</span>
+            <svg class="pixel scope-ico" aria-hidden="true"><use href="#px-abacus"/></svg>
+            <span>數數 1–10<br><span class="text-xs opacity-70">睇圖數有幾多</span></span>
           </button>
           <button type="button" class="opt-scope btn btn-ghost opt-selected py-3 text-left" data-scope="compareLength" aria-pressed="true">
-            📏 長短比較<br><span class="text-xs opacity-70">撳長／短嗰條</span>
+            <svg class="pixel scope-ico" aria-hidden="true"><use href="#px-scope-length"/></svg>
+            <span>長短比較<br><span class="text-xs opacity-70">撳長／短嗰條</span></span>
           </button>
           <button type="button" class="opt-scope btn btn-ghost opt-selected py-3 text-left" data-scope="compareHeight" aria-pressed="true">
-            ↕️ 高矮比較<br><span class="text-xs opacity-70">撳高／矮嗰個</span>
+            <svg class="pixel scope-ico" aria-hidden="true"><use href="#px-scope-height"/></svg>
+            <span>高矮比較<br><span class="text-xs opacity-70">撳高／矮嗰個</span></span>
           </button>
           <button type="button" class="opt-scope btn btn-ghost opt-selected py-3 text-left" data-scope="orderAsc20" aria-pressed="true">
-            📈 順序·跟住<br><span class="text-xs opacity-70">邊個跟住</span>
+            <svg class="pixel scope-ico" aria-hidden="true"><use href="#px-scope-order"/></svg>
+            <span>順序·跟住<br><span class="text-xs opacity-70">邊個跟住</span></span>
           </button>
           <button type="button" class="opt-scope btn btn-ghost opt-selected py-3 text-left" data-scope="orderDesc20" aria-pressed="true">
-            📉 倒序·跟住<br><span class="text-xs opacity-70">邊個跟住</span>
+            <svg class="pixel scope-ico" aria-hidden="true"><use href="#px-scope-order-desc"/></svg>
+            <span>倒序·跟住<br><span class="text-xs opacity-70">邊個跟住</span></span>
           </button>
           <button type="button" class="opt-scope btn btn-ghost opt-selected py-3 text-left" data-scope="learnL" aria-pressed="true">
-            🧃 學用 L<br><span class="text-xs opacity-70">觀察包裝學 L</span>
+            <svg class="pixel scope-ico" aria-hidden="true"><use href="#px-scope-capacity"/></svg>
+            <span>學用 L<br><span class="text-xs opacity-70">觀察包裝學 L</span></span>
           </button>
           <button type="button" class="opt-scope btn btn-ghost opt-selected py-3 text-left" data-scope="findLDrink" aria-pressed="true">
-            🥛 找 L 飲品<br><span class="text-xs opacity-70">邊支用 L?</span>
+            <svg class="pixel scope-ico" aria-hidden="true"><use href="#px-scope-drink"/></svg>
+            <span>找 L 飲品<br><span class="text-xs opacity-70">邊支用 L?</span></span>
           </button>
           <button type="button" class="opt-scope btn btn-ghost opt-selected py-3 text-left" data-scope="findLItem" aria-pressed="true">
-            🪣 找 L 物品<br><span class="text-xs opacity-70">邊件有 1L?</span>
+            <svg class="pixel scope-ico" aria-hidden="true"><use href="#px-scope-bucket"/></svg>
+            <span>找 L 物品<br><span class="text-xs opacity-70">邊件有 1L?</span></span>
           </button>
         </div>
         <div id="scope-helper" class="menu-section-sub">已選 8 個範疇 · 撳掣可開關（最少 1 個）</div>
@@ -4154,10 +4281,12 @@
         <label class="text-sm font-bold text-amber-300 mb-2 block">⑤ 打怪方式</label>
         <div class="grid grid-cols-2 gap-3" role="radiogroup" aria-label="隊伍模式">
           <button class="opt-team btn btn-ghost opt-selected" data-team="coop" aria-pressed="true">
-            🤝 合作打王<br><span class="text-xs opacity-70">兩隊一齊打 boss</span>
+            <svg class="pixel scope-ico" aria-hidden="true"><use href="#px-icon-rescue"/></svg>
+            <span>合作打王<br><span class="text-xs opacity-70">兩隊一齊打 boss</span></span>
           </button>
           <button class="opt-team btn btn-ghost" data-team="versus" aria-pressed="false">
-            🏆 比分競賽<br><span class="text-xs opacity-70">比邊隊答啱多</span>
+            <svg class="pixel scope-ico" aria-hidden="true"><use href="#px-trophy"/></svg>
+            <span>比分競賽<br><span class="text-xs opacity-70">比邊隊答啱多</span></span>
           </button>
         </div>
       </div>
@@ -4462,7 +4591,7 @@
             <div id="sen-q-count-knight" class="text-amber-200 font-extrabold text-sm bg-white/10 rounded-lg px-2 py-1" style="min-width:3rem;text-align:center;">第 0 題</div>
             <div id="sen-correct-knight" class="text-green-300 font-extrabold text-xl">✅ 0</div>
             <div id="sen-wrong-knight" class="text-red-300 font-extrabold text-xl">❌ 0</div>
-            <button id="sen-hint-knight" class="text-white text-xl w-11 h-11 rounded-xl bg-white/10 flex items-center justify-center" aria-label="提示" title="提示">💡</button>
+            <button id="sen-hint-knight" class="text-white w-11 h-11 rounded-xl bg-white/10 flex items-center justify-center" aria-label="提示" title="提示"><svg class="pixel scope-ico" aria-hidden="true"><use href="#px-icon-hint"/></svg></button>
             <button id="sen-tts-knight" class="text-white text-xl w-11 h-11 rounded-xl bg-white/10 flex items-center justify-center" aria-label="朗讀左隊題目">🔊</button>
           </div>
         </div>
@@ -4490,7 +4619,7 @@
             <div id="sen-q-count-mage" class="text-amber-200 font-extrabold text-sm bg-white/10 rounded-lg px-2 py-1" style="min-width:3rem;text-align:center;">第 0 題</div>
             <div id="sen-correct-mage" class="text-green-300 font-extrabold text-xl">✅ 0</div>
             <div id="sen-wrong-mage" class="text-red-300 font-extrabold text-xl">❌ 0</div>
-            <button id="sen-hint-mage" class="text-white text-xl w-11 h-11 rounded-xl bg-white/10 flex items-center justify-center" aria-label="提示" title="提示">💡</button>
+            <button id="sen-hint-mage" class="text-white w-11 h-11 rounded-xl bg-white/10 flex items-center justify-center" aria-label="提示" title="提示"><svg class="pixel scope-ico" aria-hidden="true"><use href="#px-icon-hint"/></svg></button>
             <button id="sen-tts-mage" class="text-white text-xl w-11 h-11 rounded-xl bg-white/10 flex items-center justify-center" aria-label="朗讀右隊題目">🔊</button>
           </div>
         </div>
@@ -4575,7 +4704,7 @@
       <div class="grid grid-cols-3 gap-2 mb-4">
         <button id="teacher-pause" class="btn btn-boss text-sm py-2">⏸ 暫停</button>
         <button id="teacher-resume" class="btn bg-emerald-600 text-white text-sm py-2">▶ 恢復</button>
-        <button id="teacher-end" class="btn btn-ghost text-sm py-2">🏁 強制結束</button>
+        <button id="teacher-end" class="btn btn-ghost text-sm py-2 chrome-ico-btn"><svg class="pixel scope-ico-sm" aria-hidden="true"><use href="#px-icon-stage"/></svg><span>強制結束</span></button>
       </div>
 
       <!-- ⚠️ cycle111j：局長（Stage 數）—— 老師可調一局幾多題（proposal §3.7）。

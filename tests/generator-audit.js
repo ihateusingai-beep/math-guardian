@@ -17,7 +17,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const { readAppSource, readAppJs } = require('./source.js');
+const { readAppSource, readAppJs, readIndexHtml } = require('./source.js');
 
 // ============================================================
 // mock layer
@@ -1402,6 +1402,115 @@ try {
   }
 } catch (e) {
   check('T111n 城塔 audit 執行得到（唔好 throw）', false, e.message);
+}
+
+// [T111d] emoji-as-chrome 置換 —— scope icon 跨檔真值表
+//
+// 為咩要喺 generator-audit（而唔係淨靠 regression regex）：
+//   · SCOPE_CATALOG 係 app.js 嘅 **真實模組** —— 呢度真係 eval 佢，
+//     然後同 index.html 嘅 markup 對表。改咗其中一邊唔改另一邊 → 即刻紅。
+//   · 跨檔接線要**真實驗**（cycle111c T111c-1 嘅教訓）：SCOPE_CATALOG 寫咗
+//     `icon: 'px-scope-drink'` 但 index.html 冇 `<symbol id="px-scope-drink">`
+//     → 學生見到一個**空白**掣。regex 睇 markup 嘅話會漏過。
+//   · ⚠️ 呢個係 cycle111h `_wirePauseOverlay` 事故嘅同類問題（宣告咗但冇接線）。
+//
+// 契約：
+//   · 8 個 scope 掣 ↔ 8 隻**唔同**嘅 16×16 symbol
+//   · 5 個快捷 chip ↔ SCOPE_PRESET_ICON
+//   · 每隻 icon 真係喺 index.html 有 <symbol>，而且 viewBox 係 0 0 16 16
+//     （16×16 先可以用 16 / 32 / 48 px 顯示 → 整數倍 → 像素邊乾淨）
+try {
+  console.log('\n[T111d] V3.6 cycle-111d (emoji-as-chrome · scope icon 跨檔真值表)');
+
+  const html = readIndexHtml();
+  const js = readAppJs();
+
+  // --- 抽 + 真實 eval 模組 ---
+  const catalogSrc = (js.match(/const SCOPE_CATALOG\s*=\s*\[[\s\S]*?\n\];/) || [''])[0];
+  const presetSrc = (js.match(/const SCOPE_PRESET_ICON\s*=\s*\{[\s\S]*?\n\};/) || [''])[0];
+  check('T111d-1 抽到 SCOPE_CATALOG 模組', catalogSrc !== '', '搵唔到 const SCOPE_CATALOG');
+  check('T111d-1 抽到 SCOPE_PRESET_ICON 模組', presetSrc !== '', '搵唔到 const SCOPE_PRESET_ICON');
+
+  const mod = new Function(`${catalogSrc}\n${presetSrc}\nreturn { SCOPE_CATALOG, SCOPE_PRESET_ICON };`)();
+  const CATALOG = mod.SCOPE_CATALOG;
+  const PRESET = mod.SCOPE_PRESET_ICON;
+
+  function btnBlock(attr, val) {
+    const re = new RegExp('<button[^>]*' + attr + '="' + val + '"[\\s\\S]*?</button>');
+    const m = html.match(re);
+    return m ? m[0] : '';
+  }
+  function symbolOf(id) {
+    const m = html.match(new RegExp('<symbol\\b[^>]*id="' + id + '"[^>]*>'));
+    return m ? m[0] : null;
+  }
+
+  // --- 1. catalog 結構 ---
+  check('T111d-1 SCOPE_CATALOG 有 8 個 scope', CATALOG.length === 8, `length=${CATALOG.length}`);
+  check('T111d-1 每個 scope 都有 icon 欄位（emoji 已退役）',
+    CATALOG.every(s => typeof s.icon === 'string' && s.icon.startsWith('px-')));
+  check('T111d-1 SCOPE_CATALOG 冇殘留 emoji 欄位',
+    !CATALOG.some(s => 'emoji' in s));
+
+  // --- 2. 8 隻 icon 全部唔同 ---
+  const icons = CATALOG.map(s => s.icon);
+  check('T111d-2 8 個 scope 嘅 icon 全部唔同（學生靠 icon 揀範疇）',
+    new Set(icons).size === 8, icons.join(' '));
+
+  // --- 3. markup ↔ catalog 一致 ---
+  for (const s of CATALOG) {
+    const b = btnBlock('data-scope', s.id);
+    check(`T111d-3 .opt-scope[data-scope="${s.id}"] 用緊 catalog 嘅 icon（${s.icon}）`,
+      b !== '' && b.includes(`href="#${s.icon}"`),
+      b === '' ? '搵唔到掣' : 'markup 同 catalog 唔一致');
+  }
+  const scopeBtnCount = (html.match(/class="opt-scope btn/g) || []).length;
+  check('T111d-3 index.html 嘅 .opt-scope 掣數 = 8', scopeBtnCount === 8, `count=${scopeBtnCount}`);
+
+  // --- 4. 跨檔接線：每隻 icon 真係有 <symbol>（宣告咗但冇接線 = 空白掣）---
+  for (const s of CATALOG) {
+    const sym = symbolOf(s.icon);
+    check(`T111d-4 icon ${s.icon} 喺 index.html 真係有 <symbol>（唔係空白掣）`, sym !== null);
+    if (sym) {
+      const vb = (sym.match(/viewBox="([^"]+)"/) || [])[1];
+      check(`T111d-4 ${s.icon} 嘅 viewBox 係 0 0 16 16（先可以 16/32/48px 整數倍顯示）`,
+        vb === '0 0 16 16', `viewBox=${vb}`);
+      check(`T111d-4 ${s.icon} 有 crispEdges`, /shape-rendering="crispEdges"/.test(sym));
+    }
+  }
+
+  // --- 5. 快捷 chip ↔ SCOPE_PRESET_ICON ---
+  check('T111d-5 SCOPE_PRESET_ICON 有 5 個 chip', Object.keys(PRESET).length === 5,
+    Object.keys(PRESET).join(' '));
+  for (const [k, icon] of Object.entries(PRESET)) {
+    const b = btnBlock('data-scope-preset', k);
+    check(`T111d-5 .opt-scope-preset[data-scope-preset="${k}"] 用緊 ${icon}`,
+      b !== '' && b.includes(`href="#${icon}"`),
+      b === '' ? '搵唔到 chip' : 'markup 同 registry 唔一致');
+    check(`T111d-5 chip icon ${icon} 真係有 <symbol>`, symbolOf(icon) !== null);
+  }
+  const presetBtnCount = (html.match(/class="opt-scope-preset"/g) || []).length;
+  check('T111d-5 index.html 嘅 .opt-scope-preset 掣數 = 5', presetBtnCount === 5, `count=${presetBtnCount}`);
+
+  // --- 6. 表情符號退役：chrome 掣一個都唔准仲有 emoji ---
+  const CHROME_EMOJI = /[🔢📏↕📈📉🧃🥛🪣💡🤝🏁✨]/u;
+  const chromeBlocks = [].concat(
+    CATALOG.map(s => btnBlock('data-scope', s.id)),
+    Object.keys(PRESET).map(k => btnBlock('data-scope-preset', k)),
+    [btnBlock('data-team', 'coop'), btnBlock('data-team', 'versus'),
+     btnBlock('id', 'sen-hint-knight'), btnBlock('id', 'sen-hint-mage'),
+     btnBlock('id', 'teacher-end')]);
+  check('T111d-6 chrome 掣總數 = 18（8 scope + 5 chip + 2 team + 2 hint + 1 end）',
+    chromeBlocks.length === 18 && chromeBlocks.every(b => b !== ''),
+    `blocks=${chromeBlocks.length} empty=${chromeBlocks.filter(b => b === '').length}`);
+  const withEmoji = chromeBlocks
+    .map((b, i) => ({ i, e: (b.match(CHROME_EMOJI) || [])[0] || '', b }))
+    .filter(x => x.e);
+  check('T111d-6 18 個 chrome 掣全部冇殘留 emoji',
+    withEmoji.length === 0,
+    withEmoji.map(x => `#${x.i}:${x.e}`).join(' '));
+} catch (e) {
+  check('T111d scope icon audit 執行得到（唔好 throw）', false, e.message);
 }
 
 // summary

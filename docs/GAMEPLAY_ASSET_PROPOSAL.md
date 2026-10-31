@@ -348,19 +348,31 @@ const q = QuestionGen.make(type, Game.settings.mode);   // 重練 = 抽一條全
 | `px-badge-order` | 順序概念徽章 | 0 0 16 16 | **0（重用 `px-badge-hat`）** | T1 | |
 | `px-badge-capacity` | 容量概念徽章 | 0 0 16 16 | **0（重用 `px-badge-book`）** | T1 | |
 | `px-island` | 班級島 | 0 0 64 64 | 1,600 | T1 | 4 階段用 CSS class 切裝飾 |
-| `px-scope-count` | 數數 scope icon | 0 0 16 16 | **0（重用 `px-abacus`）** | T1 | 取代 🔢 |
-| `px-scope-length` | 長短 scope icon | 0 0 16 16 | 400 | T1 | 取代 📏 |
-| `px-scope-height` | 高矮 scope icon | 0 0 16 16 | 400 | T1 | 取代 ↕️ |
-| `px-scope-order` | 順序 scope icon | 0 0 16 16 | 400 | T1 | |
-| `px-scope-capacity` | 容量 scope icon | 0 0 16 16 | 400 | T1 | 取代 🧃 |
-| `px-icon-hint` | 提示掣 | 0 0 16 16 | 350 | T1 | 取代 💡 |
-| `px-icon-rescue` | 接力「傳手」icon | 0 0 16 16 | 400 | T1 | 取代 🤝 / ⬅➡ |
-| `px-icon-stage` | 關卡旗 | 0 0 16 16 | 350 | T1 | 取代 🏁 |
+| `px-scope-count` | 數數 scope icon | 0 0 16 16 | **0（重用 `px-abacus`）** | T1 | 取代 🔢 · ✅ cycle111d |
+| `px-scope-length` | 長短 scope icon | 0 0 16 16 | 400 | T1 | 取代 📏 · ✅ cycle111d |
+| `px-scope-height` | 高矮 scope icon | 0 0 16 16 | 400 | T1 | 取代 ↕️ · ✅ cycle111d |
+| `px-scope-order` | 順序 scope icon | 0 0 16 16 | 400 | T1 | ✅ cycle111d |
+| `px-scope-capacity` | 容量 scope icon | 0 0 16 16 | 400 | T1 | 取代 🧃 · ✅ cycle111d |
+| `px-icon-hint` | 提示掣 | 0 0 16 16 | 350 | T1 | 取代 💡 · ✅ cycle111d |
+| `px-icon-rescue` | 接力「傳手」icon | 0 0 16 16 | 400 | T1 | 取代 🤝 / ⬅➡ · ✅ cycle111d |
+| `px-icon-stage` | 關卡旗 | 0 0 16 16 | 350 | T1 | 取代 🏁 · ✅ cycle111d |
+| **⚠️ cycle111d 補充 4 隻** | | | | | |
+| `px-scope-order-desc` | 倒序 scope icon | 0 0 16 16 | 400 | T1 | 取代 📉 · ✅ cycle111d |
+| `px-scope-drink` | 找 L 飲品 scope icon | 0 0 16 16 | 400 | T1 | 取代 🥛 · ✅ cycle111d |
+| `px-scope-bucket` | 找 L 物品 scope icon | 0 0 16 16 | 400 | T1 | 取代 🪣 · ✅ cycle111d |
+| `px-icon-all` | 「全部」快捷 chip icon | 0 0 16 16 | 350 | T1 | 取代 ✨ · ✅ cycle111d |
 | **小計（全新）** | **16 個** | | **≈ 14,200** | | |
 | **小計（重用 6 個死 symbol）** | **6 個** | | **0** | | 5 badge + abacus |
 
 > **重點**：死 symbol 唔係浪費 —— 佢哋**正好就係**新玩法要嘅 5 個概念徽章 + 數數 icon。
 > 全新要畫嘅只有 **16 個**（5 boss + 1 island + 4 scope icon + 3 UI icon + 4 已有 boss 微調）。
+
+> ⚠️ **cycle111d 實測修正**：上面呢份清單**唔夠用** —— 主選單有 **8 個 scope 掣**
+> （count20 / compareLength / compareHeight / orderAsc20 / orderDesc20 / learnL /
+> findLDrink / findLItem），但清單只俾 4 隻 scope icon（+ 重用 abacus）→ **8 個 scope
+> 一定要 8 隻唔同 icon**，否則學生揀唔到（原本靠 emoji 區分）。補咗 4 隻
+> （`px-scope-order-desc` / `px-scope-drink` / `px-scope-bucket` / `px-icon-all`）。
+> 教訓：**畫 icon 之前要先數「畫面上面有幾多個位置需要區分」**，唔可以淨係照清單逐個對。
 
 
 **淨新增預算：≈ 14,200 bytes**（16 個全新 symbol；6 個死 symbol 直接重用做概念徽章 + 數數 icon）。
@@ -496,4 +508,4 @@ const q = QuestionGen.make(type, Game.settings.mode);   // 重練 = 抽一條全
 
 | 111n | 2026-10-30 | **F8 · 單人 boss 淨一座城塔 + 窄屏 compact 模式（§3.9 相關）**。F8：單人 boss 之前有**兩座**城塔，但右隊 panel 喺單人模式係收埋嘅 → 約 50% 嘅 HP 流失學生點都阻唔到，而且失敗條件要「兩座都跌到 0」。→ 城塔數量 / HP 上限 / 失敗條件全部收埋成**單一真實來源**（`_castleSides()` / `_castleMax()` / `_castleAlive()` / `_castleFallen()`）；單人淨顯示一座，HP = **200**（= 舊版兩座加埋，**保住原本生存時間預算** —— 淨收細做 100 血塔會令生存時間砍半 ≈ 62s，學生根本打唔死 boss）；boss 攻擊只打存在嘅塔，而且**塔同受傷角色綁定**（左翼→騎士 / 右翼→法師）—— 之前兩者各自 random，會出現「法師動畫 + 左翼塔掉血」嘅矛盾；雙隊語義不變（跌一座唔即刻輸）。**F8b（真機量測捉到嘅長久 P1，cycle111j 已經存在）**：`#screen-game` 係 `flex flex-col` + `height:100vh` → 高嘅 team card 把其他項 squeeze 晒，boss panel（overflow:hidden）被壓到 **26px**，HP 條 + 96px boss 圖溢出蓋住 team card → **學校 iPad 639×669 嘅 boss / 經典畫面學生完全睇唔到 boss HP 條**（之前 `playtest-boss` 只斷「元素存在 + HP 文字 > 0」，冇斷幾何 → 長期全綠）。→ 窄屏（≤767px）compact 模式：① `#screen-game > *` 唔准 shrink ② boss panel 改細格（sprite 96→48，名字 + HP 條排右邊，263 → 80px）③ 城塔條改一行細條（icon 48→32）+ sticky 喺底部 → **問題 + 答案選項 + boss HP 條一屏晒，唔使捲**。Lock-in：regression T111n-01..09 + generator-audit T111n-1..4（真實執行城塔數量 / HP 上限 / 失敗語義）+ 視覺場景 `castle-solo`（5 條，含幾何斷言：sticky 城塔條同答案掣重疊 = 0）；**11 條還原驗證全部以正確原因 fail**。 |
 
-| 111d | 下一步 | 4 scope icon + 3 UI icon + emoji-as-chrome 置換（合共 16 個新 symbol）。 |
+| 111d | 2026-10-31 | **emoji-as-chrome 置換（§4.4 / §4.5）落地**。`docs/ART_STYLE_GUIDE.md` 禁止表寫明「emoji 唔可以做 UI chrome」（模式鈕 / 大絕掣 / icon-only 掣）—— emoji 依賴系統字體，冇 font 就變 monochrome fallback。本 cycle 換咗 **18 個位置**：8 × `.opt-scope`（範疇）+ 5 × `.opt-scope-preset`（快捷）+ 2 × `.opt-team`（打怪方式）+ 2 × `#sen-hint-*`（**icon-only** 提示掣）+ 1 × `#teacher-end`（教師台）。⚠️ **emoji-as-content 留**（題目嘅水果 emoji、物件 emoji）—— 唔係所有 emoji 都應該換。⚠️ **§4.4 清單唔夠用**：主選單有 8 個 scope 掣但清單只俾 4 隻 scope icon → **8 個 scope 要 8 隻唔同 icon**（學生靠 icon 揀範疇）→ 補 `px-scope-order-desc`（倒序階梯）/ `px-scope-drink`（飲杯）/ `px-scope-bucket`（水桶）/ `px-icon-all`（四格）＝ **11 隻新 sprite**（7 + 4）。**scope→icon 收埋成單一真實來源**：`SCOPE_CATALOG` 嘅 `emoji` 欄位（死碼）改成 `icon`（sprite id）+ 新 `SCOPE_PRESET_ICON`；index.html markup 必須跟 —— generator-audit T111d 真實 eval 模組再對表（catalog 寫咗但 HTML 冇 `<symbol>` → 學生見到**空白掣**，同 cycle111h `_wirePauseOverlay` 同類）。⚠️ **像素 icon 容器一定要 px**（`.scope-ico` 32px / `.scope-ico-sm` 16px）—— em/vw/clamp 令顯示倍率唔係整數倍 → 像素邊有灰。Collateral：範疇掣改 flex 排版（icon 左 + 文字右）；toast 唔再帶 emoji。⚠️ **守門要防「假通過」**：regex 匹配唔到嘢時 `[].every()` 永遠 true → 每條集合斷言要**同時斷數量**（還原驗證捉到 T111d-02 / T111d-05 / T111d-10 三條假守門，已修）。Lock-in：regression T111d-01..10 + generator-audit T111d-1..6（跨檔真值表）+ asset-audit C9（新 sprite §4 色板）+ 視覺場景 `scope-icons`（7 條，含幾何斷言：icon 完全喺掣入面 + 8 隻 icon 全部唔同）；**19 條還原驗證全部以正確原因 fail**。未做（111e+）：題型選擇器 `reg.emoji`（23 個 type 要 23 隻 icon）· `.combo-emoji` 場景 emoji · 教具 emoji · 即時提示嘅行內 💡（TTS 會讀出嚟）。 |

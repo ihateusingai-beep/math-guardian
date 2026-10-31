@@ -1866,8 +1866,14 @@ assert('RISK1-02 toast element has status role + auto-fade',
   /t\.id\s*=\s*'preset-toast'/.test(src) &&
   /setAttribute\(['"]role['"],\s*['"]status['"]\)/.test(src) &&
   /opacity\s*=\s*'0'/.test(src));
-assert('RISK1-03 capacity preset label mapped',
-  /capacity:\s*'🧃 只容量'/.test(src));
+// ⚠️ 舊版呢條斷住 `capacity:'🧃 只容量'`（toast 帶 emoji）。
+//    cycle111d 做咗 emoji-as-chrome 置換 → toast 唔再帶 emoji
+//    （emoji 靠系統字體，同畫面入面啲像素 sprite icon 對唔上）。
+//    ⚠️ 呢條係「舊 lock-in 反映舊行為」嘅典型：改行為就要同步更新佢，唔可以就係刪咗佢。
+assert('RISK1-03 capacity preset label mapped（emoji-as-chrome 置換後唔帶 emoji）',
+  /const labelMap\s*=\s*\{\s*count:'只數數'/.test(src) &&
+  /capacity:\s*'只容量'/.test(src) &&
+  !/const labelMap\s*=\s*\{[^}]*🧃/.test(src));
 // Risk 3 fix: SEN_COPY silent fallthrough warns (1× per type)
 assert('RISK3-01 _senCopyText warns on missing entry',
   /_senCopyText[\s\S]{0,400}console\.warn/.test(src) &&
@@ -3183,6 +3189,142 @@ assert('T111n-09 城塔 + compact 有真機守門（單人一座 + boss 只打�
   /重疊=/.test(castleScene) &&
   /is-solo/.test(castleScene) &&
   /boss-panel h=/.test(castleScene));
+
+// [T111d] V3.6 cycle-111d（emoji-as-chrome 置換 · scope icon + UI icon）
+//
+// docs/ART_STYLE_GUIDE.md 禁止表：「用 emoji 做 UI chrome（模式鈕、大絕掣、icon-only 掣）」——
+//   emoji 依賴系統字體，冇 font 就變 monochrome fallback（實測見 before-07-boss-gameplay.jpg）。
+// proposal §4.4 / §4.5：範疇 icon + UI icon 應該用 inline SVG symbol 取代。
+//
+// 本 cycle 處理嘅位置（選擇類 chrome + icon-only 掣）：
+//   8 × .opt-scope（範疇）· 5 × .opt-scope-preset（快捷）· 2 × .opt-team（打怪方式）
+//   2 × #sen-hint-*（icon-only 提示掣）· 1 × #teacher-end（教師台強制結束）
+//
+// ⚠️ emoji-as-content **留**（題目嘅水果 emoji、物件 emoji）—— 唔係所有 emoji 都應該換。
+//    未處理（cycle 111e+）：題型選擇器 reg.emoji（23 個 type 要 23 隻 icon）、
+//    .combo-emoji 場景 emoji、教具 emoji、即時提示嘅行內 💡（TTS 會讀出嚟）。
+// ============================================================
+console.log('\n[T111d] V3.6 cycle-111d (emoji-as-chrome 置換 · scope icon + UI icon)');
+
+const assetAuditSrc = fs.readFileSync(path.join(__dirname, 'asset-audit.js'), 'utf8');
+const scopeIconsScenePath = path.join(__dirname, 'visual', 'scenarios', 'scope-icons.mjs');
+const scopeIconsScene = fs.existsSync(scopeIconsScenePath) ? fs.readFileSync(scopeIconsScenePath, 'utf8') : '';
+
+// 8 個 scope ↔ 像素 sprite（呢個 map 係「呢個 cycle 應該點」嘅規格；
+//   真正嘅單一真實來源喺 app.js SCOPE_CATALOG，generator-audit T111d 會驗兩邊一致）
+const T111D_SCOPE_ICON = {
+  count20: 'px-abacus',
+  compareLength: 'px-scope-length',
+  compareHeight: 'px-scope-height',
+  orderAsc20: 'px-scope-order',
+  orderDesc20: 'px-scope-order-desc',
+  learnL: 'px-scope-capacity',
+  findLDrink: 'px-scope-drink',
+  findLItem: 'px-scope-bucket',
+};
+const T111D_PRESET_ICON = {
+  count: 'px-abacus',
+  length: 'px-scope-length',
+  height: 'px-scope-height',
+  capacity: 'px-scope-capacity',
+  all: 'px-icon-all',
+};
+// emoji-as-chrome 嘅偵測範圍（emoji + dingbat + 符號）；
+// ⚠️ 唔包括 U+25A0（■）—— 幾何圖形區塊，唔係 emoji 區塊，題目單位就用佢。
+const T111D_EMOJI = /[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\u{FE0F}\u{2190}-\u{21FF}]/u;
+
+function _t111dBlock(markup, tag, attr, val) {
+  const re = new RegExp('<' + tag + '[^>]*' + attr + '="' + val + '"[\\s\\S]*?</' + tag + '>');
+  const m = markup.match(re);
+  return m ? m[0] : '';
+}
+function _t111dBlocksWith(attrName, valuePrefix) {
+  // ⚠️ valuePrefix 為空時唔可以砌成 `attr=""` —— 咁樣一個都匹配唔到，
+  //    `[].every()` 永遠 true → 呢條 lock-in 就變咗「假守門」。
+  const val = valuePrefix ? valuePrefix + '[^"]*' : '[^"]*';
+  const re = new RegExp('<button[^>]*' + attrName + '="' + val + '"[\\s\\S]*?</button>', 'g');
+  return markupAll(src, re);
+}
+function markupAll(text, re) {
+  const out = [];
+  let m;
+  while ((m = re.exec(text)) !== null) out.push(m[0]);
+  return out;
+}
+
+assert('T111d-01 8 個 .opt-scope 掣每個都用對應嘅像素 sprite（唔再係 emoji）',
+  Object.entries(T111D_SCOPE_ICON).every(([id, icon]) => {
+    const b = _t111dBlock(src, 'button', 'data-scope', id);
+    return b.includes('href="#' + icon + '"') && !T111D_EMOJI.test(b);
+  }));
+
+assert('T111d-02 8 個 scope 嘅 icon 全部唔同（學生要靠 icon 揀範疇，唔可以共用）',
+  // ⚠️ 要讀**真實 markup**，唔可以只斷上面嗰個硬編碼 map ——
+  //    硬編碼 map 永遠唔會變 → 呢條就變成「假守門」（product 改成共用 icon 都捉唔到）。
+  (() => {
+    const hrefs = Object.keys(T111D_SCOPE_ICON).map(id => {
+      const m = src.match(new RegExp('data-scope="' + id + '"[\\s\\S]*?href="#([^"]+)"'));
+      return m ? m[1] : '';
+    });
+    return hrefs.every(h => h) && new Set(hrefs).size === hrefs.length;
+  })());
+
+assert('T111d-03 5 個 .opt-scope-preset 快捷 chip 全部用像素 sprite',
+  Object.entries(T111D_PRESET_ICON).every(([p, icon]) => {
+    const b = _t111dBlock(src, 'button', 'data-scope-preset', p);
+    return b.includes('href="#' + icon + '"') && !T111D_EMOJI.test(b);
+  }));
+
+assert('T111d-04 打怪方式 2 個掣 + 2 個 hint icon-only 掣 + 教師台結束掣全部用像素 sprite',
+  _t111dBlock(src, 'button', 'data-team', 'coop').includes('href="#px-icon-rescue"') &&
+  _t111dBlock(src, 'button', 'data-team', 'versus').includes('href="#px-trophy"') &&
+  _t111dBlock(src, 'button', 'id', 'sen-hint-knight').includes('href="#px-icon-hint"') &&
+  _t111dBlock(src, 'button', 'id', 'sen-hint-mage').includes('href="#px-icon-hint"') &&
+  _t111dBlock(src, 'button', 'id', 'teacher-end').includes('href="#px-icon-stage"'));
+
+assert('T111d-05 emoji-as-chrome 嘅掣一個都唔准仲有 emoji（8 scope + 5 preset + 2 team + 2 hint + 1 end）',
+  (() => {
+    const groups = [
+      _t111dBlocksWith('data-scope', ''),
+      _t111dBlocksWith('data-scope-preset', ''),
+      _t111dBlocksWith('data-team', ''),
+      _t111dBlocksWith('id', 'sen-hint-'),
+      _t111dBlocksWith('id', 'teacher-end'),
+    ];
+    // ⚠️ 先斷**數量**（8/5/2/2/1）—— 匹配唔到嘢嘅 every() 永遠 true，係假守門。
+    const counts = groups.map(g => g.length);
+    const countOk = counts.join(',') === '8,5,2,2,1';
+    const noEmoji = groups.every(g => g.every(b => !T111D_EMOJI.test(b)));
+    return countOk && noEmoji;
+  })());
+
+assert('T111d-06 SCOPE_CATALOG 嘅 icon 欄位係 scope→sprite 嘅單一真實來源（8 個 scope 全部有）',
+  Object.entries(T111D_SCOPE_ICON).every(([id, icon]) =>
+    new RegExp("id:\\s*'" + id + "'[^\\n]*icon:\\s*'" + icon + "'").test(srcCode)) &&
+  /const SCOPE_CATALOG\s*=\s*\[/.test(srcCode) &&
+  !/const SCOPE_CATALOG[\s\S]{0,900}emoji:/.test(srcCode));
+
+assert('T111d-07 SCOPE_PRESET_ICON 存在（5 個快捷 chip 嘅 icon 來源）',
+  /const SCOPE_PRESET_ICON\s*=\s*\{/.test(srcCode) &&
+  Object.entries(T111D_PRESET_ICON).every(([p, icon]) =>
+    new RegExp("\\b" + p + ":\\s*'" + icon + "'").test(srcCode)));
+
+assert('T111d-08 像素 icon 容器用 px 尺寸（em/vw/clamp 會令顯示倍率唔係整數倍 → 像素邊有灰）',
+  /\.scope-ico\s*\{[^}]*width:\s*32px[^}]*height:\s*32px/.test(src) &&
+  /\.scope-ico-sm\s*\{[^}]*width:\s*16px[^}]*height:\s*16px/.test(src) &&
+  !/\.scope-ico(?:-sm)?\s*\{[^}]*(?:\d(?:\.\d+)?(?:em|rem|vw|clamp))/.test(src));
+
+assert('T111d-09 選擇類掣改用 flex 排版（icon 左 + 文字右，唔會歪）',
+  /\.opt-scope,\s*\.opt-team\s*\{[^}]*display:\s*flex[^}]*align-items:\s*center/.test(src) &&
+  /\.opt-scope-preset\s*\{[^}]*display:\s*inline-flex[^}]*align-items:\s*center/.test(src));
+
+assert('T111d-10 新像素容器入 asset-audit + 有真機場景守門（icon 真 render + 唔 overflow）',
+  // ⚠️ 要斷**真正嗰個 array 嘅內容**，唔可以淨係 `/\.scope-ico/` ——
+  //    asset-audit 嘅註解入面都有 ".scope-ico" 字樣 → 淨斷字串會「假通過」。
+  /'\.scope-ico'\s*,\s*'\.scope-ico-sm'/.test(assetAuditSrc) &&
+  scopeIconsScene !== '' &&
+  /getBoundingClientRect/.test(scopeIconsScene) &&
+  /639/.test(scopeIconsScene));
 
 // =========== summary ===========
 console.log(`\n========== ${pass} pass / ${fail} fail ==========`);

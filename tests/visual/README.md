@@ -43,6 +43,7 @@ node tests/visual/run.mjs --keep-shots             # 保留截圖 + Chrome profi
 | `playtest-end-screen` | **接力收尾 + 結算畫面**（cycle111i）· 題數文案 vs 實際（xfail）· 一隊做完跳過佢唔死鎖 · 概念卡 4 粒圓點 · 島嶼 pips 8 格 · M4 可達性（xfail） |
 | `castle-solo` | **F8 單人 boss 城塔 + 窄屏 compact**（cycle111n）· 單人淨一座塔（HP 200/200 · 右塔隱藏）· boss 攻擊只打玩家嗰座 · **boss panel 唔被壓扁 + 答案掣唔被 sticky 城塔條遮住（重疊 = 0）** · 雙隊仍係兩座塔各 100 HP |
 | `guardian-stage` | **關卡守護者 + F7 classic 進度格**（cycle111c）· 守護者 sprite 真係 render + href 跟題型 family → 答啱填 1 格（HP = Stage 3 格）+ 受傷動畫 → 第 3 題過關（守護者退場 + 關卡 +1 + 格數歸零）→ 經典/boss 畫面答啱真係填格 |
+| `scope-icons` | **emoji-as-chrome 置換**（cycle111d）· 8 個範疇掣嘅像素 icon 真 render + href 跟 `SCOPE_CATALOG` · 8 隻 icon 全部唔同 · 範疇/快捷/打怪方式掣冇 emoji · **幾何**：icon 完全喺掣入面 + 639×669 唔爆版 · 提示掣（icon-only）唔係空白掣 |
 | `playtest-boss` | **Boss 戰役**（cycle111i）· HP 條 render + 答啱真跌 · 城堡 HP 條 · 答錯見到正確答案 + 錯題入 review · 逐個選項 ✓/✗ 可見性（xfail） |
 
 ### strict-xfail（cycle111i）

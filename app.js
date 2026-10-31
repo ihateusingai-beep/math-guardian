@@ -1324,16 +1324,29 @@ const TYPE_REGISTRY = {
 };
 
 // home scope catalog (1 scope = 1 type)
+// ⚠️ `icon` 係每個 scope 嘅**像素 sprite id**（emoji-as-chrome 置換後嘅單一真實來源）。
+//    `emoji` 欄位之前係死碼（只有 .id 被用）—— emoji 靠系統字體，冇 font 會變 monochrome fallback，
+//    所以介面位置全部改用 inline SVG symbol（docs/ART_STYLE_GUIDE.md 禁止表）。
+//    index.html 嘅 .opt-scope 掣必須用呢個 icon id（generator-audit T111d 會驗兩邊一致）。
 const SCOPE_CATALOG = [
-  { id: 'count20', label: '數數 1–10', emoji: '🔢' },
-  { id: 'compareLength', label: '長短比較', emoji: '📏' },
-  { id: 'compareHeight', label: '高矮比較', emoji: '↕️' },
-  { id: 'orderAsc20', label: '順序·跟住', emoji: '📈' },
-  { id: 'orderDesc20', label: '倒序·跟住', emoji: '📉' },
-  { id: 'learnL', label: '學用 L', emoji: '🧃' },
-  { id: 'findLDrink', label: '找 L 飲品', emoji: '🥛' },
-  { id: 'findLItem', label: '找 L 物品', emoji: '🪣' },
+  { id: 'count20', label: '數數 1–10', icon: 'px-abacus' },
+  { id: 'compareLength', label: '長短比較', icon: 'px-scope-length' },
+  { id: 'compareHeight', label: '高矮比較', icon: 'px-scope-height' },
+  { id: 'orderAsc20', label: '順序·跟住', icon: 'px-scope-order' },
+  { id: 'orderDesc20', label: '倒序·跟住', icon: 'px-scope-order-desc' },
+  { id: 'learnL', label: '學用 L', icon: 'px-scope-capacity' },
+  { id: 'findLDrink', label: '找 L 飲品', icon: 'px-scope-drink' },
+  { id: 'findLItem', label: '找 L 物品', icon: 'px-scope-bucket' },
 ];
+// 範疇快捷 chip（5 個）嘅 icon —— 對應 SCOPE_CATALOG 入面同一個概念嘅 sprite
+// （容量家族用 learnL 嘅容量樽；「全部」係 4 格 icon）。
+const SCOPE_PRESET_ICON = {
+  count: 'px-abacus',
+  length: 'px-scope-length',
+  height: 'px-scope-height',
+  capacity: 'px-scope-capacity',
+  all: 'px-icon-all',
+};
 const DEFAULT_SCOPES = SCOPE_CATALOG.map(s => s.id);
 
 // === Generator helpers — per type specific math ===
@@ -4890,7 +4903,9 @@ function setupMenu() {
   document.querySelectorAll('.opt-scope-preset').forEach(btn => {
     btn.onclick = () => {
       const p = btn.dataset.scopePreset;
-      const labelMap = { count:'🔢 只數數', length:'📏 只長短', height:'↕️ 只高矮', capacity:'🧃 只容量', all:'✨ 全部' };
+      // ⚠️ toast 唔再帶 emoji —— emoji-as-chrome 置換之後，
+      //    toast 如果仲用 emoji 就會同畫面入面啲 sprite icon 對唔上（emoji 靠系統字體）。
+      const labelMap = { count:'只數數', length:'只長短', height:'只高矮', capacity:'只容量', all:'全部' };
       if (p === 'count') Game.settings.scopes = ['count20'];
       else if (p === 'length') Game.settings.scopes = ['compareLength'];
       else if (p === 'height') Game.settings.scopes = ['compareHeight'];

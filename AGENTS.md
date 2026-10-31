@@ -9,12 +9,12 @@ Vanilla JS + Tailwind CDN, no build, GitHub Pages.
 
 - Open `index.html` (double-click 都得 —— `app.js` 係 `<script defer>`,**唔係** `type="module"`) or `python3 -m http.server 8000`
 - Tests:
-  - `node tests/regression.js` → **964 pass / 0 fail** (structural regex lock-in, cycle 53–111n)
-  - `node tests/generator-audit.js` → **4709 pass / 0 fail** (functional truth-table, cycle 101+ · T108 Adaptive ladder · T109 Stage/提示階梯 · T110 里程碑 · T110b 接力 · T111b 級數階梯 · T111c 守護者 species/HP · T111n 城塔數量/HP/失敗語義)
+  - `node tests/regression.js` → **974 pass / 0 fail** (structural regex lock-in, cycle 53–111d)
+  - `node tests/generator-audit.js` → **4762 pass / 0 fail** (functional truth-table, cycle 101+ · T108 Adaptive ladder · T109 Stage/提示階梯 · T110 里程碑 · T110b 接力 · T111b 級數階梯 · T111c 守護者 species/HP · T111n 城塔數量/HP/失敗語義 · T111d scope icon 跨檔真值表)
   - `node tests/audio-audit.js` → **24 pass / 0 fail** (audio call-site × export cross-check, cycle 105+ · cycle 111g **bus graph 拓撲**守門)
-  - `node tests/asset-audit.js` → **23 pass / 0 fail** (像素資產品質, cycle 111a — 座標 / 倍率 / crispEdges / 死 symbol)
-  - `node tests/visual/run.mjs` → **92 pass / 0 fail** (實機視覺驗證, cycle 111e — 8 scope 可答 / 639×669 overflow / L 容量 / sprite；cycle 111f — SEN 逐個選項反饋 + verdict band 幾何守門；cycle 111g — 教師台主音量 slider + 深底對比度；cycle 111h — **boot console 乾淨**；cycle 111i — **4 條真機 playtest 場景**（教師台 / 接力+級數 / 結算 / Boss）；cycle 111j — **局長可調 + 動態題數 + 級數固定 L1 + 經典逐個選項反饋**；cycle 111c — **關卡守護者（HP = Stage 進度格）+ F7 經典/boss 進度格**；cycle 111n — **F8 單人 boss 一座城塔 + 窄屏 compact 模式**；冇 Chrome 會 SKIP)
-- **總計 5817 pass / 0 fail**（cycle 111n）
+  - `node tests/asset-audit.js` → **27 pass / 0 fail** (像素資產品質, cycle 111a — 座標 / 倍率 / crispEdges / 死 symbol；cycle 111d — 新 icon §4 色板)
+  - `node tests/visual/run.mjs` → **92 pass / 0 fail** (實機視覺驗證, cycle 111e — 8 scope 可答 / 639×669 overflow / L 容量 / sprite；cycle 111f — SEN 逐個選項反饋 + verdict band 幾何守門；cycle 111g — 教師台主音量 slider + 深底對比度；cycle 111h — **boot console 乾淨**；cycle 111i — **4 條真機 playtest 場景**（教師台 / 接力+級數 / 結算 / Boss）；cycle 111j — **局長可調 + 動態題數 + 級數固定 L1 + 經典逐個選項反饋**；cycle 111c — **關卡守護者（HP = Stage 進度格）+ F7 經典/boss 進度格**；cycle 111n — **F8 單人 boss 一座城塔 + 窄屏 compact 模式**；cycle 111d — **emoji-as-chrome 置換（scope icon 真 render + 幾何唔爆版）**；冇 Chrome 會 SKIP)
+- **總計 5891 pass / 0 fail**（cycle 111d）
 - No lint / typecheck / build
 - Live: https://ihateusingai-beep.github.io/math-guardian/
 - **Deploy domain**: `CNAME` file 已移除(cycle 107)—— 站喺 `.github.io` 服務。
@@ -25,8 +25,8 @@ Vanilla JS + Tailwind CDN, no build, GitHub Pages.
 
 ```
 .
-├── index.html              # HTML + inline CSS + 37 inline SVG symbol (~210 KB raw)
-├── app.js                  # 主程式邏輯（~373 KB raw）· `<script defer src="app.js">`
+├── index.html              # HTML + inline CSS + 53 inline SVG symbol (~232 KB raw)
+├── app.js                  # 主程式邏輯（~388 KB raw）· `<script defer src="app.js">`
 ├── TODO.md                 # project plan / next backlog
 ├── docs/                   # current engineering docs
 │   ├── VISUAL_QUALITY_RUBRIC.md   # cycle106 — 視覺 rubric + 評分 + state matrix + profiles
@@ -43,7 +43,7 @@ Vanilla JS + Tailwind CDN, no build, GitHub Pages.
 ├── tests/generator-audit.js # functional truth-table (generators × 30 trials + T108 Adaptive ladder + T111b 級數階梯)
 ├── tests/audio-audit.js    # audio pipeline audit (call-site × export cross-check)
 ├── tests/asset-audit.js    # 像素資產品質 audit (cycle111a — 8 組 check: viewBox / 重複 id / 座標 / 整數倍 / 死 symbol / crispEdges)
-├── tests/visual/           # 實機視覺驗證 (cycle111e — headless Chrome + CDP；13 個 scenario；見 tests/visual/README.md)
+├── tests/visual/           # 實機視覺驗證 (cycle111e — headless Chrome + CDP；14 個 scenario；見 tests/visual/README.md)
 ├── tools/squeeze-comments.cjs # cycle111h — 安全註解清理器（gate-aware，見下）
 └── .harness/               # changelogs, docs, plans
 ```
@@ -126,10 +126,10 @@ Rubric / 目標風格 / 基準喺 **`docs/VISUAL_QUALITY_RUBRIC.md`**。
 - Every behavior change lands a matching assertion in `tests/regression.js`
 - Assertions = source regex only (no DOM)
 - **File budget（cycle111h 起 · per-file，唔再係單檔 600 KB）**
-  - `index.html` raw **< 260,000 bytes**（current: 223,187 · 餘 **36,813**）
-  - `app.js` raw **< 420,000 bytes**（current: 392,537 · 餘 **27,463**）
+  - `index.html` raw **< 260,000 bytes**（current: 237,192 · 餘 **22,808**）
+  - `app.js` raw **< 420,000 bytes**（current: 396,995 · 餘 **23,005**）
   - 傳輸量（真正限制學生下載速度嘅係呢個）：**gzip < 200,000 bytes**
-    （實測 raw 608 KB → gzip **166,135 bytes**；cycle111h 剝完註解 + 拆檔後 → raw 597,552 · gzip **160,607 bytes**；cycle111c 加完 5 隻守護者 → gzip **166,327 bytes**）
+    （實測 raw 608 KB → gzip **166,135 bytes**；cycle111h 剝完註解 + 拆檔後 → raw 597,552 · gzip **160,607 bytes**；cycle111c 加完 5 隻守護者 → gzip **166,327 bytes**；cycle111d 加完 11 隻 scope/UI icon → gzip **171,320 bytes**）
   - ⚠️ **拆檔唔會加快學生下載** —— 之前以為拆檔可以救 raw 預算，
     其實 gzip 之後兩者一樣，拆檔只係令 **per-file 預算** 有意義
   - 唔好為咗慳位刪 feature（cycle111a 教訓）；慳位優先用 `tools/squeeze-comments.cjs`
@@ -325,6 +325,28 @@ Rubric / 目標風格 / 基準喺 **`docs/VISUAL_QUALITY_RUBRIC.md`**。
       高過 Tailwind 嘅 `.hidden{display:none}`，唔加就會令「隱藏右塔」完全失效（T111n-08）
   - ⚠️ **舊 lock-in 會反映舊行為** —— F8 改完，`playtest-boss` 條「右塔 HP > 0」斷言
     必然 fail（單人模式右塔依家隱藏 + HP 0）→ 改成 layout-aware（單人一座 / 雙隊兩座）
+- **Emoji-as-chrome lock-in** (cycle111d, T111d-01..10 + generator-audit T111d-1..6 + asset-audit C9 + 視覺 `scope-icons`):
+  - `docs/ART_STYLE_GUIDE.md` 禁止表：**emoji 唔可以做 UI chrome**（模式鈕 / 大絕掣 / icon-only 掣）——
+    emoji 依賴系統字體，冇 font 就變 monochrome fallback
+  - 本 cycle 換咗 **18 個位置**：8 × `.opt-scope` · 5 × `.opt-scope-preset` ·
+    2 × `.opt-team` · 2 × `#sen-hint-*`（icon-only）· 1 × `#teacher-end`
+  - **emoji-as-content 留**（題目嘅水果 emoji、物件 emoji）—— 唔係所有 emoji 都應該換
+  - ⚠️ **proposal §4.4 唔夠用**：menu 有 8 個 scope 掣，但 §4.4 只俾 4 隻 scope icon
+    （length/height/order/capacity）+ 重用 abacus → **8 個 scope 一定要 8 隻唔同 icon**，
+    否則學生揀唔到（原本靠 emoji 區分）→ 補 `px-scope-order-desc` / `px-scope-drink` /
+    `px-scope-bucket` / `px-icon-all`（共 11 隻新 sprite）
+  - ⚠️ **scope→icon 係跨檔契約**：`SCOPE_CATALOG`（app.js）係唯一真實來源，
+    `index.html` 嘅 markup 必須跟 —— generator-audit T111d 真實 eval 模組再對表
+    （catalog 寫咗 `icon:` 但 HTML 冇 `<symbol>` → 學生見到**空白掣**，
+    同 cycle111h `_wirePauseOverlay` 事故同類）
+  - ⚠️ **像素 icon 容器一定要 px 尺寸**（`.scope-ico` 32px / `.scope-ico-sm` 16px）
+    —— em/vw/clamp 會令顯示倍率唔係整數倍 → 像素邊有灰（asset-audit C7-01 守門）
+  - ⚠️ **唔好喺新註解寫 "V3.6 cycleNNN"** —— 註解契約：cycle-by-cycle 敘述唔准寫，
+    只留「⚠️ 點解咁做」嘅決策註解（T111h-09 守殘留 cycle 標記 ≤ 40）
+  - **未做（cycle 111e+）**：題型選擇器 `reg.emoji`（23 個 type 要 23 隻 icon）·
+    `.combo-emoji` 場景 emoji · 教具 emoji · 即時提示嘅行內 💡（TTS 會讀出嚟）
+  - ⚠️ **守門要防「假通過」**：regex 匹配唔到嘢時 `[].every()` 永遠 true →
+    每條「集合斷言」都要**同時斷數量**（T111d-05 斷 8/5/2/2/1）
 - Student UI: **no** stigma「SEN」label; MC **A/B/C** badges by **render order**
 - `startGame`/resume helpers must be **module scope** (not nested in `setupMenu`)
 

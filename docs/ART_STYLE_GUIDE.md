@@ -74,6 +74,28 @@ rig → **CSS animation 參數**;clip → **`@keyframes` 命名 + duration 表**
 | 任何 base64 / data URI 圖片 | 同上 |
 | 半透明 sprite 疊出唔穩定嘅 alpha edge | 造成 shimmer |
 
+#### 1.4.1 emoji-as-chrome 現況（cycle111d 起）
+
+**唔係所有 emoji 都應該換** —— 判斷標準係「係咪**介面零件**」：
+
+| 類別 | 例子 | 處理 |
+|---|---|---|
+| **UI chrome**（介面零件） | 範疇掣 🔢📏↕️📈📉🧃🥛🪣 · 快捷 chip ✨ · 打怪方式 🤝🏆 · 提示掣 💡 · 強制結束 🏁 | **換 inline SVG symbol** ✅ cycle111d |
+| **題目內容**（教具） | 🍎53 🍌38 🍓36 🍇34 🌟22 | **保留 emoji** |
+| **場景 / 裝飾** | 🌼 大掣 · 🚢🌉 教具 · 🔵🟣 舖路 | 保留（cycle111e+ 逐個評估） |
+| **行內說明文字** | 即時提示嘅 `💡 答案係 3` | 保留（TTS 會讀出嚟，拆開反而唔啱） |
+
+✅ **已換（18 個位置）** —— 8 × `.opt-scope` · 5 × `.opt-scope-preset` ·
+2 × `.opt-team` · 2 × `#sen-hint-*` · 1 × `#teacher-end`
+
+⚠️ **畫 icon 之前要先數「畫面上面有幾多個位置需要區分」**：
+主選單有 **8 個 scope 掣** → 一定要 **8 隻唔同 icon**（學生靠 icon 揀範疇），
+唔可以 4 隻 icon 對 8 個掣（否則學生揀唔到）。proposal §4.4 原本只列 4 隻 → cycle111d 補 4 隻。
+
+⚠️ **像素 icon 容器一定要 px 尺寸**（16×16 symbol 嘅合法顯示尺寸 = 16 / 32 / 48 px）：
+用 `em` / `vw` / `clamp` 會令顯示倍率變非整數倍 → 像素邊有灰邊。
+（asset-audit C7-01 守門；新容器記得加落 `PX_CONTAINERS`。）
+
 ---
 
 ## 2. Naming conventions(命名)

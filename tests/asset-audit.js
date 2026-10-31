@@ -239,7 +239,8 @@ group('A111-C7 顯示倍率整數');
   }
   // 像素 icon 容器：CSS 尺寸必須係 px（em 會隨父字體變 → 非整數倍）
   // cycle111c: .sen-guardian（關卡守護者 · 16×16 symbol）都係像素 icon 容器 → 一樣要 px 尺寸
-  const PX_CONTAINERS = ['.icon-mini', '.icon-md', '.icon-lg', '.pic-card-svg', '.bi-svg', '.boss-svg', '.meteor', '.char-svg', '.sen-guardian'];
+  // cycle111d: .scope-ico / .scope-ico-sm（emoji-as-chrome 置換 · 範疇 icon 容器）→ 一樣要 px 尺寸
+  const PX_CONTAINERS = ['.icon-mini', '.icon-md', '.icon-lg', '.pic-card-svg', '.bi-svg', '.boss-svg', '.meteor', '.char-svg', '.sen-guardian', '.scope-ico', '.scope-ico-sm'];
   for (const sel of PX_CONTAINERS) {
     const s = cssSize(sel);
     if (!s) { check(`C7-00 ${sel} 有 px 尺寸規則`, false, '搵唔到 width/height'); continue; }
@@ -294,6 +295,44 @@ group('A111-C8 crispEdges');
 {
   const bad = symbols.filter((s) => !/shape-rendering="crispEdges"/.test(s.attrs)).map((s) => s.id);
   check('C8-01 每個 symbol 都有 shape-rendering="crispEdges"', bad.length === 0, bad.join(' '));
+}
+
+// ============================================================
+// Check 9 — 新增（cycle111d）嘅 icon sprite 必須用 §4 色板
+// ============================================================
+// ⚠️ 只查 **cycle111d 新增** 嗰批 —— 舊 sprite（px-troll / pkg-* …）用咗 Tailwind ramp，
+//    唔喺 §4 12 色色板入面（proposal §4.6 講明「全部 sprite 只用呢 12 個色」，
+//    但歷史 sprite 一直冇跟 —— 唔可以喺呢個 cycle 順手改 40 隻 sprite）。
+//    呢條鎖住「新造嘅要跟色板」，唔會逼住改舊嘅。
+group('A111-C9 新 icon 用 §4 色板');
+{
+  const PALETTE = new Set([
+    // §4.1 核心 12 色
+    '#0a1729', '#1e3a5f', '#4a6fa5', '#f0f9ff', '#cbd5e1', '#475569',
+    '#0f172a', '#fbbf24', '#3b82f6', '#a855f7', '#dc2626',
+    // §4.2 材質 ramp
+    '#e2e8f0', '#94a3b8', '#64748b', '#1e293b',
+    '#fcd34d', '#d97706', '#78350f',
+    '#fde68a', '#b45309',
+    '#93c5fd', '#1e3a8a',
+    '#bae6fd', '#38bdf8', '#0369a1',
+    '#fda4af', '#ef4444', '#991b1b', '#450a0a',
+  ]);
+  const NEW_ICONS = [
+    'px-scope-length', 'px-scope-height', 'px-scope-order', 'px-scope-order-desc',
+    'px-scope-capacity', 'px-scope-drink', 'px-scope-bucket',
+    'px-icon-hint', 'px-icon-rescue', 'px-icon-stage', 'px-icon-all',
+  ];
+  const missing = NEW_ICONS.filter((id) => !symbols.some((s) => s.id === id));
+  check('C9-01 cycle111d 新增嘅 11 隻 icon 全部存在', missing.length === 0, missing.join(' '));
+  const off = [];
+  for (const s of symbols) {
+    if (!NEW_ICONS.includes(s.id)) continue;
+    const cols = new Set((s.body.match(/#[0-9a-fA-F]{6}/g) || []).map((c) => c.toLowerCase()));
+    const bad = [...cols].filter((c) => !PALETTE.has(c));
+    if (bad.length) off.push(`${s.id}: ${bad.join(' ')}`);
+  }
+  check('C9-02 新 icon 只用 §4 色板（docs/ART_STYLE_GUIDE.md §4.1/§4.2）', off.length === 0, off.join('  ///  '));
 }
 
 // ============================================================
