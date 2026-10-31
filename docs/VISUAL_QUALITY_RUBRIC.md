@@ -581,13 +581,18 @@ Reference (R-PIX 加權) ≈ 8.0 / 10
 
 ### 9.2 High-impact revisions(要 1 個 cycle 級工時)
 
+> 📌 **2026-10-31 量化版**：呢啲項目嘅現況 / 工時 / 驗收已經用 `tools/asset-inventory.cjs`
+> 量過 → 詳見 **`docs/ASSET_ANIMATION_REVIEW.md`**（cycle 111e 起嘅執行 backlog）。
+> H2 已經做咗第一段（cycle111d 換咗 18 個 emoji-as-chrome 位置）。
+
 | # | 項目 | 影響 | 工時 | 備註 |
 |---|---|---|---|---|
 | H1 | **主選單重構**:內容欄闊度 580 → 900+,staggered 構圖,消除 sticky 覆蓋 | C3/C4 | 2–3 h | 最影響 impression |
-| H2 | **跨層語言收斂**:校徽改圓形 mask 去白底;emoji-as-chrome 全換 SVG symbol | C4/C5 | 3–4 h | 最大單一 gap(-4) |
+| H2 | **跨層語言收斂**:校徽改圓形 mask 去白底;emoji-as-chrome 全換 SVG symbol | C4/C5 | 3–4 h | 最大單一 gap(-4) · **cycle111d 完成 18/54 個 chrome 掣** · 仲有 36 個 · 另有 35 隻 sprite 離色板（見 H8） |
 | H3 | **完整按鈕狀態矩陣**:9 態 × 主要掣類型 | C8 | 2 h | idle/hover/focus/pressed/disabled/selected/busy/error/cooldown |
 | H4 | **老師 dashboard 重做**:世界觀化(唔再 generic card),table label/value 靠齊 | C4/C12 | 2–3 h | 最弱 critical state |
-| H5 | **state transition 動畫**:question enter/exit、tab switch、boss hit、reward | C7 | 2–3 h | 唔只加 loop |
+| H5 | **state transition 動畫**:question enter/exit、tab switch、boss hit、reward | C7 | 2–3 h | 唔只加 loop · **2026-10-31 量測：仲有 3 個互動時刻完全冇動畫**（進度格填滿 / 關卡切換 / hint 提示）+ 3 個死 keyframes（`meter-pixel` 係「進度條改 pixel tile」嘅化石） |
+| H8 | **sprite 色板收斂**:35 隻離 §4 色板嘅 sprite 重新上色 | **C4**（權重 9） | **45 min** | ⚠️ **唔使 artist** —— 只係換 hex（72 種 off-palette hex，69 種可自動映射，幾何零改動），唔係重畫 |
 | H6 | **compare 類題目構圖**:utilise 中段空間(而家 200px 留白) | C3 | 1–2 h | |
 | H7 | **「雙重 A/B/C/D」清理**:卡片 badge 同答案列二選一 | C2 | 1 h | S4 |
 

@@ -35,6 +35,7 @@ Vanilla JS + Tailwind CDN, no build, GitHub Pages.
 │   ├── GAME_DESIGN_REVIEW.md      # cycle108 — 遊戲設計檢討 (核心 loop + 6 個設計缺口)
 │   ├── GAMEPLAY_ASSET_PROPOSAL.md # cycle109p — 玩法 + 資產設計方案 (cycle 109 開始實作)
 │   ├── PLAYTEST_REVIEW.md       # cycle111i — 真機 playtest 檢視報告 (9 條發現 + 優化機制建議)
+│   ├── ASSET_ANIMATION_REVIEW.md # cycle111e — 資產 + 動畫盤點與改善計劃 (P0–P4 backlog)
 │   ├── AUDIO_VIDEO_OPTIMIZATION.md # cycle104/105 — media pipeline audit
 │   ├── ARCHITECTURE_REVIEW.md     # cycle96 — code architecture review
 │   └── screenshots/                # cycle106 — before/after evidence 幀 (17 張 JPEG)
@@ -45,6 +46,7 @@ Vanilla JS + Tailwind CDN, no build, GitHub Pages.
 ├── tests/asset-audit.js    # 像素資產品質 audit (cycle111a — 8 組 check: viewBox / 重複 id / 座標 / 整數倍 / 死 symbol / crispEdges)
 ├── tests/visual/           # 實機視覺驗證 (cycle111e — headless Chrome + CDP；14 個 scenario；見 tests/visual/README.md)
 ├── tools/squeeze-comments.cjs # cycle111h — 安全註解清理器（gate-aware，見下）
+├── tools/asset-inventory.cjs  # cycle111e — 資產 + 動畫盤點（sprite / keyframes / emoji-as-chrome）
 └── .harness/               # changelogs, docs, plans
 ```
 

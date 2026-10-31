@@ -277,6 +277,27 @@
         含幾何斷言：icon 完全喺掣入面 + 8 隻 icon 全部唔同）
       └ ⚠️ **還原驗證捉到 3 條「假守門」**（T111d-02 / T111d-05 / T111d-10）——
         集合斷言 `[].every()` 匹配唔到嘢時永遠 true → 已加「同時斷數量」守門
+- [ ] **資產 + 動畫改善計劃**（2026-10-31 量化 → `docs/ASSET_ANIMATION_REVIEW.md`）
+      └ 盤點工具入 repo：`node tools/asset-inventory.cjs`（可重跑 · 唔係 /tmp）
+      └ **P0 · sprite 色板收斂**（45 min · C4 權重 9 · 全項目最大 gap -4）
+        - 35 / 53 隻 sprite 離 §4 色板（38,811 B）→ 重新上色
+        - ⚠️ **唔使 artist** —— 72 種 off-palette hex，69 種可自動映射，**幾何零改動**
+        - ⚠️ 綠色要拍板（§4 色板冇綠 · 森林巨魔 + 9 個 pkg 靠綠辨識）
+        - 驗收：asset-audit C9 由「只查新 sprite」升級做**全量**
+      └ **P1 · emoji-as-chrome 掃尾**（2 cycle）—— 仲有 **36 個掣 / 23 種 emoji**
+        - 111e：主選單（玩法 / 單雙人 / 場景 / combo / 難度）+ 遊戲內 icon-only
+        - 111f：教師台（`td-*` ×8）+ 題型選擇器 `reg.emoji`（**23 隻**，機制現成）
+        - 0 成本重用：🤝 → `px-icon-rescue` · 📏 → `px-scope-length`
+      └ **P2 · 動畫缺口 + 進度格像素化**（1 cycle）
+        - `.sen-cell` 改 pixel tile 陣列（8px 單位 × 3 格）→ 順帶滿足
+          ART_STYLE_GUIDE §4「唔准 rgba 漸層」+ proposal §4 H5
+        - 補 3 個**完全冇動畫**嘅互動時刻：進度格填滿 / 關卡切換 / hint 提示
+        - 3 個死 keyframes：`meter-pixel` 復活 · `spark-pop` 復活 · `freeze-stagger` 刪
+          （`backdrop-filter` 喺學校 iPad 係效能災難）
+      └ **P3 · 學校 iPad 效能 + 未評估 state**（半 cycle）
+        - `will-change` / `contain` 只加喺真需要嘅合成層 · 57 處 `filter` 逐個量
+        - 補 Rubric §3.2 未評估：reduced-motion / resize / 粉藍主題
+      └ **P4 · `px-island`**（併入 cycle 112）
     - [ ] **cycle 111e** emoji-as-chrome 續：題型選擇器 `reg.emoji`（23 個 type 要
           23 隻 icon）· `.combo-emoji` 場景 emoji · 教具 emoji · 教師台其他 emoji
 - [ ] **cycle 112** 教師台 8 項控制 + 班級模式 + 概念卡 UI
